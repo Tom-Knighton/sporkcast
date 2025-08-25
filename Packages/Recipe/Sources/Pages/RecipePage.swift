@@ -76,25 +76,24 @@ public struct RecipePage: View {
                             HStack {
                                 Group {
                                     HStack {
-                                        if let prepTime = recipe.minutesToPrepare {
-                                            Image(systemName: "fork.knife.circle.fill")
-                                            Text("Prep: \(prepTime.formatted())m")
-                                        }
-                                    }
-                                    HStack {
-                                        if let cookTime = recipe.minutesToCook {
-                                            Image(systemName: "frying.pan.fill")
-                                            Text("Cook: \(cookTime.formatted())m")
+                                        if let totalTime = recipe.totalMins {
+                                            Image(systemName: "clock.circle.fill")
+                                            Text("\(totalTime.formatted()) mins")
                                         }
                                     }
                                     HStack {
                                         if let rating = recipe.ratings.overallRating {
-                                            Text(rating.formatted())
                                             Image(systemName: "star.fill")
+                                            Text(rating.formatted())
+                                        }
+                                    }
+                                    HStack {
+                                        if let serves = recipe.serves, serves.isNumber {
+                                            Image(systemName: "person.fill")
+                                            Text(String(describing: serves))
                                         }
                                     }
                                 }
-                                .font(.footnote)
                                 .padding()
                                 .background(Material.thin)
                                 .clipShape(.rect(cornerRadius: 10))
@@ -164,4 +163,10 @@ public struct RecipePage: View {
             .withPreviewEnvs()
     }
 
+}
+
+extension String  {
+    var isNumber: Bool {
+        return !isEmpty && rangeOfCharacter(from: CharacterSet.decimalDigits.inverted) == nil
+    }
 }
