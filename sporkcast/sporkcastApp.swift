@@ -6,12 +6,18 @@
 //
 
 import SwiftUI
+import Recipe
+import Design
+import API
 
 @main
 struct sporkcastApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                RecipePage()
+            }
+            .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         }
     }
 }

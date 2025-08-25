@@ -6,14 +6,40 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E2BBA9122E5B2D8600846D3E /* API in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9112E5B2D8600846D3E /* API */; };
+		E2BBA9142E5B2D8600846D3E /* Design in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9132E5B2D8600846D3E /* Design */; };
+		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E2BBA90D2E5B2BCF00846D3E /* Exceptions for "Packages" folder in "sporkcast" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				API,
+				Design,
+				Recipe,
+			);
+			target = E2BBA8F82E59224700846D3E /* sporkcast */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E2BBA8FB2E59224700846D3E /* sporkcast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = sporkcast;
+			sourceTree = "<group>";
+		};
+		E2BBA90B2E5B2BBB00846D3E /* Packages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E2BBA90D2E5B2BCF00846D3E /* Exceptions for "Packages" folder in "sporkcast" target */,
+			);
+			path = Packages;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +49,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
+				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
+				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +62,8 @@
 			isa = PBXGroup;
 			children = (
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
+				E2BBA90B2E5B2BBB00846D3E /* Packages */,
+				E2BBA9102E5B2D8600846D3E /* Frameworks */,
 				E2BBA8FA2E59224700846D3E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +74,13 @@
 				E2BBA8F92E59224700846D3E /* sporkcast.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E2BBA9102E5B2D8600846D3E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -62,9 +100,13 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
+				E2BBA90B2E5B2BBB00846D3E /* Packages */,
 			);
 			name = sporkcast;
 			packageProductDependencies = (
+				E2BBA9112E5B2D8600846D3E /* API */,
+				E2BBA9132E5B2D8600846D3E /* Design */,
+				E2BBA9152E5B2D8600846D3E /* Recipe */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -332,6 +374,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E2BBA9112E5B2D8600846D3E /* API */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = API;
+		};
+		E2BBA9132E5B2D8600846D3E /* Design */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Design;
+		};
+		E2BBA9152E5B2D8600846D3E /* Recipe */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Recipe;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E2BBA8F12E59224700846D3E /* Project object */;
 }
