@@ -18,7 +18,7 @@ public struct RecipeHeadingView: View {
     public var body: some View {
         ZStack(alignment: .bottom) {
             image()
-                .frame(height: 350)
+                .frame(height: 400)
                 .clipped()
             LinearGradient(
                 stops: [
@@ -48,7 +48,7 @@ public struct RecipeHeadingView: View {
         } placeholder: {
             EmptyView()
         }
-        .frame(height: 350)
+        .frame(height: 400)
         .clipped()
         
     }
