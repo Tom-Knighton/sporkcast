@@ -5,7 +5,10 @@
 //  Created by Tom Knighton on 25/08/2025.
 //
 
-public struct Recipe: Codable {
+import Observation
+
+@Observable
+public class Recipe: Codable {
     
     public let title: String
     public let description: String?
@@ -17,12 +20,12 @@ public struct Recipe: Codable {
     public let serves: String?
     public let url: String
     
-    public let ingredients: [String]
+    public let ingredients: [RecipeIngredient]
     public let tags: [String]
     public let stepSections: [RecipeStepSection]
     public let ratings: RecipeRatings
     
-    public init(title: String, description: String?, author: String?, imageUrl: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, url: String, ingredients: [String], tags: [String], stepSections: [RecipeStepSection], ratings: RecipeRatings) {
+    public init(title: String, description: String?, author: String?, imageUrl: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, url: String, ingredients: [RecipeIngredient], tags: [String], stepSections: [RecipeStepSection], ratings: RecipeRatings) {
         self.title = title
         self.description = description
         self.author = author
@@ -38,3 +41,5 @@ public struct Recipe: Codable {
         self.ratings = ratings
     }
 }
+
+extension Recipe: @unchecked Sendable {}

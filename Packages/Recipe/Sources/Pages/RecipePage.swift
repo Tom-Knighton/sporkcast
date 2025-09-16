@@ -16,21 +16,22 @@ public struct RecipePage: View {
     @Environment(\.colorScheme) private var scheme
     
     @Environment(\.networkClient) private var client
-    @State private var recipe: Recipe?
     
     @State private var selection: Int = 1
     @State private var dominantColor: Color = .clear
+    
+    @State private var viewModel = RecipeViewModel()
     
     public init() {}
     
     public var body: some View {
         ZStack(alignment: .top) {
             ScrollView {
-                VStack(spacing: 0) {
-                    if let recipe {
+                LazyVStack(spacing: 0) {
+                    if let recipe = viewModel.recipe {
                         RecipeHeadingView(recipe.imageUrl ?? "")
-                        
-                        RecipeTitleView(for: recipe)
+                            .ignoresSafeArea()
+                        RecipeTitleView(for: recipe, showNavTitle: $showNavTitle)
                         
                         VStack {
                             Spacer().frame(height: 20)
@@ -42,8 +43,10 @@ public struct RecipePage: View {
                                             .font(.caption.weight(.heavy))
                                             .opacity(0.7)
                                             .textCase(.uppercase)
+                                            .fixedSize(horizontal: true, vertical: false)
                                         Text("\(totalTime, specifier: "%.0f") mins")
                                             .bold()
+                                            .fixedSize(horizontal: true, vertical: false)
                                         
                                     }
                                     Divider()
@@ -55,8 +58,10 @@ public struct RecipePage: View {
                                             .font(.caption.weight(.heavy))
                                             .opacity(0.7)
                                             .textCase(.uppercase)
+                                            .fixedSize(horizontal: true, vertical: false)
                                         Text("\(cookingMins, specifier: "%.0f") mins")
                                             .bold()
+                                            .fixedSize(horizontal: true, vertical: false)
                                         
                                     }
                                     Divider()
@@ -70,8 +75,10 @@ public struct RecipePage: View {
                                             .font(.caption.weight(.heavy))
                                             .opacity(0.7)
                                             .textCase(.uppercase)
+                                            .fixedSize(horizontal: true, vertical: false)
                                         Text(serves)
                                             .bold()
+                                            .fixedSize(horizontal: true, vertical: false)
                                         
                                     }
                                 }
@@ -94,8 +101,16 @@ public struct RecipePage: View {
                                 Spacer()
                             }
                             
+                            Spacer().frame(height: 24)
+                            
+                            if selection == 1 {
+                                RecipeIngredientsListView()
+                            }
+                            
                         }
                         .padding(.horizontal)
+                    } else {
+                        ProgressView()
                     }
                 }
                 .fontDesign(.rounded)
@@ -109,14 +124,15 @@ public struct RecipePage: View {
         }
         .ignoresSafeArea()
         .task(id: "load") {
-            if recipe != nil { return }
-            
-            self.recipe = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
+            if viewModel.recipe == nil {
+                self.viewModel = await RecipeViewModel(for: "https://beatthebudget.com/recipe/chicken-katsu-curry/", with: client)
+            }
         }
+        .environment(viewModel)
         .colorScheme(.dark)
         .background(
             ZStack {
-                if let recipe {
+                if let recipe = viewModel.recipe {
                     AsyncImage(url: URL(string: recipe.imageUrl ?? "")) { img in
                         img
                             .resizable()
@@ -145,7 +161,7 @@ public struct RecipePage: View {
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text(recipe?.title ?? "")
+                Text(viewModel.recipe?.title ?? "Recipe")
                     .font(.headline)
                     .opacity(showNavTitle ? 1 : 0)
                     .accessibilityHidden(!showNavTitle)
@@ -232,7 +248,6 @@ extension UIImage {
         let cx = Double(w - 1) / 2.0
         let cy = Double(h - 1) / 2.0
         
-        // sigma controls how quickly weight decays from center. Higher centerBias => smaller sigma => stronger bias.
         let baseSigma = Double(min(w, h)) / 2.0
         let sigma = centerBias <= 0 ? Double.infinity : baseSigma / centerBias
         let twoSigmaSq = 2.0 * sigma * sigma

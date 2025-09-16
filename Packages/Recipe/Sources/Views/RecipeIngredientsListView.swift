@@ -1,0 +1,50 @@
+//
+//  RecipeIngredientsListView.swift
+//  Recipe
+//
+//  Created by Tom Knighton on 14/09/2025.
+//
+
+import SwiftUI
+import FoundationModels
+import API
+
+public struct RecipeIngredientsListView: View {
+    
+    @Environment(RecipeViewModel.self) private var viewModel
+    
+    public var body: some View {
+        VStack {
+            ForEach(viewModel.recipe?.ingredients ?? []) { ingredient in
+                HStack {
+                    ZStack {
+                        Circle()
+                            .frame(width: 25, height: 25)
+                        
+                        if let emoji = viewModel.ingredientIconMap[ingredient.id] {
+                            Text(emoji.emoji ?? "")
+                                .font(.caption)
+                                .shadow(radius: 3)
+                        } else {
+                            ProgressView()
+                        }
+                       
+                    }
+                    
+                    Text(ingredient.fullIngredient)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Material.thin)
+                .clipShape(.rect(cornerRadius: 10))
+            }
+        }
+    }
+}
+
+@Generable
+public struct EmojiResponse {
+    public let emoji: String?
+}

@@ -10,9 +10,11 @@ import API
 
 public struct RecipeTitleView: View {
     private let recipe: Recipe
+    @Binding private var showNavTitle: Bool
     
-    public init (for recipe: Recipe) {
+    public init (for recipe: Recipe, showNavTitle: Binding<Bool>) {
         self.recipe = recipe
+        self._showNavTitle = showNavTitle
     }
     
     public var body: some View {
@@ -32,6 +34,14 @@ public struct RecipeTitleView: View {
                     }
                 )
             Spacer()
+        }
+        .onPreferenceChange(TitleBottomYKey.self) { bottom in
+            let collapsed = bottom < 75
+            if collapsed != showNavTitle {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showNavTitle = collapsed
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)

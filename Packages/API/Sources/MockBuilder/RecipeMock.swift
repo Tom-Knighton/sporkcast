@@ -15,37 +15,38 @@ public class RecipeMockBuilder {
     var minutesToCook: Double = 30
     var minutes: Double = 35
     var serves: String? = "6"
-    var ingredients: [String] = [
-        "650 g chicken breasts ((£4.00))",
-        "70 g to 140g (6oz) panko breadcrumbs (if double dipping) ((£1.25))",
-        "2  egg ( (£1.39/12)=(£0.24))",
-        "1 tbsp ginger, peeled &amp; grated ((£0.55))",
-        "2  onions, diced ((£0.65/3)=(£0.22))",
-        "1  carrot, thinly sliced ((£0.09))",
-        "3 cloves of garlic, minced ((£0.69/3)=(£0.23))",
-        "600 ml chicken stock",
-        "1 tbsp honey/brown sugar",
-        "1.5 tbsp curry powder",
-        "½ tsp turmeric",
-        "1 tbsp coconut oil",
-        "2 tbsp rapeseed oil",
-        "1.5 tbsp soy sauce",
-        "2 tbsp flour",
-        "Other 300g white/brown rice ((£1.50/5X3)=(£0.90))",
-        "Spring onions to garnish ((£0.50))",
-        "Chilli flakes"
+    var ingredients: [RecipeIngredient] = [
+        .init(quantity: 650, quantityText: "650", minQuantity: 650, maxQuantity: 650, unit: "gram", unitText: "g", ingredient: "chicken breasts )", extra: "", fullIngredient: "650 g chicken breasts ((£4.00))", alternativeQuantities: []),
+        .init(quantity: 70, quantityText: "70", minQuantity: 70, maxQuantity: 70, unit: "gram", unitText: "g", ingredient: "to 140g  panko breadcrumbs  )", extra: "", fullIngredient: "70 g to 140g (6oz) panko breadcrumbs (if double dipping) ((£1.25))", alternativeQuantities: []),
+        .init(quantity: 2, quantityText: "2", minQuantity: 2, maxQuantity: 2, unit: "", unitText: "", ingredient: "egg =)", extra: "", fullIngredient: "2  egg ( (£1.39/12)=(£0.24))", alternativeQuantities: []),
+        .init(quantity: 1, quantityText: "1", minQuantity: 1, maxQuantity: 1, unit: "tablespoon", unitText: "tbsp", ingredient: "ginger", extra: "", fullIngredient: "1 tbsp ginger, peeled & grated ((£0.55))", alternativeQuantities: []),
+        .init(quantity: 2, quantityText: "2", minQuantity: 2, maxQuantity: 2, unit: "", unitText: "", ingredient: "onions", extra: "", fullIngredient: "2  onions, diced ((£0.65/3)=(£0.22))", alternativeQuantities: []),
+        .init(quantity: 1, quantityText: "1", minQuantity: 1, maxQuantity: 1, unit: "", unitText: "", ingredient: "carrot", extra: "", fullIngredient: "1  carrot, thinly sliced ((£0.09))", alternativeQuantities: []),
+        .init(quantity: 3, quantityText: "3", minQuantity: 3, maxQuantity: 3, unit: "clove", unitText: "cloves", ingredient: "garlic", extra: "", fullIngredient: "3 cloves of garlic, minced ((£0.69/3)=(£0.23))", alternativeQuantities: []),
+        .init(quantity: 600, quantityText: "600", minQuantity: 600, maxQuantity: 600, unit: "milliliter", unitText: "ml", ingredient: "chicken stock", extra: "", fullIngredient: "600 ml chicken stock", alternativeQuantities: []),
+        .init(quantity: 1, quantityText: "1", minQuantity: 1, maxQuantity: 1, unit: "tablespoon", unitText: "tbsp", ingredient: "honey/brown sugar", extra: "", fullIngredient: "1 tbsp honey/brown sugar", alternativeQuantities: []),
+        .init(quantity: 1.5, quantityText: "1.5", minQuantity: 1.5, maxQuantity: 1.5, unit: "tablespoon", unitText: "tbsp", ingredient: "curry powder", extra: "", fullIngredient: "1.5 tbsp curry powder", alternativeQuantities: []),
+        .init(quantity: 0.5, quantityText: "½", minQuantity: 0.5, maxQuantity: 0.5, unit: "teaspoon", unitText: "tsp", ingredient: "turmeric", extra: "", fullIngredient: "½ tsp turmeric", alternativeQuantities: []),
+        .init(quantity: 1, quantityText: "1", minQuantity: 1, maxQuantity: 1, unit: "tablespoon", unitText: "tbsp", ingredient: "coconut oil", extra: "", fullIngredient: "1 tbsp coconut oil", alternativeQuantities: []),
+        .init(quantity: 2, quantityText: "2", minQuantity: 2, maxQuantity: 2, unit: "tablespoon", unitText: "tbsp", ingredient: "rapeseed oil", extra: "", fullIngredient: "2 tbsp rapeseed oil", alternativeQuantities: []),
+        .init(quantity: 1.5, quantityText: "1.5", minQuantity: 1.5, maxQuantity: 1.5, unit: "tablespoon", unitText: "tbsp", ingredient: "soy sauce", extra: "", fullIngredient: "1.5 tbsp soy sauce", alternativeQuantities: []),
+        .init(quantity: 2, quantityText: "2", minQuantity: 2, maxQuantity: 2, unit: "tablespoon", unitText: "tbsp", ingredient: "flour", extra: "", fullIngredient: "2 tbsp flour", alternativeQuantities: []),
+        .init(quantity: 300, quantityText: "300", minQuantity: 300, maxQuantity: 300, unit: "gram", unitText: "g", ingredient: "white/brown rice =)", extra: "", fullIngredient: "Other 300g white/brown rice ((£1.50/5X3)=(£0.90))", alternativeQuantities: []),
+        .init(quantity: 0.5, quantityText: "0.50", minQuantity: 0.5, maxQuantity: 0.5, unit: "", unitText: "", ingredient: "))", extra: "", fullIngredient: "Spring onions to garnish ((£0.50))", alternativeQuantities: []),
+        .init(quantity: 0, quantityText: "", minQuantity: 0, maxQuantity: 0, unit: "", unitText: "", ingredient: "Chilli flakes", extra: "", fullIngredient: "Chilli flakes", alternativeQuantities: [])
+
     ]
     
     var tags: [String] = ["Asian", "Main Course", "Japanese"]
     var url: String = "https://beatthebudget.com/recipe/chicken-katsu-curry/#recipe"
     var stepSections: [RecipeStepSection] = [
         .init(title: nil, steps: [
-            .init(step: "Start by adding the onion & carrots into a deep non-stick frying pan along with the coconut oil. Gently fry on a medium/ low heat for around 5 minutes. Season with salt."),
-            .init(step: "After this time, add the minced garlic, curry powder, ginger, turmeric, honey, soy sauce and flour with a splash of the chicken stock. Gently fry for another minute before gradually adding all of the chicken stock. Reduce to a simmer and set the timer for 20 minutes."),
-            .init(step: "Meanwhile, prepare the chicken by slicing the 3 breasts along the width to create 6 thin chicken pieces. Start the crispy chicken conveyor belt by rolling it in flour, then the beaten egg and finally in the breadcrumbs. If you want the crispiest chicken, dip into the egg and breadcrumbs one more time (may require more breadcrumbs)."),
-            .init(step: "Drizzle half of the rapeseed oil onto a large baking try and add the battered chicken. Then drizzle the remaining rapeseed oil over the top to coat. Pop in the oven, timer set to 12 minutes to rotate and cook for a further 12 minutes on the other side."),
-            .init(step: "In the meantime, cook the rice according to packet instructions"),
-            .init(step: "After 20 minutes, the katsu sauce should have thickened slightly so it’s ready to blend.  Slice the chicken diagonally for that wagamama look and serve up with a portion of rice, a ladle of the sauce and the optional sliced spring onion & chilli flakes.")
+            .init(step: "Start by adding the onion & carrots into a deep non-stick frying pan along with the coconut oil. Gently fry on a medium/ low heat for around 5 minutes. Season with salt.", times: [.init(timeInSeconds: 300, timeText: "5", timeUnitText: "minutes")], temperatures: []),
+            .init(step: "After this time, add the minced garlic, curry powder, ginger, turmeric, honey, soy sauce and flour with a splash of the chicken stock. Gently fry for another minute before gradually adding all of the chicken stock. Reduce to a simmer and set the timer for 20 minutes.", times: [.init(timeInSeconds: 1200, timeText: "20", timeUnitText: "minute")], temperatures: []),
+            .init(step: "Meanwhile, prepare the chicken by slicing the 3 breasts along the width to create 6 thin chicken pieces. Start the crispy chicken conveyor belt by rolling it in flour, then the beaten egg and finally in the breadcrumbs. If you want the crispiest chicken, dip into the egg and breadcrumbs one more time (may require more breadcrumbs).", times: [], temperatures: []),
+            .init(step: "Drizzle half of the rapeseed oil onto a large baking try and add the battered chicken. Then drizzle the remaining rapeseed oil over the top to coat. Pop in the oven, timer set to 12 minutes to rotate and cook for a further 12 minutes on the other side.", times: [.init(timeInSeconds: 720, timeText: "12", timeUnitText: "minutes"), .init(timeInSeconds: 720, timeText: "12", timeUnitText: "minutes")], temperatures: []),
+            .init(step: "In the meantime, cook the rice according to packet instructions", times: [], temperatures: []),
+            .init(step: "After 20 minutes, the katsu sauce should have thickened slightly so it’s ready to blend.  Slice the chicken diagonally for that wagamama look and serve up with a portion of rice, a ladle of the sauce and the optional sliced spring onion & chilli flakes.", times: [.init(timeInSeconds: 1200, timeText: "5", timeUnitText: "minute")], temperatures: [])
         ])
     ]
     var ratings: RecipeRatings = .init(overallRating: 4.41, reviews: [
@@ -94,12 +95,12 @@ public class RecipeMockBuilder {
         return self
     }
     
-    public func withIngredient(_ ingredient: String) -> RecipeMockBuilder {
+    public func withIngredient(_ ingredient: RecipeIngredient) -> RecipeMockBuilder {
         self.ingredients.append(ingredient)
         return self
     }
     
-    public func withIngredients(_ ingredients: [String]) -> RecipeMockBuilder {
+    public func withIngredients(_ ingredients: [RecipeIngredient]) -> RecipeMockBuilder {
         self.ingredients = ingredients
         return self
     }
