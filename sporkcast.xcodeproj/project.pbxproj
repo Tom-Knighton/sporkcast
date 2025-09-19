@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E254D7392E7DFF3E00CDE935 /* Environment */; };
 		E2BBA9122E5B2D8600846D3E /* API in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9112E5B2D8600846D3E /* API */; };
 		E2BBA9142E5B2D8600846D3E /* Design in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9132E5B2D8600846D3E /* Design */; };
 		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
@@ -22,6 +23,7 @@
 			membershipExceptions = (
 				API,
 				Design,
+				Environment,
 				Recipe,
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
@@ -49,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
 				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
 				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
@@ -107,6 +110,7 @@
 				E2BBA9112E5B2D8600846D3E /* API */,
 				E2BBA9132E5B2D8600846D3E /* Design */,
 				E2BBA9152E5B2D8600846D3E /* Recipe */,
+				E254D7392E7DFF3E00CDE935 /* Environment */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -312,12 +316,16 @@
 				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -345,12 +353,16 @@
 				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -378,6 +390,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E254D7392E7DFF3E00CDE935 /* Environment */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Environment;
+		};
 		E2BBA9112E5B2D8600846D3E /* API */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = API;
