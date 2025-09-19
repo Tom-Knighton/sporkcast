@@ -1,0 +1,47 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.88065,1.00000,0.90969,1.00000",
+      "display-p3:0.96783,0.56434,0.32619,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.81395,0.81378,0.84838,1.00000",
+              "display-p3:0.86153,0.88118,0.92451,1.00000"
+            ]
+          },
+          "glass" : true,
+          "image-name" : "spork_12890649.png",
+          "name" : "spork_12890649",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -0.12548883749924244,
+              -20.617586176652047
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
