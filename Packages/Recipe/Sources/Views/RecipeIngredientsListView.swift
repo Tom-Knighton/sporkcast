@@ -12,7 +12,8 @@ import API
 public struct RecipeIngredientsListView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
-    
+    public let tint: Color
+        
     public var body: some View {
         VStack {
             ForEach(viewModel.recipe?.ingredients ?? []) { ingredient in
@@ -31,7 +32,7 @@ public struct RecipeIngredientsListView: View {
                        
                     }
                     
-                    Text(ingredient.fullIngredient)
+                    Text(IngredientHighlighter.highlight(ingredient: ingredient, tint: tint))
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
