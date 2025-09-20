@@ -208,6 +208,14 @@ public extension Recipe {
         
         self.overallRating = dto.ratings.overallRating
         self.ratings = dto.ratings.reviews?.map(\.text) ?? []
+        
+        var ingredients: [RecipeIngredient] = []
+        for i in 0..<dto.ingredients.count {
+            let dtoIng = dto.ingredients[i]
+            let newIng = RecipeIngredient(rawIngredient: dtoIng.fullIngredient, sortIndex: i, quantity: dtoIng.quantity, quantityText: dtoIng.quantityText, minQuantity: dtoIng.minQuantity, maxQuantity: dtoIng.maxQuantity, unit: dtoIng.unit, unitText: dtoIng.unitText, ingredient: dtoIng.ingredient, extra: dtoIng.extra, emojiDescriptor: nil, owned: false)
+            ingredients.append(newIng)
+        }
+        self.ingredients = ingredients
     }
     
     private static func downloadImageData(from url: URL) async throws -> Data {

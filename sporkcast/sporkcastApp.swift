@@ -44,6 +44,8 @@ struct sporkcastApp: App {
             .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
             .environment(ZoomManager(appRouterNamespace))
             .modelContainer(V1Models.sharedContainer!)
+            .tabBarMinimizeBehavior(.onScrollDown)
+            .tint(.white)
         }
     }
     

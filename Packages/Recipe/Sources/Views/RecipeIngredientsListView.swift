@@ -16,7 +16,7 @@ public struct RecipeIngredientsListView: View {
         
     public var body: some View {
         VStack {
-            ForEach(viewModel.recipe?.ingredients ?? []) { ingredient in
+            ForEach(viewModel.recipe?.ingredients?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []) { ingredient in
                 HStack {
                     ZStack {
                         Circle()
@@ -41,7 +41,10 @@ public struct RecipeIngredientsListView: View {
                 .background(Material.thin)
                 .clipShape(.rect(cornerRadius: 10))
             }
+            
+            Spacer().frame(height: 100)
         }
+        .safeAreaPadding(.bottom)
     }
 }
 
