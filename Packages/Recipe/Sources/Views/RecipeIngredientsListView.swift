@@ -22,14 +22,11 @@ public struct RecipeIngredientsListView: View {
                         Circle()
                             .frame(width: 25, height: 25)
                         
-//                        if let emoji = viewModel.ingredientIconMap[ingredient.id] {
-//                            Text(emoji.emoji ?? "")
-//                                .font(.caption)
-//                                .shadow(radius: 3)
-//                        } else {
-//                            ProgressView()
-//                        }
-                       
+                        if let emoji = ingredient.emojiDescriptor {
+                            Text(emoji)
+                                .font(.caption)
+                                .shadow(radius: 3)
+                        }
                     }
                     
                     Text(IngredientHighlighter.highlight(ingredient: ingredient, tint: tint))

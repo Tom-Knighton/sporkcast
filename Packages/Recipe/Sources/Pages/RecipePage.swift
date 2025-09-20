@@ -94,7 +94,6 @@ public struct RecipePage: View {
                                         Text(serves)
                                             .bold()
                                             .fixedSize(horizontal: true, vertical: false)
-                                        
                                     }
                                 }
                                 
