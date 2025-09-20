@@ -20,8 +20,6 @@ public extension Image {
     }
 }
 
-
-
 public extension UIImage {
     /// Dominant color, biased toward the center via a 2D Gaussian.
     /// - Parameters:

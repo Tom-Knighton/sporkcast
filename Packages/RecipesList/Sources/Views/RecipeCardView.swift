@@ -57,7 +57,7 @@ public struct RecipeCardView: View {
             .padding()
         }
         .frame(maxWidth: .infinity, minHeight: 150)
-        .background(image.blur(radius: 1))
+        .background(image)
         .clipShape(.rect(cornerRadius: 10))
         .fontDesign(.rounded)
     }

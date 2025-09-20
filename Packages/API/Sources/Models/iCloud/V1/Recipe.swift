@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import CryptoKit
 import UIKit
+import SwiftUI
 
 @Model
 public final class Recipe {
@@ -24,6 +25,7 @@ public final class Recipe {
     @Attribute(.externalStorage)
     public var thumbnailData: Data?
     public var imageUrl: String?
+    public var dominantColorHex: String?
     
     public var minutesToPrepare: Double?
     public var minutesToCook: Double?
@@ -262,7 +264,7 @@ public extension Recipe {
         let thumbnail = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }
-        
+                
         if let jpeg = thumbnail.jpegData(compressionQuality: 0.82) {
             return (jpeg, "jpg")
         }

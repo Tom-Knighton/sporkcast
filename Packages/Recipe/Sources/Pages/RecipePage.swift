@@ -29,6 +29,7 @@ public struct RecipePage: View {
     public init(_ recipe: Recipe) {
         self.recipeId = nil
         self.viewModel.recipe = recipe
+        self.dominantColor = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
     
     public init(recipeId: UUID) {
@@ -176,6 +177,11 @@ public struct RecipePage: View {
                     .animation(.easeInOut(duration: 0.2), value: showNavTitle)
             }
         }
+        .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
+            if let domC = newValue?.dominantColorHex {
+                self.dominantColor = Color(hex: domC) ?? .clear
+            }
+        }
     }
     
     @ViewBuilder
@@ -186,16 +192,15 @@ public struct RecipePage: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .task {
-                        self.dominantColor = await img.getDominantColor() ?? .clear
+                        if viewModel.recipe?.dominantColorHex == nil, let dom = await img.getDominantColor() {
+                            setDominantColour(to: dom)
+                        }
                     }
             } placeholder: {
                 if let data = recipe.thumbnailData, let ui = UIImage(data: data) {
                     Image(uiImage: ui)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .task {
-                            self.dominantColor = Color(uiColor: ui.dominantBackgroundColor() ?? .clear)
-                        }
                 } else if let file = recipe.imageAssetFileName,
                           let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
                           let data = try? Data(contentsOf: url),
@@ -203,9 +208,6 @@ public struct RecipePage: View {
                     Image(uiImage: ui)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .task {
-                            self.dominantColor = Color(uiColor: ui.dominantBackgroundColor() ?? .clear)
-                        }
                 } else {
                     Rectangle().opacity(0.1)
                 }
@@ -214,6 +216,15 @@ public struct RecipePage: View {
             
         } else {
             Rectangle().opacity(0.1)
+        }
+    }
+    
+    private func setDominantColour(to colour: Color) {
+        self.dominantColor = colour
+        
+        if let hex = colour.toHex() {
+            self.viewModel.recipe?.dominantColorHex = hex
+            try? context.save()
         }
     }
 }
