@@ -30,7 +30,7 @@ public struct RecipeListPage: View {
                 RecipeCardView(recipe: recipe)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
-                    .matchedTransitionSource(id: "zoom", in: zm.zoomNamespace)
+                    .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zm.zoomNamespace)
             }
             .navigationLinkIndicatorVisibility(.hidden)
             .listRowSeparator(.hidden)
@@ -70,13 +70,21 @@ public struct RecipeListPage: View {
                 .textContentType(.URL)
             Button("Import") {
                 Task {
-                    let recipeDTO: RecipeDTO? = try? await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
-                    
-                    if let recipeDTO {
-                        let recipe = await Recipe(from: recipeDTO)
-                        context.insert(recipe)
-                        try? context.save()
+                    do {
+                        let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
+                        
+                        if let recipeDTO {
+                            let recipe = await Recipe(from: recipeDTO)
+                            context.insert(recipe)
+                            try context.save()
+                            print("saved")
+                        } else {
+                            print("Failed parsing recipe")
+                        }
+                    } catch {
+                        print(error)
                     }
+                    
                 }
             }
             .buttonStyle(.borderedProminent)

@@ -30,11 +30,21 @@
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
 		};
+		E2DEAAA12E7F633F00EB8B01 /* Exceptions for "sporkcast" folder in "sporkcast" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E2BBA8F82E59224700846D3E /* sporkcast */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E2BBA8FB2E59224700846D3E /* sporkcast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E2DEAAA12E7F633F00EB8B01 /* Exceptions for "sporkcast" folder in "sporkcast" target */,
+			);
 			path = sporkcast;
 			sourceTree = "<group>";
 		};
@@ -307,6 +317,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -345,6 +356,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

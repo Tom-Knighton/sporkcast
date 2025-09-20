@@ -56,7 +56,7 @@ struct sporkcastApp: App {
                 switch dest {
                 case let .recipe(id):
                     RecipePage(recipeId: id)
-                        .navigationTransition(.zoom(sourceID: "zoom", in: appRouterNamespace))
+                        .navigationTransition(.zoom(sourceID: "zoom-\(id.uuidString)", in: appRouterNamespace))
                 case .recipes:
                     RecipeListPage()
                 }
