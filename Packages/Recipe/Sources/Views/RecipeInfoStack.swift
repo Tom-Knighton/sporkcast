@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Design
 import API
 
 public struct RecipeInfoStack: View {
@@ -22,7 +23,7 @@ public struct RecipeInfoStack: View {
                 RecipeInfoCard(recipe, title: "\(totalMins.formatted()) mins", image: "clock.circle.fill")
             }
             
-            if let ratings = recipe.ratings.overallRating {
+            if let ratings = recipe.overallRating {
                 RecipeInfoCard(recipe, title: "\(ratings.formatted())", image: "star.fill")
             }
             

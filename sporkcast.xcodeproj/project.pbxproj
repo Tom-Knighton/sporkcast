@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E254D7392E7DFF3E00CDE935 /* Environment */; };
+		E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */ = {isa = PBXBuildFile; productRef = E254D73C2E7E01FF00CDE935 /* RecipesList */; };
 		E2BBA9122E5B2D8600846D3E /* API in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9112E5B2D8600846D3E /* API */; };
 		E2BBA9142E5B2D8600846D3E /* Design in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9132E5B2D8600846D3E /* Design */; };
 		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
@@ -25,6 +26,7 @@
 				Design,
 				Environment,
 				Recipe,
+				RecipesList,
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
 		};
@@ -52,6 +54,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
+				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
 				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
 				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
@@ -111,6 +114,7 @@
 				E2BBA9132E5B2D8600846D3E /* Design */,
 				E2BBA9152E5B2D8600846D3E /* Recipe */,
 				E254D7392E7DFF3E00CDE935 /* Environment */,
+				E254D73C2E7E01FF00CDE935 /* RecipesList */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -297,6 +301,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = sporkcast/sporkcast.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8H3J46CN24;
@@ -334,6 +339,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = sporkcast/sporkcast.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8H3J46CN24;
@@ -393,6 +399,10 @@
 		E254D7392E7DFF3E00CDE935 /* Environment */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Environment;
+		};
+		E254D73C2E7E01FF00CDE935 /* RecipesList */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RecipesList;
 		};
 		E2BBA9112E5B2D8600846D3E /* API */ = {
 			isa = XCSwiftPackageProductDependency;

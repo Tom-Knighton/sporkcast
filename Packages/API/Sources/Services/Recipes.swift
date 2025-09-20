@@ -32,7 +32,7 @@ public enum Recipes: Endpoint {
     public func mockResponseOk() -> any Decodable {
         switch self {
         case .uploadFromUrl(_):
-            return RecipeMockBuilder()
+            return RecipeDTOMockBuilder()
                 .build()
         }
     }

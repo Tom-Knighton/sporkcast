@@ -10,7 +10,9 @@ import Recipe
 import Design
 import API
 import Environment
+import RecipesList
 internal import AppRouter
+import SwiftData
 
 @main
 struct sporkcastApp: App {
@@ -25,7 +27,7 @@ struct sporkcastApp: App {
                         NavigationStack(path: $appRouter[tab]) {
                             switch tab {
                             case .recipes:
-                                RecipePage()
+                                RecipeListPage()
                             case .testRecipe:
                                 RecipePage()
                             }
@@ -35,6 +37,7 @@ struct sporkcastApp: App {
             }
             .environment(appRouter)
             .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
+            .modelContainer(V1Models.sharedContainer!)
         }
     }
 }

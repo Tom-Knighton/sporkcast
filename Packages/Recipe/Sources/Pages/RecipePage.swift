@@ -29,8 +29,8 @@ public struct RecipePage: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if let recipe = viewModel.recipe {
-                        RecipeHeadingView(recipe.imageUrl ?? "")
-                            .ignoresSafeArea()
+//                        RecipeHeadingView(recipe.imageUrl ?? "")
+//                            .ignoresSafeArea()
                         RecipeTitleView(for: recipe, showNavTitle: $showNavTitle)
                         
                         VStack {
@@ -133,23 +133,23 @@ public struct RecipePage: View {
         .colorScheme(.dark)
         .background(
             ZStack {
-                if let recipe = viewModel.recipe {
-                    AsyncImage(url: URL(string: recipe.imageUrl ?? "")) { img in
-                        img
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .task {
-                                self.dominantColor = await img.getDominantColor() ?? .clear
-                            }
-                    } placeholder: {
-                        EmptyView()
-                    }
-                    .aspectRatio(contentMode: .fill)
-                    .scaleEffect(2)
-                    .blur(radius: scheme == .dark ? 100 : 64)
-                    .ignoresSafeArea()
-                    .overlay(Material.ultraThin.opacity(0.2))
-                }
+//                if let recipe = viewModel.recipe {
+//                    AsyncImage(url: URL(string: recipe.imageUrl ?? "")) { img in
+//                        img
+//                            .resizable()
+//                            .aspectRatio(contentMode: .fill)
+//                            .task {
+//                                self.dominantColor = await img.getDominantColor() ?? .clear
+//                            }
+//                    } placeholder: {
+//                        EmptyView()
+//                    }
+//                    .aspectRatio(contentMode: .fill)
+//                    .scaleEffect(2)
+//                    .blur(radius: scheme == .dark ? 100 : 64)
+//                    .ignoresSafeArea()
+//                    .overlay(Material.ultraThin.opacity(0.2))
+//                }
             }
         )
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
@@ -178,10 +178,4 @@ public struct RecipePage: View {
             .withPreviewEnvs()
     }
     
-}
-
-extension String  {
-    var isNumber: Bool {
-        return !isEmpty && rangeOfCharacter(from: CharacterSet.decimalDigits.inverted) == nil
-    }
 }

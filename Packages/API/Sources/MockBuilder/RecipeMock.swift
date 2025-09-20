@@ -5,7 +5,11 @@
 //  Created by Tom Knighton on 25/08/2025.
 //
 
-public class RecipeMockBuilder {
+public class RecipeDTOMockBuilder {
+    
+    public init() {
+        
+    }
     
     var title: String = "Chicken Katsu Curry"
     var description: String? = "One of the best fakeaway creations! My Wagamama inspired chicken katsu curry. With the crispy breaded chicken being baked, it’s lower in calories and just as delicious."
@@ -15,7 +19,7 @@ public class RecipeMockBuilder {
     var minutesToCook: Double = 30
     var minutes: Double = 35
     var serves: String? = "6"
-    var ingredients: [RecipeIngredient] = [
+    var ingredients: [RecipeIngredientDTO] = [
         .init(quantity: 650, quantityText: "650", minQuantity: 650, maxQuantity: 650, unit: "gram", unitText: "g", ingredient: "chicken breasts )", extra: "", fullIngredient: "650 g chicken breasts ((£4.00))", alternativeQuantities: []),
         .init(quantity: 70, quantityText: "70", minQuantity: 70, maxQuantity: 70, unit: "gram", unitText: "g", ingredient: "to 140g  panko breadcrumbs  )", extra: "", fullIngredient: "70 g to 140g (6oz) panko breadcrumbs (if double dipping) ((£1.25))", alternativeQuantities: []),
         .init(quantity: 2, quantityText: "2", minQuantity: 2, maxQuantity: 2, unit: "", unitText: "", ingredient: "egg =)", extra: "", fullIngredient: "2  egg ( (£1.39/12)=(£0.24))", alternativeQuantities: []),
@@ -39,7 +43,7 @@ public class RecipeMockBuilder {
     
     var tags: [String] = ["Asian", "Main Course", "Japanese"]
     var url: String = "https://beatthebudget.com/recipe/chicken-katsu-curry/#recipe"
-    var stepSections: [RecipeStepSection] = [
+    var stepSections: [RecipeStepSectionDTO] = [
         .init(title: nil, steps: [
             .init(step: "Start by adding the onion & carrots into a deep non-stick frying pan along with the coconut oil. Gently fry on a medium/ low heat for around 5 minutes. Season with salt.", times: [.init(timeInSeconds: 300, timeText: "5", timeUnitText: "minutes")], temperatures: []),
             .init(step: "After this time, add the minced garlic, curry powder, ginger, turmeric, honey, soy sauce and flour with a splash of the chicken stock. Gently fry for another minute before gradually adding all of the chicken stock. Reduce to a simmer and set the timer for 20 minutes.", times: [.init(timeInSeconds: 1200, timeText: "20", timeUnitText: "minute")], temperatures: []),
@@ -49,7 +53,7 @@ public class RecipeMockBuilder {
             .init(step: "After 20 minutes, the katsu sauce should have thickened slightly so it’s ready to blend.  Slice the chicken diagonally for that wagamama look and serve up with a portion of rice, a ladle of the sauce and the optional sliced spring onion & chilli flakes.", times: [.init(timeInSeconds: 1200, timeText: "5", timeUnitText: "minute")], temperatures: [])
         ])
     ]
-    var ratings: RecipeRatings = .init(overallRating: 4.41, reviews: [
+    var ratings: RecipeRatingsDTO = .init(overallRating: 4.41, reviews: [
         .init(text: "Curry recipe was good but turned out a bit too salty. Chicken part does not work at all it ended up making the chicken soggy so i had to fry it in a pan..."),
         .init(text: "family absolutely loved this!"),
         .init(text: "Trying this tomorrow night sounds delicious.👍"),
@@ -58,74 +62,74 @@ public class RecipeMockBuilder {
         .init(text: "Absolutely fantastic, I did the chicken in the air fryer after putting on a sprinkling of olive oil and it was super crispy. I made the sauce the night before as my friend suggested too. Will definitely make again.")
     ])
     
-    public func withTitle(_ title: String) -> RecipeMockBuilder {
+    public func withTitle(_ title: String) -> RecipeDTOMockBuilder {
         self.title = title
         return self
     }
     
-    public func withDescription(_ description: String?) -> RecipeMockBuilder {
+    public func withDescription(_ description: String?) -> RecipeDTOMockBuilder {
         self.description = description
         return self
     }
     
-    public func withAuthor(_ author: String?) -> RecipeMockBuilder {
+    public func withAuthor(_ author: String?) -> RecipeDTOMockBuilder {
         self.author = author
         return self
     }
     
-    public func withImageUrl(_ url: String?) -> RecipeMockBuilder {
+    public func withImageUrl(_ url: String?) -> RecipeDTOMockBuilder {
         self.imageUrl = url
         return self
     }
     
-    public func withMinutes(_ totalMinutes: Double, preparationMinutes: Double, cookMinutes: Double) -> RecipeMockBuilder {
+    public func withMinutes(_ totalMinutes: Double, preparationMinutes: Double, cookMinutes: Double) -> RecipeDTOMockBuilder {
         self.minutes = totalMinutes
         self.minutesToCook = cookMinutes
         self.minutesToPrepare = preparationMinutes
         return self
     }
     
-    public func withServes(_ serves: String?) -> RecipeMockBuilder {
+    public func withServes(_ serves: String?) -> RecipeDTOMockBuilder {
         self.serves = serves
         return self
     }
     
-    public func withUrl(_ url: String) -> RecipeMockBuilder {
+    public func withUrl(_ url: String) -> RecipeDTOMockBuilder {
         self.url = url
         return self
     }
     
-    public func withIngredient(_ ingredient: RecipeIngredient) -> RecipeMockBuilder {
+    public func withIngredient(_ ingredient: RecipeIngredientDTO) -> RecipeDTOMockBuilder {
         self.ingredients.append(ingredient)
         return self
     }
     
-    public func withIngredients(_ ingredients: [RecipeIngredient]) -> RecipeMockBuilder {
+    public func withIngredients(_ ingredients: [RecipeIngredientDTO]) -> RecipeDTOMockBuilder {
         self.ingredients = ingredients
         return self
     }
     
-    public func withTags(_ tags: [String]) -> RecipeMockBuilder {
+    public func withTags(_ tags: [String]) -> RecipeDTOMockBuilder {
         self.tags = tags
         return self
     }
     
-    public func withStepSection(_ stepSection: RecipeStepSection) -> RecipeMockBuilder {
+    public func withStepSection(_ stepSection: RecipeStepSectionDTO) -> RecipeDTOMockBuilder {
         self.stepSections.append(stepSection)
         return self
     }
     
-    public func withSteps(_ stepSections: [RecipeStepSection]) -> RecipeMockBuilder {
+    public func withSteps(_ stepSections: [RecipeStepSectionDTO]) -> RecipeDTOMockBuilder {
         self.stepSections = stepSections
         return self
     }
     
-    public func withRatings(_ ratings: RecipeRatings) -> RecipeMockBuilder {
+    public func withRatings(_ ratings: RecipeRatingsDTO) -> RecipeDTOMockBuilder {
         self.ratings = ratings
         return self
     }
     
-    public func build() -> Recipe {
-        Recipe(title: title, description: description, author: author, imageUrl: imageUrl, minutesToPrepare: minutesToPrepare, minutesToCook: minutesToCook, totalMins: minutes, serves: serves, url: url, ingredients: ingredients, tags: tags, stepSections: stepSections, ratings: ratings)
+    public func build() -> RecipeDTO {
+        RecipeDTO(title: title, description: description, author: author, imageUrl: imageUrl, minutesToPrepare: minutesToPrepare, minutesToCook: minutesToCook, totalMins: minutes, serves: serves, url: url, ingredients: ingredients, tags: tags, stepSections: stepSections, ratings: ratings)
     }
 }

@@ -14,8 +14,8 @@ public struct IngredientHighlighter {
     
     static func highlight(ingredient: RecipeIngredient, font: Font = .body, tint: Color = .mint) -> AttributedString {
         
-        var attr = AttributedString(ingredient.fullIngredient)
-        guard !ingredient.fullIngredient.isEmpty, let quantityText = ingredient.quantityText, !quantityText.isEmpty else { return attr }
+        var attr = AttributedString(ingredient.rawIngredient)
+        guard !ingredient.rawIngredient.isEmpty, let quantityText = ingredient.quantityText, !quantityText.isEmpty else { return attr }
         
         func apply(_ r: Range<String.Index>) {
             guard let low = AttributedString.Index(r.lowerBound, within: attr),
@@ -31,7 +31,7 @@ public struct IngredientHighlighter {
             quantityText
         }
         
-        guard let qtyMatch = ingredient.fullIngredient.firstRange(of: qtyRegex) else { return attr }
+        guard let qtyMatch = ingredient.rawIngredient.firstRange(of: qtyRegex) else { return attr }
         apply(qtyMatch)
         
         if let unit = ingredient.unitText?.trimmingCharacters(in: .whitespacesAndNewlines), !unit.isEmpty {
@@ -44,7 +44,7 @@ public struct IngredientHighlighter {
                 /\b/
             }
             
-            let candidates = ingredient.fullIngredient.ranges(of: unitRegex)
+            let candidates = ingredient.rawIngredient.ranges(of: unitRegex)
             let picked = candidates.first(where: { $0.lowerBound >= qtyMatch.upperBound}) ?? candidates.first
             if let p = picked { apply(p) }
         }

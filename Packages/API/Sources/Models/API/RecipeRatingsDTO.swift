@@ -5,11 +5,11 @@
 //  Created by Tom Knighton on 25/08/2025.
 //
 
-public struct RecipeRatings: Codable {
+public struct RecipeRatingsDTO: Codable {
     public let overallRating: Double?
-    public let reviews: [RecipeReview]?
+    public let reviews: [RecipeReviewDTO]?
     
-    public init(overallRating: Double?, reviews: [RecipeReview]?) {
+    init(overallRating: Double?, reviews: [RecipeReviewDTO]?) {
         self.overallRating = overallRating
         self.reviews = reviews
     }

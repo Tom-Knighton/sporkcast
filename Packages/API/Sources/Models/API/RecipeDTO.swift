@@ -8,7 +8,7 @@
 import Observation
 
 @Observable
-public class Recipe: Codable {
+public class RecipeDTO: Codable {
     
     public let title: String
     public let description: String?
@@ -20,12 +20,12 @@ public class Recipe: Codable {
     public let serves: String?
     public let url: String
     
-    public let ingredients: [RecipeIngredient]
+    public let ingredients: [RecipeIngredientDTO]
     public let tags: [String]
-    public let stepSections: [RecipeStepSection]
-    public let ratings: RecipeRatings
+    public let stepSections: [RecipeStepSectionDTO]
+    public let ratings: RecipeRatingsDTO
     
-    public init(title: String, description: String?, author: String?, imageUrl: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, url: String, ingredients: [RecipeIngredient], tags: [String], stepSections: [RecipeStepSection], ratings: RecipeRatings) {
+    init(title: String, description: String?, author: String?, imageUrl: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, url: String, ingredients: [RecipeIngredientDTO], tags: [String], stepSections: [RecipeStepSectionDTO], ratings: RecipeRatingsDTO) {
         self.title = title
         self.description = description
         self.author = author

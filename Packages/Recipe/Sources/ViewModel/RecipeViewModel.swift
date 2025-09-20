@@ -32,10 +32,13 @@ public class RecipeViewModel: @unchecked Sendable {
     }
     
     public init(for url: String, with client: any NetworkClient) async {
-        self.recipe = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
+        let recipeDto: RecipeDTO? = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
         
-        
-        
+        if let recipeDto {
+            self.recipe = await Recipe(from: recipeDto)
+        } else {
+            self.recipe = nil
+        }
         
         do {
             session = LanguageModelSession {
@@ -44,7 +47,7 @@ public class RecipeViewModel: @unchecked Sendable {
                 """
             }
             session.prewarm()
-            try self.generateEmojis()
+//            try self.generateEmojis()
         } catch {
             print(error.localizedDescription)
         }
@@ -62,14 +65,14 @@ public class RecipeViewModel: @unchecked Sendable {
         }
         #endif
         
-        Task.detached(name: "emojiLoad") { [recipe, self] in
-            for ingredient in recipe.ingredients {
-                do {
-                    ingredientIconMap[ingredient.id] = try await session.respond(to: Prompt(ingredient.fullIngredient), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5)).content
-                } catch {
-                    print(error.localizedDescription)
-                }
-            }
-        }
+//        Task.detached(name: "emojiLoad") { [recipe, self] in
+//            for ingredient in recipe.ingredients {
+//                do {
+//                    ingredientIconMap[ingredient.id] = try await session.respond(to: Prompt(ingredient.fullIngredient), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5)).content
+//                } catch {
+//                    print(error.localizedDescription)
+//                }
+//            }
+//        }
     }
 }

@@ -5,8 +5,8 @@
 //  Created by Tom Knighton on 16/09/2025.
 //
 
-public struct RecipeIngredient: Codable, Hashable, Equatable, Identifiable {
-    public static func == (lhs: RecipeIngredient, rhs: RecipeIngredient) -> Bool {
+public struct RecipeIngredientDTO: Codable, Hashable, Equatable, Identifiable {
+    public static func == (lhs: RecipeIngredientDTO, rhs: RecipeIngredientDTO) -> Bool {
         lhs.quantity == rhs.quantity && lhs.fullIngredient == rhs.fullIngredient
     }
     
@@ -27,9 +27,9 @@ public struct RecipeIngredient: Codable, Hashable, Equatable, Identifiable {
     public let ingredient: String?
     public let extra: String?
     public let fullIngredient: String
-    public let alternativeQuantities: [RecipeIngredientAlternativeQuantity]
+    public let alternativeQuantities: [RecipeIngredientAlternativeQuantityDTO]
     
-    public init(quantity: Double?, quantityText: String?, minQuantity: Double?, maxQuantity: Double?, unit: String?, unitText: String?, ingredient: String?, extra: String?, fullIngredient: String, alternativeQuantities: [RecipeIngredientAlternativeQuantity]) {
+    init(quantity: Double?, quantityText: String?, minQuantity: Double?, maxQuantity: Double?, unit: String?, unitText: String?, ingredient: String?, extra: String?, fullIngredient: String, alternativeQuantities: [RecipeIngredientAlternativeQuantityDTO]) {
         self.quantity = quantity
         self.quantityText = quantityText
         self.minQuantity = minQuantity
@@ -43,7 +43,7 @@ public struct RecipeIngredient: Codable, Hashable, Equatable, Identifiable {
     }
 }
 
-public struct RecipeIngredientAlternativeQuantity: Codable {
+public struct RecipeIngredientAlternativeQuantityDTO: Codable {
     
     public let quantity: Double
     public let unit: String

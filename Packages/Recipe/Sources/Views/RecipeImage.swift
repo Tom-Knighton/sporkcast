@@ -13,7 +13,7 @@ public struct RecipeImage: View {
     private let recipeUrl: String
     
     public init (_ recipe: Recipe) {
-        self.recipeUrl = recipe.imageUrl ?? ""
+        self.recipeUrl = recipe.imageAssetFileName ?? ""
     }
     
     public var body: some View {
