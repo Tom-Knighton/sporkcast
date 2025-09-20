@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Environment
 import UIKit
 import SwiftData
 import Design
@@ -13,6 +14,7 @@ import API
 
 public struct RecipeListPage: View {
     
+    @Environment(ZoomManager.self) private var zoomManager
     @Environment(\.modelContext) private var context
     @Query(sort: \Recipe.dateModified, order: .reverse) private var recipes: [Recipe]
     @Environment(\.networkClient) private var client
@@ -23,12 +25,17 @@ public struct RecipeListPage: View {
     
     public var body: some View {
         List(recipes) { recipe in
-            RecipeCardView(recipe: recipe)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+            @Bindable var zm = zoomManager
+            NavigationLink(value: AppDestination.recipe(id: recipe.id)) {
+                RecipeCardView(recipe: recipe)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .matchedTransitionSource(id: "zoom", in: zm.zoomNamespace)
+            }
+            .navigationLinkIndicatorVisibility(.hidden)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)

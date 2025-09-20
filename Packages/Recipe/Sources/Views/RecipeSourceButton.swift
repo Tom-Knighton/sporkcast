@@ -10,27 +10,27 @@ import API
 import UIKit
 
 
-public struct RecipeSourceButton: View {
+public struct RecipeSourceButton<RecipeImage: View>: View {
     
     @Environment(\.colorScheme) private var colorScheme
     private let recipe: Recipe
     private let color: Color
+    private let image: RecipeImage
     
-    public init (_ recipe: Recipe, with color: Color = .clear) {
+    public init (_ recipe: Recipe, with color: Color = .clear, @ViewBuilder image: () -> RecipeImage) {
         self.recipe = recipe
         self.color = color
+        self.image = image()
     }
     
     public var body: some View {
         Button(action: {}) {
             HStack {
-                RecipeImage(recipe)
+                image
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 40, height: 40)
                     .clipShape(.rect(cornerRadius: 3))
-                
-                
-                
+
                 VStack(alignment: .leading) {
                     Text("View Recipe Source")
                         .font(.footnote.weight(.bold))
@@ -38,6 +38,7 @@ public struct RecipeSourceButton: View {
                     
                     Text(recipe.title)
                         .font(.body.bold())
+                        .multilineTextAlignment(.leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 

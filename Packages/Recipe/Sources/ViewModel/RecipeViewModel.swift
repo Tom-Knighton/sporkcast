@@ -9,11 +9,13 @@ import API
 import Observation
 import FoundationModels
 import Foundation
+import SwiftData
 
 @Observable
+@MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
-    public let recipe: Recipe?
+    public var recipe: Recipe?
     public var ingredientIconMap: [String: EmojiResponse] = [:]
     public let session: LanguageModelSession
     
@@ -31,6 +33,32 @@ public class RecipeViewModel: @unchecked Sendable {
         
     }
     
+    public init(for recipe: Recipe) {
+        self.recipe = recipe
+        self.ingredientIconMap = [:]
+        session = LanguageModelSession {
+                """
+                You are a tool tagging an ingredient for a recipe with a related emoji. If you cannot find a sensible emoji, return nil. Have items like soy sauce and oils = 🍶.
+                """
+        }
+        session.prewarm()
+    }
+    
+    public init(with recipeId: UUID, context: ModelContext) async {
+        var descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == recipeId }, sortBy: [.init(\.dateModified)])
+        descriptor.fetchLimit = 1
+        
+        self.session = LanguageModelSession {
+                """
+                You are a tool tagging an ingredient for a recipe with a related emoji. If you cannot find a sensible emoji, return nil. Have items like soy sauce and oils = 🍶.
+                """
+        }
+        session.prewarm()
+        
+        let results = try? context.fetch(descriptor)
+        self.recipe = results?.first
+    }
+    
     public init(for url: String, with client: any NetworkClient) async {
         let recipeDto: RecipeDTO? = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
         
@@ -39,14 +67,15 @@ public class RecipeViewModel: @unchecked Sendable {
         } else {
             self.recipe = nil
         }
-        
-        do {
-            session = LanguageModelSession {
+        self.session = LanguageModelSession {
                 """
                 You are a tool tagging an ingredient for a recipe with a related emoji. If you cannot find a sensible emoji, return nil. Have items like soy sauce and oils = 🍶.
                 """
-            }
-            session.prewarm()
+        }
+        session.prewarm()
+        
+        do {
+            
 //            try self.generateEmojis()
         } catch {
             print(error.localizedDescription)

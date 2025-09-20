@@ -22,7 +22,7 @@ public extension Image {
 
 
 
-extension UIImage {
+public extension UIImage {
     /// Dominant color, biased toward the center via a 2D Gaussian.
     /// - Parameters:
     ///   - centerBias: 0 => no bias (uniform). Higher => stronger center preference.

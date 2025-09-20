@@ -21,9 +21,9 @@ public final class Recipe {
     public var author: String?
     public var sourceUrl: String = ""
     public var imageAssetFileName: String?
-    
     @Attribute(.externalStorage)
     public var thumbnailData: Data?
+    public var imageUrl: String?
     
     public var minutesToPrepare: Double?
     public var minutesToCook: Double?
@@ -197,6 +197,7 @@ public extension Recipe {
         self.recipeDescription = dto.description
         self.author = dto.author
         self.sourceUrl = dto.url
+        self.imageUrl = dto.imageUrl
         
         self.minutesToPrepare = dto.minutesToPrepare
         self.minutesToCook = dto.minutesToCook

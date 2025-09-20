@@ -7,17 +7,17 @@
 
 import SwiftUI
 
-public struct RecipeHeadingView: View {
+public struct RecipeHeadingView<Image: View>: View {
     
-    @State private var imageUrl: String
+    private let image: Image
     
-    public init (_ imageUrl: String) {
-        self._imageUrl = State(wrappedValue: imageUrl)
+    public init (@ViewBuilder imageContent: () -> Image) {
+        self.image = imageContent()
     }
     
     public var body: some View {
         ZStack(alignment: .bottom) {
-            image()
+            image
                 .frame(height: 400)
                 .clipped()
             LinearGradient(
@@ -36,20 +36,5 @@ public struct RecipeHeadingView: View {
         .ignoresSafeArea()
         .compositingGroup()
         .stretchy()
-    }
-    
-    
-    @ViewBuilder
-    private func image() -> some View {
-        AsyncImage(url: URL(string: imageUrl)) { img in
-            img
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } placeholder: {
-            EmptyView()
-        }
-        .frame(height: 400)
-        .clipped()
-        
     }
 }

@@ -17,6 +17,7 @@ import SwiftData
 @main
 struct sporkcastApp: App {
     
+    @Namespace private var appRouterNamespace
     @State private var appRouter: AppRouter = AppRouter(initialTab: .recipes)
     
     var body: some Scene {
@@ -27,9 +28,13 @@ struct sporkcastApp: App {
                         NavigationStack(path: $appRouter[tab]) {
                             switch tab {
                             case .recipes:
-                                RecipeListPage()
+                                withPaths {
+                                    RecipeListPage()
+                                }
                             case .testRecipe:
-                                RecipePage()
+                                withPaths {
+                                    RecipePage()
+                                }
                             }
                         }
                     }
@@ -37,7 +42,22 @@ struct sporkcastApp: App {
             }
             .environment(appRouter)
             .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
+            .environment(ZoomManager(appRouterNamespace))
             .modelContainer(V1Models.sharedContainer!)
         }
+    }
+    
+    @ViewBuilder
+    private func withPaths<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .navigationDestination(for: AppDestination.self) { dest in
+                switch dest {
+                case let .recipe(id):
+                    RecipePage(recipeId: id)
+                        .navigationTransition(.zoom(sourceID: "zoom", in: appRouterNamespace))
+                case .recipes:
+                    RecipeListPage()
+                }
+            }
     }
 }

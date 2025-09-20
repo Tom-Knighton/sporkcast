@@ -8,29 +8,43 @@
 import SwiftUI
 import Design
 import API
+import SwiftData
 
 public struct RecipePage: View {
     
     @State private var offset: CGFloat = 0
     @State private var showNavTitle = false
     @Environment(\.colorScheme) private var scheme
-    
     @Environment(\.networkClient) private var client
-    
+    @Environment(\.modelContext) private var context
     @State private var selection: Int = 1
     @State private var dominantColor: Color = .clear
-    
     @State private var viewModel = RecipeViewModel()
+    let recipeId: UUID?
     
-    public init() {}
+    public init() {
+        recipeId = nil
+    }
+    
+    public init(_ recipe: Recipe) {
+        self.recipeId = nil
+        self.viewModel.recipe = recipe
+    }
+    
+    public init(recipeId: UUID) {
+        self.recipeId = recipeId
+    }
     
     public var body: some View {
         ZStack(alignment: .top) {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if let recipe = viewModel.recipe {
-//                        RecipeHeadingView(recipe.imageUrl ?? "")
-//                            .ignoresSafeArea()
+                        RecipeHeadingView {
+                            image()
+                        }
+                        .ignoresSafeArea()
+                        
                         RecipeTitleView(for: recipe, showNavTitle: $showNavTitle)
                         
                         VStack {
@@ -88,7 +102,9 @@ public struct RecipePage: View {
                             
                             Spacer().frame(height: 20)
                             
-                            RecipeSourceButton(recipe, with: dominantColor)
+                            RecipeSourceButton(recipe, with: dominantColor) {
+                                image()
+                            }
                             
                             Spacer().frame(height: 20)
                             HStack {
@@ -125,7 +141,9 @@ public struct RecipePage: View {
         }
         .ignoresSafeArea()
         .task(id: "load") {
-            if viewModel.recipe == nil {
+            if let recipeId {
+                self.viewModel = await RecipeViewModel(with: recipeId, context: context)
+            } else if viewModel.recipe == nil {
                 self.viewModel = await RecipeViewModel(for: "https://beatthebudget.com/recipe/chicken-katsu-curry/", with: client)
             }
         }
@@ -133,23 +151,12 @@ public struct RecipePage: View {
         .colorScheme(.dark)
         .background(
             ZStack {
-//                if let recipe = viewModel.recipe {
-//                    AsyncImage(url: URL(string: recipe.imageUrl ?? "")) { img in
-//                        img
-//                            .resizable()
-//                            .aspectRatio(contentMode: .fill)
-//                            .task {
-//                                self.dominantColor = await img.getDominantColor() ?? .clear
-//                            }
-//                    } placeholder: {
-//                        EmptyView()
-//                    }
-//                    .aspectRatio(contentMode: .fill)
-//                    .scaleEffect(2)
-//                    .blur(radius: scheme == .dark ? 100 : 64)
-//                    .ignoresSafeArea()
-//                    .overlay(Material.ultraThin.opacity(0.2))
-//                }
+                image()
+                    .aspectRatio(contentMode: .fill)
+                    .scaleEffect(2)
+                    .blur(radius: scheme == .dark ? 100 : 64)
+                    .ignoresSafeArea()
+                    .overlay(Material.ultraThin.opacity(0.2))
             }
         )
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
@@ -168,6 +175,45 @@ public struct RecipePage: View {
                     .accessibilityHidden(!showNavTitle)
                     .animation(.easeInOut(duration: 0.2), value: showNavTitle)
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func image() -> some View {
+        if let recipe = viewModel.recipe {
+            AsyncImage(url: URL(string: recipe.imageUrl ?? "")) { img in
+                img
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .task {
+                        self.dominantColor = await img.getDominantColor() ?? .clear
+                    }
+            } placeholder: {
+                if let data = recipe.thumbnailData, let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .task {
+                            self.dominantColor = Color(uiColor: ui.dominantBackgroundColor() ?? .clear)
+                        }
+                } else if let file = recipe.imageAssetFileName,
+                          let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
+                          let data = try? Data(contentsOf: url),
+                          let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .task {
+                            self.dominantColor = Color(uiColor: ui.dominantBackgroundColor() ?? .clear)
+                        }
+                } else {
+                    Rectangle().opacity(0.1)
+                }
+            }
+            
+            
+        } else {
+            Rectangle().opacity(0.1)
         }
     }
 }

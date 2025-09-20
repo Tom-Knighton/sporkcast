@@ -6,6 +6,8 @@
 //
 
 import AppRouter
+import Foundation
+import SwiftUI
 
 public enum AppTab: String, TabType, CaseIterable {
     case recipes
@@ -30,7 +32,7 @@ public enum AppTab: String, TabType, CaseIterable {
 
 public enum AppDestination: DestinationType {
     case recipes
-    case recipe(id: String)
+    case recipe(id: UUID)
     
     public static func from(path: String, fullPath: [String], parameters: [String : String]) -> AppDestination? {
         return nil
@@ -43,3 +45,12 @@ public enum AppSheet: SheetType {
 }
 
 public typealias AppRouter = Router<AppTab, AppDestination, AppSheet>
+
+@Observable
+public class ZoomManager {
+    public let zoomNamespace: Namespace.ID
+    
+    public init(_ zoomNamespace: Namespace.ID) {
+        self.zoomNamespace = zoomNamespace
+    }
+}
