@@ -13,10 +13,11 @@ public struct RecipeIngredientsListView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
     public let tint: Color
+    @State private var ingredients: [RecipeIngredient] = []
         
     public var body: some View {
         VStack {
-            ForEach(viewModel.recipe?.ingredients?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []) { ingredient in
+            ForEach(ingredients) { ingredient in
                 HStack {
                     ZStack {
                         Circle()
@@ -25,7 +26,6 @@ public struct RecipeIngredientsListView: View {
                         if let emoji = ingredient.emojiDescriptor {
                             Text(emoji)
                                 .font(.caption)
-                                .shadow(radius: 3)
                         }
                     }
                     
@@ -42,6 +42,11 @@ public struct RecipeIngredientsListView: View {
             Spacer().frame(height: 100)
         }
         .safeAreaPadding(.bottom)
+        .onAppear {
+            if ingredients.isEmpty {
+                self.ingredients = viewModel.recipe?.ingredients?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []
+            }
+        }
     }
 }
 

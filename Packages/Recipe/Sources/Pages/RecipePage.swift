@@ -160,12 +160,12 @@ public struct RecipePage: View {
             }
         )
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
-            let collapsed = bottom < 0
-            if collapsed != showNavTitle {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showNavTitle = collapsed
-                }
-            }
+//            let collapsed = bottom < 0
+//            if collapsed != showNavTitle {
+//                withAnimation(.easeInOut(duration: 0.2)) {
+//                    showNavTitle = collapsed
+//                }
+//            }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
