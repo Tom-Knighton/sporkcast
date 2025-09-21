@@ -17,7 +17,7 @@ public struct RecipePage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.modelContext) private var context
-    @State private var selection: Int = 1
+    @State private var selection: Int = 2
     @State private var dominantColor: Color = .clear
     @State private var viewModel = RecipeViewModel()
     let recipeId: UUID?
@@ -122,6 +122,8 @@ public struct RecipePage: View {
                             if selection == 1 {
                                 RecipeIngredientsListView(tint: dominantColor)
                                     .tint(dominantColor)
+                            } else if selection == 2 {
+                                RecipeStepsView(tint: dominantColor)
                             }
                             
                         }
@@ -160,12 +162,12 @@ public struct RecipePage: View {
             }
         )
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
-//            let collapsed = bottom < 0
-//            if collapsed != showNavTitle {
-//                withAnimation(.easeInOut(duration: 0.2)) {
-//                    showNavTitle = collapsed
-//                }
-//            }
+            let collapsed = bottom < 0
+            if collapsed != showNavTitle {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showNavTitle = collapsed
+                }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
