@@ -32,7 +32,14 @@ public struct RecipeStepsView: View {
                                 .bold()
                         }
                         
-                        Text(step.rawStep)
+                        VStack {
+                            ForEach(ingredients(for: step)) { ingredient in
+                                Text(ingredient.ingredient ?? ingredient.rawIngredient)
+                            }
+                            
+                            Text(step.rawStep)
+                        }
+                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -57,5 +64,21 @@ public struct RecipeStepsView: View {
                 self.stepSections = sections
             }
         }
+    }
+    
+    private func ingredients(for step: RecipeStep) -> [RecipeIngredient] {
+        var ingredients: [RecipeIngredient] = []
+        
+        guard let recipe = viewModel.recipe, recipe.ingredients?.isEmpty == false else { return ingredients }
+        guard !step.rawStep.isEmpty else { return ingredients }
+        
+        for ingredient in recipe.ingredients ?? [] {
+            let words = ingredient.ingredient?.split(separator: " ") ?? []
+            if words.filter({ step.rawStep.contains("\($0)") }).count > 0 {
+                ingredients.append(ingredient)
+            }
+        }
+        
+        return ingredients
     }
 }

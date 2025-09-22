@@ -21,6 +21,6 @@ let package = Package(
             name: "Design",
             dependencies: ["API"]
         ),
-
+        .testTarget(name: "DesignTests", dependencies: ["Design"])
     ]
 )
