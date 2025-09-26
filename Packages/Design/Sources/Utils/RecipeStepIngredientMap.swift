@@ -68,36 +68,36 @@ public struct IngredientStepMatcher {
             return (ing, v)
         }
         
-        var matched = [RecipeIngredient]()
-        
+        var matchedWithIndex: [(ingredient: RecipeIngredient, index: Int)] = []
+
         for (ing, variants) in ingredientVariants {
-            var isMatch = false
+            var bestIndex: Int? = nil
             for variant in variants {
                 let tokenCount = variant.split(separator: " ").count
                 if tokenCount == 1 {
                     let token = variant
                     if token.count < 3 && !config.allowShortTokens.contains(token) { continue }
                     if config.stopWords.contains(token) { continue }
-                    if norm.tokenSet.contains(token) {
-                        isMatch = true
-                        break
+                    if let idx = norm.lemmaTokens.firstIndex(of: String(token)) {
+                        bestIndex = min(bestIndex ?? idx, idx)
                     }
                 } else {
                     let needle = " \(variant) "
-                    if norm.normalisedText.contains(needle) {
-                        isMatch = true
-                        break
+                    let vTokens = variant.split(separator: " ").map(String.init)
+                    if let idx = firstSpanIndex(of: vTokens, in: norm.lemmaTokens) {
+                        bestIndex = min(bestIndex ?? idx, idx)
                     }
                 }
             }
             
             
-            if isMatch {
-                matched.append(ing)
+            if let idx = bestIndex {
+                matchedWithIndex.append((ing, idx))
             }
         }
         
-        return matched
+        matchedWithIndex.sort { $0.index < $1.index }
+        return matchedWithIndex.map { $0.ingredient }
     }
     
     private func tokenize(_ s: String) -> [String] {
@@ -163,6 +163,19 @@ public struct IngredientStepMatcher {
         }
         
         return lemmas
+    }
+    
+    private func firstSpanIndex(of variantTokens: [String], in stepTokens: [String]) -> Int? {
+        guard !variantTokens.isEmpty, variantTokens.count <= stepTokens.count else { return nil }
+        let vLen = variantTokens.count
+        var i = 0
+        while i + vLen <= stepTokens.count {
+            if stepTokens[i..<(i+vLen)].elementsEqual(variantTokens) {
+                return i
+            }
+            i += 1
+        }
+        return nil
     }
     
     public func generateVariants(for ingredient: RecipeIngredient, config: IngredientMatchingConfig = .shared) -> Set<String> {
