@@ -60,7 +60,8 @@ public struct RecipeStepsView: View {
                             }
                             
                             
-                            Text(step.rawStep)
+                            RecipeStepWithTimingsView(step, tint: tint)
+
                         }
                         
                         Spacer()
@@ -94,44 +95,86 @@ public struct RecipeStepsView: View {
             }
         }
     }
+    
 }
 
+struct RecipeStepWithTimingsView: View {
+    let step: RecipeStep
+    let matchedTimings: [MatchedTiming]
+    let tint: Color
+    @State private var buttonRects: [MatchedTiming: CGRect] = [:]
+    
+    init(_ step: RecipeStep, tint: Color) {
+        self.step = step
+        self.tint = tint
+        self.matchedTimings = step.matchedTimings().sorted { $0.range.lowerBound < $1.range.lowerBound }
+    }
 
-struct HorizontalScrollWithGradient<Content: View>: View {
-    struct Metrics: Equatable {
-        var offsetX: CGFloat
-        var contentWidth: CGFloat
-        var containerWidth: CGFloat
-    }
-    
-    let content: Content
-    @State private var metrics = Metrics(offsetX: 0, contentWidth: 0, containerWidth: 0)
-    @State private var hasMoreToScroll = false
-    
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                content
+        FlowLayout(alignment: .leading, spacing: 4) {
+            ForEach(Array(createSegments().enumerated()), id: \.offset) { index, segment in
+                switch segment {
+                case .text(let string):
+                    ForEach(string.components(separatedBy: " "), id: \.self) { word in
+                        if !word.isEmpty {
+                            Text(word)
+                                .baselineOffset(-4)
+                                .fixedSize()
+                        }
+                    }
+                case .button(let timing):
+                    Button(action: {
+                        
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                                .font(.caption)
+                            Text(timing.displayText)
+                        }
+                        .bold()
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.regularMaterial)
+                        .clipShape(.capsule)
+                        .fixedSize()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
         }
-        .scrollBounceBehavior(.basedOnSize, axes: [.horizontal])
-        .onScrollGeometryChange(for: Metrics.self) { g in
-            Metrics(
-                offsetX: max(0, g.contentOffset.x),
-                contentWidth: g.contentSize.width,
-                containerWidth: g.containerSize.width
-            )
-        } action: { newMetrics, _ in
-            metrics = newMetrics
-            let endVisibleX = metrics.offsetX + metrics.containerWidth
-            withAnimation {
-                self.hasMoreToScroll = metrics.contentWidth > metrics.containerWidth && endVisibleX < metrics.contentWidth - 1
+    }
+    
+    private enum TextSegment {
+        case text(String)
+        case button(MatchedTiming)
+    }
+    
+    private func createSegments() -> [TextSegment] {
+        var segments: [TextSegment] = []
+        var currentIndex = step.rawStep.startIndex
+        
+        for timing in matchedTimings {
+            if currentIndex < timing.range.lowerBound {
+                let textBefore = String(step.rawStep[currentIndex..<timing.range.lowerBound])
+                if !textBefore.isEmpty {
+                    segments.append(.text(textBefore))
+                }
+            }
+            
+            segments.append(.button(timing))
+            
+            currentIndex = timing.range.upperBound
+        }
+        
+        if currentIndex < step.rawStep.endIndex {
+            let remainingText = String(step.rawStep[currentIndex..<step.rawStep.endIndex])
+            if !remainingText.isEmpty {
+                segments.append(.text(remainingText))
             }
         }
-        .mask(LinearGradient(gradient: Gradient(colors: [.black, .black, .black, hasMoreToScroll ? .clear : .black]), startPoint: .leading, endPoint: .trailing))
+        
+        return segments
     }
 }
+

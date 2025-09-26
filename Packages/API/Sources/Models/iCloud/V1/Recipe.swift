@@ -117,7 +117,7 @@ public final class RecipeStepSection {
 }
 
 @Model
-public final class RecipeStep {
+public final class RecipeStep: @unchecked Sendable {
     
     public var rawStep: String = ""
     public var sortIndex: Int = 0
