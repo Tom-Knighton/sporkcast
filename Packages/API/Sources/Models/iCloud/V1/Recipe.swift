@@ -216,6 +216,24 @@ public extension Recipe {
             ingredients.append(newIng)
         }
         self.ingredients = ingredients
+        
+        var stepSections: [RecipeStepSection] = []
+        for i in 0..<dto.stepSections.count {
+            let dtoSect = dto.stepSections[i]
+            
+            var steps: [RecipeStep] = []
+            if let dtoSteps = dtoSect.steps {
+                for j in 0..<dtoSteps.count {
+                    let dtoStep = dtoSteps[j]
+                    let newStep = RecipeStep(rawStep: dtoStep.step, sortIndex: j, timings: dtoStep.times.compactMap { RecipeStepTiming(timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)}, temperatures: dtoStep.temperatures.compactMap { RecipeStepTemp(temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText)})
+                    steps.append(newStep)
+                }
+            }
+            
+            let newSect = RecipeStepSection(title: dtoSect.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", sortIndex: i, steps: steps)
+            stepSections.append(newSect)
+        }
+        self.stepSections = stepSections
     }
     
     private static func downloadImageData(from url: URL) async throws -> Data {

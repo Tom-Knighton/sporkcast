@@ -21,6 +21,5 @@ let package = Package(
             name: "Recipe",
             dependencies: ["Design", "API"]
         ),
-
-    ]
+    ],
 )
