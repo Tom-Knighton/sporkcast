@@ -7,18 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E23AC6A72E88A16E00A1CC8E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */; };
+		E23AC6A82E88A16E00A1CC8E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */; };
+		E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E23AC6C02E88A30B00A1CC8E /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E23AC6BF2E88A30B00A1CC8E /* Environment */; };
 		E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E254D7392E7DFF3E00CDE935 /* Environment */; };
 		E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */ = {isa = PBXBuildFile; productRef = E254D73C2E7E01FF00CDE935 /* RecipesList */; };
 		E2BBA9122E5B2D8600846D3E /* API in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9112E5B2D8600846D3E /* API */; };
 		E2BBA9142E5B2D8600846D3E /* Design in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9132E5B2D8600846D3E /* Design */; };
 		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
+		E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */ = {isa = PBXBuildFile; productRef = E2DE194D2E92852F00A712BD /* RecipeTimersList */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		E23AC6B32E88A16F00A1CC8E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E2BBA8F12E59224700846D3E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E23AC6A52E88A16E00A1CC8E;
+			remoteInfo = countdownextensionExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E23AC6BA2E88A16F00A1CC8E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.countdownextensionExtension.entitlements; sourceTree = "<group>"; };
+		E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = countdownextensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E23AC6B92E88A16F00A1CC8E /* Exceptions for "countdownextension" folder in "countdownextensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */;
+		};
 		E2BBA90D2E5B2BCF00846D3E /* Exceptions for "Packages" folder in "sporkcast" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -27,6 +67,7 @@
 				Environment,
 				Recipe,
 				RecipesList,
+				RecipeTimersList,
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
 		};
@@ -40,6 +81,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		E23AC6A92E88A16E00A1CC8E /* countdownextension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E23AC6B92E88A16F00A1CC8E /* Exceptions for "countdownextension" folder in "countdownextensionExtension" target */,
+			);
+			path = countdownextension;
+			sourceTree = "<group>";
+		};
 		E2BBA8FB2E59224700846D3E /* sporkcast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -59,10 +108,21 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		E23AC6A32E88A16E00A1CC8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E23AC6A82E88A16E00A1CC8E /* SwiftUI.framework in Frameworks */,
+				E23AC6C02E88A30B00A1CC8E /* Environment in Frameworks */,
+				E23AC6A72E88A16E00A1CC8E /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E2BBA8F62E59224700846D3E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */,
 				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
@@ -77,8 +137,10 @@
 		E2BBA8F02E59224700846D3E = {
 			isa = PBXGroup;
 			children = (
+				E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */,
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
 				E2BBA90B2E5B2BBB00846D3E /* Packages */,
+				E23AC6A92E88A16E00A1CC8E /* countdownextension */,
 				E2BBA9102E5B2D8600846D3E /* Frameworks */,
 				E2BBA8FA2E59224700846D3E /* Products */,
 			);
@@ -88,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				E2BBA8F92E59224700846D3E /* sporkcast.app */,
+				E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +158,8 @@
 		E2BBA9102E5B2D8600846D3E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */,
+				E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -102,6 +167,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E23AC6B62E88A16F00A1CC8E /* Build configuration list for PBXNativeTarget "countdownextensionExtension" */;
+			buildPhases = (
+				E23AC6A22E88A16E00A1CC8E /* Sources */,
+				E23AC6A32E88A16E00A1CC8E /* Frameworks */,
+				E23AC6A42E88A16E00A1CC8E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E23AC6A92E88A16E00A1CC8E /* countdownextension */,
+			);
+			name = countdownextensionExtension;
+			packageProductDependencies = (
+				E23AC6BF2E88A30B00A1CC8E /* Environment */,
+			);
+			productName = countdownextensionExtension;
+			productReference = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		E2BBA8F82E59224700846D3E /* sporkcast */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E2BBA9042E59224900846D3E /* Build configuration list for PBXNativeTarget "sporkcast" */;
@@ -109,10 +197,12 @@
 				E2BBA8F52E59224700846D3E /* Sources */,
 				E2BBA8F62E59224700846D3E /* Frameworks */,
 				E2BBA8F72E59224700846D3E /* Resources */,
+				E23AC6BA2E88A16F00A1CC8E /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E23AC6B42E88A16F00A1CC8E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
@@ -125,6 +215,7 @@
 				E2BBA9152E5B2D8600846D3E /* Recipe */,
 				E254D7392E7DFF3E00CDE935 /* Environment */,
 				E254D73C2E7E01FF00CDE935 /* RecipesList */,
+				E2DE194D2E92852F00A712BD /* RecipeTimersList */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -140,6 +231,9 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					E23AC6A52E88A16E00A1CC8E = {
+						CreatedOnToolsVersion = 26.0;
+					};
 					E2BBA8F82E59224700846D3E = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -160,11 +254,19 @@
 			projectRoot = "";
 			targets = (
 				E2BBA8F82E59224700846D3E /* sporkcast */,
+				E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		E23AC6A42E88A16E00A1CC8E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E2BBA8F72E59224700846D3E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -175,6 +277,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		E23AC6A22E88A16E00A1CC8E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E2BBA8F52E59224700846D3E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -184,7 +293,101 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E23AC6B42E88A16F00A1CC8E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */;
+			targetProxy = E23AC6B32E88A16F00A1CC8E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		E23AC6B72E88A16F00A1CC8E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = countdownextension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = countdownextension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.countdownextension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		E23AC6B82E88A16F00A1CC8E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = countdownextension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = countdownextension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.countdownextension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 		E2BBA9022E59224900846D3E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -319,6 +522,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -358,6 +562,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -387,6 +592,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E23AC6B62E88A16F00A1CC8E /* Build configuration list for PBXNativeTarget "countdownextensionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E23AC6B72E88A16F00A1CC8E /* Debug */,
+				E23AC6B82E88A16F00A1CC8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E2BBA8F42E59224700846D3E /* Build configuration list for PBXProject "sporkcast" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -408,6 +622,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E23AC6BF2E88A30B00A1CC8E /* Environment */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Environment;
+		};
 		E254D7392E7DFF3E00CDE935 /* Environment */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Environment;
@@ -427,6 +645,10 @@
 		E2BBA9152E5B2D8600846D3E /* Recipe */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Recipe;
+		};
+		E2DE194D2E92852F00A712BD /* RecipeTimersList */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RecipeTimersList;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

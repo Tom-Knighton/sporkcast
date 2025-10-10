@@ -42,6 +42,8 @@ public enum AppDestination: DestinationType {
 public enum AppSheet: SheetType {
     
     public var id: Int { hashValue }
+    
+    case timersView
 }
 
 public typealias AppRouter = Router<AppTab, AppDestination, AppSheet>

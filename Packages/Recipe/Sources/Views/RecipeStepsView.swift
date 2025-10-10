@@ -8,7 +8,10 @@
 import SwiftUI
 import API
 import Design
+import Environment
+import AlarmKit
 
+@MainActor
 public struct RecipeStepsView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
@@ -60,8 +63,11 @@ public struct RecipeStepsView: View {
                             }
                             
                             
-                            RecipeStepWithTimingsView(step, tint: tint)
-
+                            RecipeStepWithTimingsView(step, tint: tint) { index in
+                                Task {
+                                    await createAlarm(for: step, timerIndex: index)
+                                }
+                            }
                         }
                         
                         Spacer()
@@ -94,8 +100,17 @@ public struct RecipeStepsView: View {
                 self.stepSections = sections
             }
         }
+
     }
-    
+
+    private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
+        guard let recipe = viewModel.recipe else { return }
+        let timings = recipeStep.timings
+        guard let timings, timerIndex < timings.count else { return }
+        let timer = timings[timerIndex]
+        
+        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.rawStep)
+    }
 }
 
 struct RecipeStepWithTimingsView: View {
@@ -103,11 +118,13 @@ struct RecipeStepWithTimingsView: View {
     let matchedTimings: [MatchedTiming]
     let tint: Color
     @State private var buttonRects: [MatchedTiming: CGRect] = [:]
+    let onTimerTap: (Int) -> Void
     
-    init(_ step: RecipeStep, tint: Color) {
+    init(_ step: RecipeStep, tint: Color, onTimerTap: @escaping (Int) -> Void) {
         self.step = step
         self.tint = tint
         self.matchedTimings = step.matchedTimings().sorted { $0.range.lowerBound < $1.range.lowerBound }
+        self.onTimerTap = onTimerTap
     }
 
     var body: some View {
@@ -124,14 +141,14 @@ struct RecipeStepWithTimingsView: View {
                     }
                 case .button(let timing):
                     Button(action: {
-                        
+                        onTimerTap(step.matchedTimings().firstIndex(where: { $0.range == timing.range }) ?? 0)
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "timer")
                                 .font(.caption)
                             Text(timing.displayText)
                         }
-                        .bold()
+                        .fontWeight(.heavy)
                         .foregroundStyle(tint)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
