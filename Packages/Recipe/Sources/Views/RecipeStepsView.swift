@@ -8,7 +8,10 @@
 import SwiftUI
 import API
 import Design
+import Environment
+import AlarmKit
 
+@MainActor
 public struct RecipeStepsView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
@@ -58,9 +61,11 @@ public struct RecipeStepsView: View {
                                     }
                                 }
                             }
-                            
-                            
-                            Text(step.rawStep)
+                            RecipeStepWithTimingsView(step, recipeId: viewModel.recipe?.id ?? UUID(), tint: tint) { index in
+                                Task {
+                                    await createAlarm(for: step, timerIndex: index)
+                                }
+                            }
                         }
                         
                         Spacer()
@@ -93,45 +98,121 @@ public struct RecipeStepsView: View {
                 self.stepSections = sections
             }
         }
+
+    }
+
+    private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
+        guard let recipe = viewModel.recipe else { return }
+        let timings = recipeStep.timings
+        guard let timings, timerIndex < timings.count else { return }
+        let timer = timings[timerIndex]
+        
+        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.rawStep)
     }
 }
 
+struct RecipeStepWithTimingsView: View {
+    @Environment(RecipeTimerStore.self) private var timers
+    let step: RecipeStep
+    let recipeId: UUID
+    let matchedTimings: [MatchedTiming]
+    let tint: Color
+    @State private var buttonRects: [MatchedTiming: CGRect] = [:]
+    let onTimerTap: (Int) -> Void
+    
+    init(_ step: RecipeStep, recipeId: UUID, tint: Color, onTimerTap: @escaping (Int) -> Void) {
+        self.step = step
+        self.tint = tint
+        self.recipeId = recipeId
+        self.matchedTimings = step.matchedTimings().sorted { $0.range.lowerBound < $1.range.lowerBound }
+        self.onTimerTap = onTimerTap
+    }
 
-struct HorizontalScrollWithGradient<Content: View>: View {
-    struct Metrics: Equatable {
-        var offsetX: CGFloat
-        var contentWidth: CGFloat
-        var containerWidth: CGFloat
-    }
-    
-    let content: Content
-    @State private var metrics = Metrics(offsetX: 0, contentWidth: 0, containerWidth: 0)
-    @State private var hasMoreToScroll = false
-    
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                content
+        FlowLayout(alignment: .leading, spacing: 4) {
+            ForEach(Array(createSegments().enumerated()), id: \.offset) { index, segment in
+                switch segment {
+                case .text(let string):
+                    ForEach(string.components(separatedBy: " "), id: \.self) { word in
+                        if !word.isEmpty {
+                            Text(word)
+                                .baselineOffset(-4)
+                                .fixedSize()
+                        }
+                    }
+                case .button(let timing):
+                    let index = step.matchedTimings().firstIndex(where: { $0.range == timing.range }) ?? 0
+                    let timer = timers.timers.first(where: { $0.metadata.recipeId == recipeId && $0.metadata.recipeStepId == step.id && $0.metadata.stepTimerIndex == index })
+                    Button(action: {
+                        if timer == nil {
+                            onTimerTap(index)
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                                .font(.caption)
+                            
+                            if let timer {
+                                if case let .countdown(total, elapsed, startDate) = timer.presentation.mode {
+                                    let remaining = max(0, total - elapsed)
+                                    Text(timerInterval: startDate ... startDate.addingTimeInterval(remaining),
+                                         countsDown: true,
+                                         showsHours: true)
+                                }
+                                if case let .paused(total, prev) = timer.presentation.mode {
+                                    let remaining = max(0, total - prev)
+                                    let duration = Duration.seconds(remaining)
+                                    Text(duration, format: .time(pattern: remaining >= 3600 ? .hourMinuteSecond : .minuteSecond))
+                                }
+                                
+                            } else {
+                                Text(timing.displayText)
+                            }
+                        }
+                        .fontWeight(.heavy)
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.regularMaterial)
+                        .clipShape(.capsule)
+                        .fixedSize()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
         }
-        .scrollBounceBehavior(.basedOnSize, axes: [.horizontal])
-        .onScrollGeometryChange(for: Metrics.self) { g in
-            Metrics(
-                offsetX: max(0, g.contentOffset.x),
-                contentWidth: g.contentSize.width,
-                containerWidth: g.containerSize.width
-            )
-        } action: { newMetrics, _ in
-            metrics = newMetrics
-            let endVisibleX = metrics.offsetX + metrics.containerWidth
-            withAnimation {
-                self.hasMoreToScroll = metrics.contentWidth > metrics.containerWidth && endVisibleX < metrics.contentWidth - 1
+    }
+    
+    private enum TextSegment {
+        case text(String)
+        case button(MatchedTiming)
+    }
+    
+    private func createSegments() -> [TextSegment] {
+        var segments: [TextSegment] = []
+        var currentIndex = step.rawStep.startIndex
+        
+        for timing in matchedTimings {
+            if currentIndex < timing.range.lowerBound {
+                let textBefore = String(step.rawStep[currentIndex..<timing.range.lowerBound])
+                if !textBefore.isEmpty {
+                    segments.append(.text(textBefore))
+                }
+            }
+            
+            segments.append(.button(timing))
+            
+            currentIndex = timing.range.upperBound
+        }
+        
+        if currentIndex < step.rawStep.endIndex {
+            let remainingText = String(step.rawStep[currentIndex..<step.rawStep.endIndex])
+            if !remainingText.isEmpty {
+                segments.append(.text(remainingText))
             }
         }
-        .mask(LinearGradient(gradient: Gradient(colors: [.black, .black, .black, hasMoreToScroll ? .clear : .black]), startPoint: .leading, endPoint: .trailing))
+        
+        return segments
     }
 }
+

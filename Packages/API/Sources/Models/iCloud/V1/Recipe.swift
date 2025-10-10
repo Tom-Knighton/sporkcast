@@ -102,6 +102,7 @@ public final class RecipeIngredient {
 
 @Model
 public final class RecipeStepSection {
+    public var id: UUID = UUID()
     public var title: String = ""
     public var sortIndex: Int = 0
     
@@ -109,6 +110,7 @@ public final class RecipeStepSection {
     @Relationship(deleteRule: .cascade, inverse: \RecipeStep.recipeStepSection) public var steps: [RecipeStep]?
     
     public init(title: String, sortIndex: Int, recipe: Recipe? = nil, steps: [RecipeStep]) {
+        self.id = UUID()
         self.title = title
         self.sortIndex = sortIndex
         self.recipe = recipe
@@ -117,8 +119,9 @@ public final class RecipeStepSection {
 }
 
 @Model
-public final class RecipeStep {
+public final class RecipeStep: @unchecked Sendable {
     
+    public var id: UUID = UUID()
     public var rawStep: String = ""
     public var sortIndex: Int = 0
     
@@ -127,6 +130,7 @@ public final class RecipeStep {
     @Relationship var recipeStepSection: RecipeStepSection?
     
     public init(rawStep: String, sortIndex: Int, timings: [RecipeStepTiming], temperatures: [RecipeStepTemp], recipeStepSection: RecipeStepSection? = nil) {
+        self.id = UUID()
         self.rawStep = rawStep
         self.sortIndex = sortIndex
         self.timings = timings
