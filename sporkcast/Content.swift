@@ -81,6 +81,7 @@ struct AppContent: View {
             TimerAccessoryView(first: first, totalAlarms: alarmManager.timers.count)
                 .environment(alarmManager)
                 .environment(appRouter)
+                .id(alarmManager.timers.count)
         } else {
             EmptyView()
         }

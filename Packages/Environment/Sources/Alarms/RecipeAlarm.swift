@@ -270,6 +270,7 @@ public final class RecipeTimerStore {
 //            .filter { $0.alarmState != .alerting }
             .map { RecipeTimerRowModel(from: $0) }
             .sorted { $0.createdAt > $1.createdAt }
+
         persist()
     }
     

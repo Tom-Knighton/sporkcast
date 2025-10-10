@@ -139,13 +139,19 @@ struct CountdownProgressView: View {
     var body: some View {
         switch state.mode {
         case let .countdown(countdown):
-            let progress = countdown.totalCountdownDuration > 0 ? countdown.previouslyElapsedDuration / countdown.totalCountdownDuration : 1
-            Image(systemName: "timer.circle", variableValue: progress)
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(attributes.tintColor, attributes.tintColor)
-                .symbolVariableValueMode(.draw)
-                .symbolEffect(.variableColor, value: progress)
-                .scaleEffect(1.2)
+            let remaining = countdown.totalCountdownDuration - countdown.previouslyElapsedDuration
+            
+            ProgressView(
+                timerInterval: countdown.startDate...countdown.startDate.addingTimeInterval(remaining),
+                countsDown: true,
+                label: {
+                    Image(systemName: "timer")
+                },
+                currentValueLabel: {}
+            )
+            .progressViewStyle(.circular)
+            .tint(attributes.tintColor)
+            
         case .alert:
             Image(systemName: "alarm.waves.left.and.right")
                 .symbolEffect(.wiggle.byLayer, options: .repeat(.continuous))

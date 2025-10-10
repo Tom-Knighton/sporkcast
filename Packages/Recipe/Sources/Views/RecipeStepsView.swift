@@ -152,11 +152,19 @@ struct RecipeStepWithTimingsView: View {
                             Image(systemName: "timer")
                                 .font(.caption)
                             
-                            if let timer, case let .countdown(total, elapsed, startDate) = timer.presentation.mode {
-                                let remaining = max(0, total - elapsed)
-                                Text(timerInterval: startDate ... startDate.addingTimeInterval(remaining),
-                                     countsDown: true,
-                                     showsHours: true)
+                            if let timer {
+                                if case let .countdown(total, elapsed, startDate) = timer.presentation.mode {
+                                    let remaining = max(0, total - elapsed)
+                                    Text(timerInterval: startDate ... startDate.addingTimeInterval(remaining),
+                                         countsDown: true,
+                                         showsHours: true)
+                                }
+                                if case let .paused(total, prev) = timer.presentation.mode {
+                                    let remaining = max(0, total - prev)
+                                    let duration = Duration.seconds(remaining)
+                                    Text(duration, format: .time(pattern: remaining >= 3600 ? .hourMinuteSecond : .minuteSecond))
+                                }
+                                
                             } else {
                                 Text(timing.displayText)
                             }

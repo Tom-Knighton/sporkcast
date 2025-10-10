@@ -15,7 +15,6 @@ public struct TimerAccessoryView: View {
     @Environment(AppRouter.self) private var appRouter
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
     @Environment(RecipeTimerStore.self) private var alarmStore
-    @State private var showSheet: Bool = false
     let firstAlarm: RecipeTimerRowModel
     let totalAlarms: Int
     
@@ -46,7 +45,9 @@ public struct TimerAccessoryView: View {
             }
             .id(totalAlarms)
             
-            Button(action: { self.showSheet.toggle() }) {
+            Button(action: {
+                self.appRouter.presentSheet(.timersView)
+            }) {
                 Image(systemName: "chevron.right.circle.fill")
             }
             .badge(alarmStore.timers.count)
