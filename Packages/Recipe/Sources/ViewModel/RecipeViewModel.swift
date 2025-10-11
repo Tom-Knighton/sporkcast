@@ -22,9 +22,13 @@ public class RecipeViewModel: @unchecked Sendable {
         recipe = nil
     }
     
-    public init(for recipe: Recipe) {
+    public init(for recipe: Recipe, context: ModelContext) {
         self.recipe = recipe
         self.ingredientIconMap = [:]
+        
+        if recipe.ingredients?.allSatisfy({ $0.emojiDescriptor != nil }) == false {
+            try? generateEmojis(context)
+        }
     }
     
     public init(with recipeId: UUID, context: ModelContext) async {

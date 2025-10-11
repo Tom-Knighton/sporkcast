@@ -147,6 +147,8 @@ public struct RecipePage: View {
                 self.viewModel = await RecipeViewModel(with: recipeId, context: context)
             } else if viewModel.recipe == nil {
                 self.viewModel = await RecipeViewModel(for: "https://beatthebudget.com/recipe/chicken-katsu-curry/", with: client)
+            } else if let r = viewModel.recipe {
+                self.viewModel = RecipeViewModel(for: r, context: context)
             }
         }
         .environment(viewModel)

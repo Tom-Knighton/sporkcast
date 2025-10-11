@@ -39,7 +39,7 @@ public struct RecipeIngredientsListView: View {
                 .clipShape(.rect(cornerRadius: 10))
             }
             
-            Spacer().frame(height: 100)
+            Spacer().frame(height: 8)
         }
         .safeAreaPadding(.bottom)
         .onAppear {

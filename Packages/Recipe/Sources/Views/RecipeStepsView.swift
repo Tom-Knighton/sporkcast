@@ -30,7 +30,7 @@ public struct RecipeStepsView: View {
                 Text(section.title)
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
-                ForEach(section.steps ?? []) { step in
+                ForEach(section.steps?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []) { step in
                     HStack {
                         ZStack {
                             Circle()
@@ -66,6 +66,8 @@ public struct RecipeStepsView: View {
                     .clipShape(.rect(cornerRadius: 10))
                 }
             }
+            
+            Spacer().frame(height: 8)
         }
         .fontDesign(.rounded)
         .frame(maxWidth: .infinity)
@@ -149,7 +151,7 @@ struct RecipeStepWithTimingsView: View {
             ForEach(Array(createSegments().enumerated()), id: \.offset) { index, segment in
                 switch segment {
                 case .text(let string):
-                    ForEach(string.components(separatedBy: " "), id: \.self) { word in
+                    ForEach(string.components(separatedBy: " ").enumerated(), id: \.offset) { index, word in
                         if !word.isEmpty {
                             Text(word)
                                 .baselineOffset(-4)
