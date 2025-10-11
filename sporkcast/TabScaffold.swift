@@ -10,25 +10,33 @@ import SwiftUI
 internal import AppRouter
 import Environment
 
-struct TabScaffold<Recipes: View, TestRecipe: View>: View {
+struct TabScaffold<Recipes: View, Settings: View>: View {
     let recipes: () -> Recipes
-    let testRecipe: () -> TestRecipe
+    let settings: () -> Settings
+    @Binding var selection: AppTab
 
     init(
+        selection: Binding<AppTab>,
         @ViewBuilder recipes: @escaping () -> Recipes,
-        @ViewBuilder testRecipe: @escaping () -> TestRecipe
+        @ViewBuilder settings: @escaping () -> Settings,
     ) {
         self.recipes = recipes
-        self.testRecipe = testRecipe
+        self.settings = settings
+        self._selection = selection
     }
 
     var body: some View {
-        TabView {
-            Tab(AppTab.recipes.title, systemImage: AppTab.recipes.icon) {
+        TabView(selection: $selection) {
+            Tab(value: AppTab.recipes) {
                 recipes()
+            } label: {
+                Label(AppTab.recipes.title, systemImage: AppTab.recipes.icon)
             }
-            Tab(AppTab.testRecipe.title, systemImage: AppTab.testRecipe.icon) {
-                testRecipe()
+        
+            Tab(value: AppTab.settings) {
+                settings()
+            } label: {
+                Label(AppTab.settings.title, systemImage: AppTab.settings.icon)
             }
         }
     }

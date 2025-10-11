@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E231FFB92E9ABCDD00ABD853 /* Settings in Frameworks */ = {isa = PBXBuildFile; productRef = E231FFB82E9ABCDD00ABD853 /* Settings */; };
 		E23AC6A72E88A16E00A1CC8E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */; };
 		E23AC6A82E88A16E00A1CC8E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */; };
 		E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -68,6 +69,7 @@
 				Recipe,
 				RecipesList,
 				RecipeTimersList,
+				Settings,
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
 		};
@@ -122,6 +124,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E231FFB92E9ABCDD00ABD853 /* Settings in Frameworks */,
 				E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */,
 				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
@@ -216,6 +219,7 @@
 				E254D7392E7DFF3E00CDE935 /* Environment */,
 				E254D73C2E7E01FF00CDE935 /* RecipesList */,
 				E2DE194D2E92852F00A712BD /* RecipeTimersList */,
+				E231FFB82E9ABCDD00ABD853 /* Settings */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -622,6 +626,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E231FFB82E9ABCDD00ABD853 /* Settings */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Settings;
+		};
 		E23AC6BF2E88A30B00A1CC8E /* Environment */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Environment;

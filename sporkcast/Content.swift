@@ -14,27 +14,28 @@ import RecipesList
 import Recipe
 import Design
 internal import AppRouter
+import Settings
 
 struct AppContent: View {
     @Namespace private var appRouterNamespace
     
-    @State private var appRouter = AppRouter(initialTab: .recipes)
+    @State private var appRouter = AppRouter(initialTab: .settings)
     @State private var alarmManager = RecipeTimerStore.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
     
     var body: some View {
-        TabScaffold {
+        TabScaffold(selection: $appRouter.selectedTab) {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     RecipeListPage()
                 }
             }
-        } testRecipe: {
-            NavigationStack(path: $appRouter[.testRecipe]) {
+        } settings: {
+            NavigationStack(path: $appRouter[.settings]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
-                    RecipePage()
+                    SettingsPage()
                 }
             }
         }
