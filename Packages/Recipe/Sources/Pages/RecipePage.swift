@@ -43,12 +43,15 @@ public struct RecipePage: View {
                     if let recipe = viewModel.recipe {
                         RecipeHeadingView {
                             image()
+                                .mask(Rectangle().ignoresSafeArea(edges: .top))
                         }
+                        .stretchy()
                         .ignoresSafeArea()
                         
                         RecipeTitleView(for: recipe, showNavTitle: $showNavTitle)
                         
                         VStack {
+
                             Spacer().frame(height: 20)
                             
                             HStack(spacing: 24) {
@@ -134,6 +137,7 @@ public struct RecipePage: View {
                 }
                 .fontDesign(.rounded)
             }
+            .edgesIgnoringSafeArea(.top)
             .scrollBounceBehavior(.basedOnSize)
             .onScrollGeometryChange(for: CGFloat.self, of: { geo in
                 return geo.contentOffset.y + geo.contentInsets.top
@@ -141,7 +145,8 @@ public struct RecipePage: View {
                 offset = new
             })
         }
-        .ignoresSafeArea()
+        .scrollClipDisabled(true)
+        .ignoresSafeArea(.all, edges: .all.subtracting(.bottom))
         .task(id: "load") {
             if let recipeId {
                 self.viewModel = await RecipeViewModel(with: recipeId, context: context)
@@ -154,23 +159,14 @@ public struct RecipePage: View {
         .environment(viewModel)
         .colorScheme(.dark)
         .background(
-            ZStack {
-                image()
-                    .aspectRatio(contentMode: .fill)
-                    .scaleEffect(2)
-                    .blur(radius: scheme == .dark ? 100 : 64)
-                    .ignoresSafeArea()
-                    .overlay(Material.ultraThin.opacity(0.2))
-            }
+            image()
+                .aspectRatio(contentMode: .fill)
+                .scaleEffect(2)
+                .blur(radius: scheme == .dark ? 100 : 64)
+                .ignoresSafeArea()
+                .overlay(Material.ultraThin.opacity(0.2))
         )
-        .onPreferenceChange(TitleBottomYKey.self) { bottom in
-            let collapsed = bottom < 0
-            if collapsed != showNavTitle {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showNavTitle = collapsed
-                }
-            }
-        }
+        .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.recipe?.title ?? "Recipe")

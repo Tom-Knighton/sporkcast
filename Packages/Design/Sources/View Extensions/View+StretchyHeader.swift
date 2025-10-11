@@ -13,7 +13,9 @@ public extension View {
             .visualEffect { effect, geometry in
                 let currentHeight = geometry.size.height
                 let scrollOffset = geometry.frame(in: .scrollView).minY
-                let positiveOffset = max(0, scrollOffset)
+                
+                let adjustedOffset = scrollOffset + geometry.safeAreaInsets.top
+                let positiveOffset = max(0, adjustedOffset)
                 
                 let newHeight = currentHeight + positiveOffset
                 let scaleFactor = newHeight / currentHeight

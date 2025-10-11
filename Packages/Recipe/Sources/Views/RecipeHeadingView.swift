@@ -18,6 +18,7 @@ public struct RecipeHeadingView<Image: View>: View {
     public var body: some View {
         ZStack(alignment: .bottom) {
             image
+                .aspectRatio(contentMode: .fill)
                 .frame(height: 400)
                 .clipped()
             LinearGradient(
@@ -35,6 +36,5 @@ public struct RecipeHeadingView<Image: View>: View {
         }
         .ignoresSafeArea()
         .compositingGroup()
-        .stretchy()
     }
 }

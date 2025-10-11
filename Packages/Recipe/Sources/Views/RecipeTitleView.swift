@@ -36,7 +36,7 @@ public struct RecipeTitleView: View {
             Spacer()
         }
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
-            let collapsed = bottom < 75
+            let collapsed = max(0, bottom) < 75
             if collapsed != showNavTitle {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showNavTitle = collapsed
