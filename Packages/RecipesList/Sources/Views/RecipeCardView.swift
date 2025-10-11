@@ -8,9 +8,13 @@
 import API
 import SwiftUI
 import Design
+import Environment
 
 public struct RecipeCardView: View {
     
+    @State private var showDeleteConfirm = false
+    @Environment(AppRouter.self) private var router
+    @Environment(\.modelContext) private var context
     let recipe: Recipe
     
     public var body: some View {
@@ -60,6 +64,31 @@ public struct RecipeCardView: View {
         .background(image)
         .clipShape(.rect(cornerRadius: 10))
         .fontDesign(.rounded)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button(action: { router.navigateTo(.recipe(recipe: recipe)) }) {
+                Label("Open", systemImage: "hand.point.up")
+            }
+            Divider()
+            Button(role: .destructive) {
+                self.showDeleteConfirm = true
+            } label: { Label("Delete", systemImage: "trash").tint(.red) }
+        } preview: {
+            RecipePreview(recipe: recipe)
+        }
+        .alert("Delete Recipe", isPresented: $showDeleteConfirm) {
+            Button(role: .cancel) { } label: { Text("Cancel") }
+            Button(role: .destructive) {
+                Task {
+                    context.delete(recipe)
+                    try? context.save()
+                }
+            } label: { Text("Delete") }
+        } message: {
+            Text("Are you sure you want to delete this recipe? This cannot be undone.")
+        }
+
+
     }
     
     @ViewBuilder
