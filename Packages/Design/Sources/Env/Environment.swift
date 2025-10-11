@@ -13,4 +13,5 @@ import Environment
 public extension EnvironmentValues {
     
     @Entry var networkClient: any NetworkClient = APIClient(host: "")
+    @Entry var appSettings: SettingsStore = SettingsStore()
 }

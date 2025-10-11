@@ -19,11 +19,17 @@ import Settings
 struct AppContent: View {
     @Namespace private var appRouterNamespace
     
-    @State private var appRouter = AppRouter(initialTab: .settings)
+    @State private var appRouter: AppRouter
     @State private var alarmManager = RecipeTimerStore.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
+    
+    @State private var appSettings = SettingsStore()
+    
+    public init() {
+        self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
+    }
     
     var body: some View {
         TabScaffold(selection: $appRouter.selectedTab) {
@@ -39,12 +45,14 @@ struct AppContent: View {
                 }
             }
         }
+        .preferredColorScheme(getColorScheme())
+        .tint(Color.primary)
         .environment(appRouter)
         .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
+        .environment(\.appSettings, appSettings)
         .tabBarMinimizeBehavior(.onScrollDown)
-        .tint(.white)
         .onOpenURL(prefersInApp: true)
         .sheet(item: $appRouter.presentedSheet) { sheet in
             switch sheet {
@@ -86,6 +94,19 @@ struct AppContent: View {
                 .id(alarmManager.timers.count)
         } else {
             EmptyView()
+        }
+    }
+}
+
+extension AppContent {
+    private func getColorScheme() -> ColorScheme? {
+        switch self.appSettings.settings.theme {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 }

@@ -10,7 +10,7 @@ import Foundation
 import API
 import SwiftUI
 
-public enum AppTab: String, TabType, CaseIterable {
+public enum AppTab: String, Codable, TabType, CaseIterable {
     case recipes
     case settings
     
