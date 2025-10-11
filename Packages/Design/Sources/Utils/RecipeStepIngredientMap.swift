@@ -82,14 +82,12 @@ public struct IngredientStepMatcher {
                         bestIndex = min(bestIndex ?? idx, idx)
                     }
                 } else {
-                    let needle = " \(variant) "
                     let vTokens = variant.split(separator: " ").map(String.init)
                     if let idx = firstSpanIndex(of: vTokens, in: norm.lemmaTokens) {
                         bestIndex = min(bestIndex ?? idx, idx)
                     }
                 }
             }
-            
             
             if let idx = bestIndex {
                 matchedWithIndex.append((ing, idx))

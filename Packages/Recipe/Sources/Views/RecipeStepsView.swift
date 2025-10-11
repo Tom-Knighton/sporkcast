@@ -46,18 +46,7 @@ public struct RecipeStepsView: View {
                             if ingredientsForStep.isEmpty == false {
                                 HorizontalScrollWithGradient {
                                     ForEach(stepIngredientMap[step.rawStep] ?? []) { ingredient in
-                                        HStack {
-                                            if let emoji = ingredient.emojiDescriptor {
-                                                Text(emoji)
-                                            }
-                                            Text(ingredient.ingredient ?? ingredient.rawIngredient)
-                                        }
-                                        .font(.footnote.bold())
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 4)
-                                        .background(Material.thin)
-                                        .clipShape(.capsule)
-                                        
+                                        ingredientInStep(for: ingredient)
                                     }
                                 }
                             }
@@ -108,6 +97,33 @@ public struct RecipeStepsView: View {
         let timer = timings[timerIndex]
         
         let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.rawStep)
+    }
+    
+    @ViewBuilder
+    private func ingredientInStep(for ingredient: RecipeIngredient) -> some View {
+        HStack(spacing: 2) {
+            if let emoji = ingredient.emojiDescriptor {
+                Text(emoji)
+            }
+            
+            Spacer().frame(width: 4)
+            
+            if let quantityText = ingredient.quantityText {
+                Text(quantityText)
+                
+                if let unit = ingredient.unitText {
+                    Text(unit)
+                }
+            }
+            
+            Text(ingredient.ingredient ?? ingredient.rawIngredient)
+        }
+        .font(.footnote.bold())
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Material.thin)
+        .clipShape(.capsule)
+        
     }
 }
 
