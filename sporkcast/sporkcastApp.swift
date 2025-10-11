@@ -18,3 +18,10 @@ struct SporkcastApp: App {
         }
     }
 }
+
+// Tabs:
+// - Cookbook
+// - MealPlan (Groceries)
+// - Discover/AI Ideas
+// - Groceries (if enabled as tab)
+// - Settings
