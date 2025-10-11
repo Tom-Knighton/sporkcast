@@ -10,6 +10,7 @@ import SwiftUI
 import Recipe
 import RecipesList
 import Environment
+import API
 
 struct WithNavigationDestinations<Content: View>: View {
     let namespace: Namespace.ID
@@ -24,14 +25,21 @@ struct WithNavigationDestinations<Content: View>: View {
         content()
             .navigationDestination(for: AppDestination.self) { dest in
                 switch dest {
-                case let .recipe(id):
+                
+                case .recipes:
+                    RecipeListPage()
+                case let .recipe(recipe):
+                    RecipePage(recipe)
+                        .navigationTransition(.zoom(
+                            sourceID: "zoom-\(recipe.id.uuidString)",
+                            in: namespace
+                        ))
+                case let .recipeFromId(id):
                     RecipePage(recipeId: id)
                         .navigationTransition(.zoom(
                             sourceID: "zoom-\(id.uuidString)",
                             in: namespace
                         ))
-                case .recipes:
-                    RecipeListPage()
                 }
             }
     }

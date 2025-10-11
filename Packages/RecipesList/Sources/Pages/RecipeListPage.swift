@@ -26,7 +26,7 @@ public struct RecipeListPage: View {
     public var body: some View {
         List(recipes) { recipe in
             @Bindable var zm = zoomManager
-            NavigationLink(value: AppDestination.recipe(id: recipe.id)) {
+            NavigationLink(value: AppDestination.recipe(recipe: recipe)) {
                 RecipeCardView(recipe: recipe)
                     .padding(.horizontal)
                     .padding(.vertical, 8)

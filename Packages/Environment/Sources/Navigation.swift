@@ -7,6 +7,7 @@
 
 import AppRouter
 import Foundation
+import API
 import SwiftUI
 
 public enum AppTab: String, TabType, CaseIterable {
@@ -32,7 +33,8 @@ public enum AppTab: String, TabType, CaseIterable {
 
 public enum AppDestination: DestinationType {
     case recipes
-    case recipe(id: UUID)
+    case recipeFromId(id: UUID)
+    case recipe(recipe: Recipe)
     
     public static func from(path: String, fullPath: [String], parameters: [String : String]) -> AppDestination? {
         return nil
