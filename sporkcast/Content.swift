@@ -44,6 +44,7 @@ struct AppContent: View {
         .environment(ZoomManager(appRouterNamespace))
         .tabBarMinimizeBehavior(.onScrollDown)
         .tint(.white)
+        .onOpenURL(prefersInApp: true)
         .sheet(item: $appRouter.presentedSheet) { sheet in
             switch sheet {
             case .timersView:

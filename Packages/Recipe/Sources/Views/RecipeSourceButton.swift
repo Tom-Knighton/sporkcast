@@ -13,6 +13,7 @@ import UIKit
 public struct RecipeSourceButton<RecipeImage: View>: View {
     
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openUrl
     private let recipe: Recipe
     private let color: Color
     private let image: RecipeImage
@@ -24,7 +25,11 @@ public struct RecipeSourceButton<RecipeImage: View>: View {
     }
     
     public var body: some View {
-        Button(action: {}) {
+        Button(action: {
+            if let url = URL(string: recipe.sourceUrl) {
+                self.openUrl(url)
+            }
+        }) {
             HStack {
                 image
                     .aspectRatio(contentMode: .fill)
