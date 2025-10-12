@@ -62,6 +62,35 @@ public final class HouseholdService {
         }
     }
     
+    @discardableResult
+    public func leave(disbandIfOwner: Bool = false) async -> Bool? {
+        guard !isBusy else {
+            errorMessage = LeaveError.busy.errorDescription
+            return false
+        }
+        
+        guard let h = household else {
+            errorMessage = LeaveError.noHousehold.errorDescription
+            return false
+        }
+        
+        isBusy = true
+        defer { isBusy = false }
+        
+        do {
+            context.delete(h)
+            try context.save()
+            
+            household = nil
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return false
+        }
+        
+    }
+    
     public func rename(to rawName: String) async {
         guard let h = household else { return }
         do {
@@ -82,13 +111,38 @@ public final class HouseholdService {
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
     }
     
+    
+}
+
+public extension HouseholdService {
+    
     enum CreationError: LocalizedError {
         case alreadyInHousehold
         case invalidName
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .alreadyInHousehold: "You’re already in a household."
             case .invalidName: "Please enter a valid name."
+            }
+        }
+    }
+    
+    enum LeaveError: LocalizedError {
+        case noHousehold
+        case ownerCannotLeaveWhileOthersExist
+        case busy
+        case cloudShareOperationFailed(String)
+        
+        public var errorDescription: String? {
+            switch self {
+            case .noHousehold:
+                "You’re not currently in a household."
+            case .ownerCannotLeaveWhileOthersExist:
+                "You’re the owner. You must disband the household or transfer ownership."
+            case .busy:
+                "Please wait for the current operation to finish."
+            case .cloudShareOperationFailed(let message):
+                "Couldn’t update CloudKit sharing: \(message)"
             }
         }
     }

@@ -72,7 +72,6 @@ extension View {
                 HouseholdSettingsPage()
                     .environment(alarmManager)
             }
-            .interactiveDismissDisabled()
             
         }
     }

@@ -18,6 +18,7 @@ public struct HouseholdSettingsPage: View {
     @State private var name: String = ""
     @State private var nameError: String? = nil
     @State private var showError: Bool = false
+    @State private var showDeleteConfirmation: Bool = false
     
     public init() {}
     
@@ -29,6 +30,7 @@ public struct HouseholdSettingsPage: View {
                 NoHouseholdsView()
             } else if let household = households.household {
                 householdView(for: household)
+                    .interactiveDismissDisabled()
             }
         }
         .task {
@@ -41,12 +43,32 @@ public struct HouseholdSettingsPage: View {
         }, message: {
             Text(nameError ?? "")
         })
+        .alert("Confirm", isPresented: $showDeleteConfirmation, actions: {
+            Button(role: .cancel, action: {}) {
+                Text("Cancel")
+            }
+            Button(role: .destructive, action: {
+                Task { await households.leave(disbandIfOwner: true) }
+            }) {
+                Text("Leave Home")
+            }
+        }, message: {
+            Text("Are you sure you want to leave this home? You'll keep a copy of any recipes, but new recipes and mealplans will no longer sync. You'll have to be reinvited if you wish to re-join this home.")
+        })
     }
     
     @ViewBuilder private func householdView(for household: Household) -> some View {
         List {
             Section("Name") {
                 TextField("Name:", text: $name)
+            }
+            
+            Section("Danger") {
+                Button(role: .destructive) {
+                    self.showDeleteConfirmation = true
+                } label: {
+                    Text("Leave Home")
+                }
             }
         }
         .scrollContentBackground(.hidden)
