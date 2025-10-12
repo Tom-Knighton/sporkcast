@@ -21,11 +21,13 @@ struct AppContent: View {
     
     @State private var appRouter: AppRouter
     @State private var alarmManager = RecipeTimerStore.shared
+    @State private var alertManager = AlertManager.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
     
     @State private var appSettings = SettingsStore()
+    @Environment(\.modelContext) private var context
     
     public init() {
         self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
@@ -36,12 +38,14 @@ struct AppContent: View {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     RecipeListPage()
+                        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
                 }
             }
         } settings: {
             NavigationStack(path: $appRouter[.settings]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     SettingsPage()
+                        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
                 }
             }
         }
@@ -51,17 +55,11 @@ struct AppContent: View {
         .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
+        .environment(HouseholdService(context: context))
+        .environment(alertManager)
         .environment(\.appSettings, appSettings)
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
-        .sheet(item: $appRouter.presentedSheet) { sheet in
-            switch sheet {
-            case .timersView:
-                RecipeTimersListView()
-                    .environment(alarmManager)
-                    .presentationDetents([.medium, .large])
-            }
-        }
         .tabViewBottomAccessory { bottomAccessory }
         .onChange(of: alarmManager.timers, initial: true) { _, newValue in
             if let first = newValue.first(where: { $0.alarmState == .alerting }) {
@@ -69,6 +67,13 @@ struct AppContent: View {
                 showAlert = true
             }
         }
+        .alert(alertManager.title, isPresented: $alertManager.isShowingAlert, actions: {
+            Button(role: .cancel) {} label: {
+                Text("OK")
+            }
+        }, message: {
+            Text(alertManager.message ?? "")
+        })
         .alert(
             alerting?.metadata.title ?? alerting?.title ?? "Timer",
             isPresented: $showAlert

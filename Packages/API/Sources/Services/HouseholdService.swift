@@ -1,0 +1,95 @@
+//
+//  HouseholdServices.swift
+//  API
+//
+//  Created by Tom Knighton on 11/10/2025.
+//
+
+import SwiftData
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+public final class HouseholdService {
+    
+    private let context: ModelContext
+    
+    private(set) public var household: Household?
+    private(set) public var isBusy = false
+    private(set) public var errorMessage: String?
+    
+    public var isInHousehold: Bool { household != nil }
+    public var canCreate: Bool { !isInHousehold }
+    
+    public init(context: ModelContext) {
+        self.context = context
+        Task { await refresh() }
+    }
+    
+    private func refresh() async {
+        do {
+            errorMessage = nil
+            var desc = FetchDescriptor<Household>()
+            desc.fetchLimit = 1
+            desc.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
+            household = try context.fetch(desc).first
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    @discardableResult
+    public func create(named rawName: String) async -> Household? {
+        guard !isBusy else { return household }
+        isBusy = true
+        defer { isBusy = false }
+        
+        do {
+            let name = sanitize(name: rawName)
+            guard !name.isEmpty else { throw CreationError.invalidName }
+            guard canCreate else { throw CreationError.alreadyInHousehold }
+            
+            let h = Household(name: name)
+            context.insert(h)
+            try context.save()
+            household = h
+            errorMessage = nil
+            return h
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return nil
+        }
+    }
+    
+    public func rename(to rawName: String) async {
+        guard let h = household else { return }
+        do {
+            let name = sanitize(name: rawName)
+            guard !name.isEmpty else { throw CreationError.invalidName }
+            h.name = name
+            h.updatedAt = Date()
+            try context.save()
+            errorMessage = nil
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+    
+    private func sanitize(name: String) -> String {
+        name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+    }
+    
+    enum CreationError: LocalizedError {
+        case alreadyInHousehold
+        case invalidName
+        var errorDescription: String? {
+            switch self {
+            case .alreadyInHousehold: "You’re already in a household."
+            case .invalidName: "Please enter a valid name."
+            }
+        }
+    }
+}

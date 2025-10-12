@@ -11,6 +11,8 @@ import Recipe
 import RecipesList
 import Environment
 import API
+import RecipeTimersList
+import Settings
 
 struct WithNavigationDestinations<Content: View>: View {
     let namespace: Namespace.ID
@@ -42,5 +44,36 @@ struct WithNavigationDestinations<Content: View>: View {
                         ))
                 }
             }
+    }
+}
+
+extension View {
+    func appSheet(
+        _ presented: Binding<AppSheet?>,
+        alarmManager: RecipeTimerStore
+    ) -> some View {
+        sheet(item: presented) { sheet in
+            sheetView(for: sheet, alarmManager: alarmManager)
+        }
+    }
+    
+    @ViewBuilder
+    private func sheetView(
+        for sheet: AppSheet,
+        alarmManager: RecipeTimerStore
+    ) -> some View {
+        switch sheet {
+        case .timersView:
+            RecipeTimersListView()
+                .environment(alarmManager)
+                .presentationDetents([.medium, .large])
+        case .householdSettings:
+            NavigationStack {
+                HouseholdSettingsPage()
+                    .environment(alarmManager)
+            }
+            .interactiveDismissDisabled()
+            
+        }
     }
 }
