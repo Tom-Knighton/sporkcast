@@ -15,46 +15,13 @@ import SwiftData
 @MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
-    public var recipe: Recipe?
-    public var ingredientIconMap: [String: EmojiResponse] = [:]
+    public var recipe: Recipe
     
-    public init() {
-        recipe = nil
-    }
-    
-    public init(for recipe: Recipe, context: ModelContext) {
+    public init(recipe: Recipe) {
         self.recipe = recipe
-        self.ingredientIconMap = [:]
-        
-        if recipe.ingredients?.allSatisfy({ $0.emojiDescriptor != nil }) == false {
-            try? generateEmojis(context)
-        }
     }
     
-    public init(with recipeId: UUID, context: ModelContext) async {
-        var descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == recipeId }, sortBy: [.init(\.dateModified)])
-        descriptor.fetchLimit = 1
-        
-        let results = try? context.fetch(descriptor)
-        self.recipe = results?.first
-        
-        if results?.first?.ingredients?.allSatisfy({ $0.emojiDescriptor != nil }) == false {
-            try? generateEmojis(context)
-        }
-    }
-    
-    public init(for url: String, with client: any NetworkClient) async {
-        let recipeDto: RecipeDTO? = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
-        
-        if let recipeDto {
-            self.recipe = await Recipe(from: recipeDto)
-        } else {
-            self.recipe = nil
-        }
-    }
-    
-    public func generateEmojis(_ context: ModelContext) throws {
-        guard let recipe else { return }
+    public func generateEmojis(_ context: ModelContext, for recipe: Recipe) throws {
         
         let session = LanguageModelSession {
                 """
@@ -72,19 +39,19 @@ public class RecipeViewModel: @unchecked Sendable {
         }
         #endif
         
-        let ingredients = recipe.ingredients ?? []
+        let ingredients = recipe.ingredientSections.flatMap(\.ingredients)
         
         Task { [session, context] in
             for ingredient in ingredients {
                 do {
                     let response = try await session.respond(
-                        to: Prompt(ingredient.rawIngredient),
+                        to: Prompt(ingredient.ingredientText),
                         generating: EmojiResponse.self,
                         includeSchemaInPrompt: false,
                         options: .init(temperature: 0.5)
                     )
                     await MainActor.run {
-                        ingredient.emojiDescriptor = response.content.emoji
+//                        ingredient.emoji = response.content.emoji
                     }
                 } catch {
                     print(error.localizedDescription)

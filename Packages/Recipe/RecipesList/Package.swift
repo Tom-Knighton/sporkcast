@@ -4,20 +4,22 @@
 import PackageDescription
 
 let package = Package(
-    name: "API",
+    name: "RecipesList",
     platforms: [.iOS(.v26)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "API",
-            targets: ["API"]
+            name: "RecipesList",
+            targets: ["RecipesList"]
         ),
     ],
+    dependencies: [.package(path: "Design"), .package(path: "Environment"), .package(path: "API")],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "API",
+            name: "RecipesList",
+            dependencies: ["Design", "Environment", "API"]
         ),
 
     ]

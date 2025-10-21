@@ -66,6 +66,7 @@
 				API,
 				Design,
 				Environment,
+				Persistence,
 				Recipe,
 				RecipesList,
 				RecipeTimersList,

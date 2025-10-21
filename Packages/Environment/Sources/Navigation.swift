@@ -33,7 +33,6 @@ public enum AppTab: String, Codable, TabType, CaseIterable {
 
 public enum AppDestination: DestinationType {
     case recipes
-    case recipeFromId(id: UUID)
     case recipe(recipe: Recipe)
     
     public static func from(path: String, fullPath: [String], parameters: [String : String]) -> AppDestination? {

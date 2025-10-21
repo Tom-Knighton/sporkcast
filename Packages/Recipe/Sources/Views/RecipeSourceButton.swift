@@ -12,21 +12,20 @@ import UIKit
 
 public struct RecipeSourceButton<RecipeImage: View>: View {
     
+    @Environment(RecipeViewModel.self) private var vm
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openUrl
-    private let recipe: Recipe
     private let color: Color
     private let image: RecipeImage
     
-    public init (_ recipe: Recipe, with color: Color = .clear, @ViewBuilder image: () -> RecipeImage) {
-        self.recipe = recipe
+    public init (with color: Color = .clear, @ViewBuilder image: () -> RecipeImage) {
         self.color = color
         self.image = image()
     }
     
     public var body: some View {
         Button(action: {
-            if let url = URL(string: recipe.sourceUrl) {
+            if let url = URL(string: vm.recipe.sourceUrl) {
                 self.openUrl(url)
             }
         }) {
@@ -41,7 +40,7 @@ public struct RecipeSourceButton<RecipeImage: View>: View {
                         .font(.footnote.weight(.bold))
                         .opacity(0.6)
                     
-                    Text(recipe.title)
+                    Text(vm.recipe.title)
                         .font(.body.bold())
                         .multilineTextAlignment(.leading)
                 }

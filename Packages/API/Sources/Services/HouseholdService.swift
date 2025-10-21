@@ -15,7 +15,7 @@ public final class HouseholdService {
     
     private let context: ModelContext
     
-    private(set) public var household: Household?
+    private(set) public var household: SDHousehold?
     private(set) public var isBusy = false
     private(set) public var errorMessage: String?
     
@@ -30,7 +30,7 @@ public final class HouseholdService {
     private func refresh() async {
         do {
             errorMessage = nil
-            var desc = FetchDescriptor<Household>()
+            var desc = FetchDescriptor<SDHousehold>()
             desc.fetchLimit = 1
             desc.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
             household = try context.fetch(desc).first
@@ -40,7 +40,7 @@ public final class HouseholdService {
     }
     
     @discardableResult
-    public func create(named rawName: String) async -> Household? {
+    public func create(named rawName: String) async -> SDHousehold? {
         guard !isBusy else { return household }
         isBusy = true
         defer { isBusy = false }
@@ -50,7 +50,7 @@ public final class HouseholdService {
             guard !name.isEmpty else { throw CreationError.invalidName }
             guard canCreate else { throw CreationError.alreadyInHousehold }
             
-            let h = Household(name: name)
+            let h = SDHousehold(name: name)
             context.insert(h)
             try context.save()
             household = h

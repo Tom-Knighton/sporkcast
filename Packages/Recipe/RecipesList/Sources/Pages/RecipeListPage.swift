@@ -25,10 +25,9 @@ public struct RecipeListPage: View {
     
     public var body: some View {
         List(recipes) { recipe in
-            let model = recipe.toDomainModel()
             @Bindable var zm = zoomManager
-            NavigationLink(value: AppDestination.recipe(recipe: model)) {
-                RecipeCardView(recipe: model)
+            NavigationLink(value: AppDestination.recipe(recipe: recipe)) {
+                RecipeCardView(recipe: recipe)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zm.zoomNamespace)
@@ -54,7 +53,7 @@ public struct RecipeListPage: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                
+
             }
             ToolbarSpacer(.fixed)
             ToolbarItem {
@@ -96,7 +95,7 @@ public struct RecipeListPage: View {
         } message: {
             Text("Enter or paste the url to the recipe from the internet")
         }
-        
+
     }
 }
 
@@ -104,7 +103,7 @@ public struct RecipeListPage: View {
     
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: SDRecipe.self, configurations: config)
-    
+
     NavigationStack {
         RecipeListPage()
     }

@@ -27,19 +27,13 @@ struct WithNavigationDestinations<Content: View>: View {
         content()
             .navigationDestination(for: AppDestination.self) { dest in
                 switch dest {
-                
+                    
                 case .recipes:
                     RecipeListPage()
                 case let .recipe(recipe):
                     RecipePage(recipe)
                         .navigationTransition(.zoom(
                             sourceID: "zoom-\(recipe.id.uuidString)",
-                            in: namespace
-                        ))
-                case let .recipeFromId(id):
-                    RecipePage(recipeId: id)
-                        .navigationTransition(.zoom(
-                            sourceID: "zoom-\(id.uuidString)",
                             in: namespace
                         ))
                 }

@@ -23,7 +23,7 @@ public struct RecipeIngredientsListView: View {
                         Circle()
                             .frame(width: 25, height: 25)
                         
-                        if let emoji = ingredient.emojiDescriptor {
+                        if let emoji = ingredient.emoji {
                             Text(emoji)
                                 .font(.caption)
                         }
@@ -44,7 +44,7 @@ public struct RecipeIngredientsListView: View {
         .safeAreaPadding(.bottom)
         .onAppear {
             if ingredients.isEmpty {
-                self.ingredients = viewModel.recipe?.ingredients?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []
+                self.ingredients = viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })
             }
         }
     }

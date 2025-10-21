@@ -14,7 +14,7 @@ import AlarmKit
 @MainActor
 public struct RecipeStepsView: View {
     
-    @Environment(RecipeViewModel.self) private var viewModel
+    @Environment(RecipeViewModel.self) private var vm
     @State private var stepSections: [RecipeStepSection] = []
     @State private var stepIngredientMap: [String: [RecipeIngredient]] = [:]
     
@@ -30,7 +30,7 @@ public struct RecipeStepsView: View {
                 Text(section.title)
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
-                ForEach(section.steps?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []) { step in
+                ForEach(section.steps.sorted(by: { $0.sortIndex < $1.sortIndex })) { step in
                     HStack {
                         ZStack {
                             Circle()
@@ -42,15 +42,15 @@ public struct RecipeStepsView: View {
                         }
                         
                         VStack {
-                            let ingredientsForStep = stepIngredientMap[step.rawStep] ?? []
+                            let ingredientsForStep = stepIngredientMap[step.instructionText] ?? []
                             if ingredientsForStep.isEmpty == false {
                                 HorizontalScrollWithGradient {
-                                    ForEach(stepIngredientMap[step.rawStep] ?? []) { ingredient in
+                                    ForEach(stepIngredientMap[step.instructionText] ?? []) { ingredient in
                                         ingredientInStep(for: ingredient)
                                     }
                                 }
                             }
-                            RecipeStepWithTimingsView(step, recipeId: viewModel.recipe?.id ?? UUID(), tint: tint) { index in
+                            RecipeStepWithTimingsView(step, recipeId: vm.recipe.id, tint: tint) { index in
                                 Task {
                                     await createAlarm(for: step, timerIndex: index)
                                 }
@@ -73,19 +73,23 @@ public struct RecipeStepsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             if stepSections.isEmpty {
-                let sections = viewModel.recipe?.stepSections?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []
-                sections.forEach { sect in
-                    if sect.title.isEmpty {
-                        sect.title = "Steps:"
+                let sections = vm.recipe.stepSections
+                    .sorted(by: { $0.sortIndex < $1.sortIndex })
+                    .compactMap { sect in
+                        var newSect = sect
+                        if newSect.title.isEmpty {
+                            newSect.title = "Steps:"
+                        }
+                        newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
+                        
+                        let ingredientMatcher = IngredientStepMatcher()
+                        newSect.steps.forEach { step in
+                            let ingredients = ingredientMatcher.matchIngredients(for: step, ingredients: vm.recipe.ingredientSections.flatMap(\.ingredients))
+                            self.stepIngredientMap[step.instructionText] = ingredients
+                        }
+                        return newSect
+                        
                     }
-                    sect.steps = sect.steps?.sorted(by: { $0.sortIndex < $1.sortIndex })
-                    
-                    let ingredientMatcher = IngredientStepMatcher()
-                    sect.steps?.forEach { step in
-                        let ingredients = ingredientMatcher.matchIngredients(for: step, ingredients: viewModel.recipe?.ingredients ?? [])
-                        self.stepIngredientMap[step.rawStep] = ingredients
-                    }
-                }
                 self.stepSections = sections
             }
         }
@@ -93,32 +97,31 @@ public struct RecipeStepsView: View {
     }
 
     private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
-        guard let recipe = viewModel.recipe else { return }
         let timings = recipeStep.timings
-        guard let timings, timerIndex < timings.count else { return }
+        guard timerIndex < timings.count else { return }
         let timer = timings[timerIndex]
         
-        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.rawStep)
+        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: vm.recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.instructionText)
     }
     
     @ViewBuilder
     private func ingredientInStep(for ingredient: RecipeIngredient) -> some View {
         HStack(spacing: 2) {
-            if let emoji = ingredient.emojiDescriptor {
+            if let emoji = ingredient.emoji {
                 Text(emoji)
             }
             
             Spacer().frame(width: 4)
             
-            if let quantityText = ingredient.quantityText {
+            if let quantityText = ingredient.quantity?.quantityText {
                 Text(quantityText)
                 
-                if let unit = ingredient.unitText {
+                if let unit = ingredient.unit?.unitText {
                     Text(unit)
                 }
             }
             
-            Text(ingredient.ingredient ?? ingredient.rawIngredient)
+            Text(ingredient.ingredientPart ?? ingredient.ingredientText)
         }
         .font(.footnote.bold())
         .padding(.horizontal, 6)
@@ -208,11 +211,11 @@ struct RecipeStepWithTimingsView: View {
     
     private func createSegments() -> [TextSegment] {
         var segments: [TextSegment] = []
-        var currentIndex = step.rawStep.startIndex
+        var currentIndex = step.instructionText.startIndex
         
         for timing in matchedTimings {
             if currentIndex < timing.range.lowerBound {
-                let textBefore = String(step.rawStep[currentIndex..<timing.range.lowerBound])
+                let textBefore = String(step.instructionText[currentIndex..<timing.range.lowerBound])
                 if !textBefore.isEmpty {
                     segments.append(.text(textBefore))
                 }
@@ -223,8 +226,8 @@ struct RecipeStepWithTimingsView: View {
             currentIndex = timing.range.upperBound
         }
         
-        if currentIndex < step.rawStep.endIndex {
-            let remainingText = String(step.rawStep[currentIndex..<step.rawStep.endIndex])
+        if currentIndex < step.instructionText.endIndex {
+            let remainingText = String(step.instructionText[currentIndex..<step.instructionText.endIndex])
             if !remainingText.isEmpty {
                 segments.append(.text(remainingText))
             }

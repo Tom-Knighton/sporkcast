@@ -42,4 +42,4 @@ public class RecipeDTO: Codable {
     }
 }
 
-extension Recipe: @unchecked Sendable {}
+extension SDRecipe: @unchecked Sendable {}

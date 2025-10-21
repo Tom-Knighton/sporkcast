@@ -20,7 +20,7 @@ struct SporkcastApp: App {
 }
 
 // Tabs:
-// - Cookbook
+// - Cookbook (Ask recipe about changes w/ AI?)
 // - MealPlan (Groceries)
 // - Discover/AI Ideas
 // - Groceries (if enabled as tab)

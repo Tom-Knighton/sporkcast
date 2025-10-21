@@ -11,14 +11,14 @@ import Environment
 
 struct RecipePreview: View {
     
-    let recipe: Recipe
+    let recipe: SDRecipe
     
     var body: some View {
         ZStack {
             ScrollView {
                 VStack {
                     HStack(spacing: 24) {
-                        if let totalTime = recipe.timing.totalTime {
+                        if let totalTime = recipe.totalMins {
                             VStack(alignment: .leading) {
                                 Text("Time")
                                     .font(.caption.weight(.heavy))
@@ -49,31 +49,27 @@ struct RecipePreview: View {
                         Spacer()
                     }
                     
-                    // TODO: Support multiple ingredient groups
-                    if recipe.ingredientSections.count == 1 {
-                        ForEach(recipe.ingredientSections[0].ingredients) { ingredient in
-                            HStack {
-                                ZStack {
-                                    Circle()
-                                        .frame(width: 25, height: 25)
-                                    
-                                    if let emoji = ingredient.emoji {
-                                        Text(emoji)
-                                            .font(.caption)
-                                    }
-                                }
+                    ForEach(recipe.ingredients?.sorted(by: { $0.sortIndex > $1.sortIndex }) ?? []) { ingredient in
+                        HStack {
+                            ZStack {
+                                Circle()
+                                    .frame(width: 25, height: 25)
                                 
-                                Text(ingredient.ingredientText)
-                                Spacer()
+                                if let emoji = ingredient.emojiDescriptor {
+                                    Text(emoji)
+                                        .font(.caption)
+                                }
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(Material.thin)
-                            .clipShape(.rect(cornerRadius: 10))
+                            
+                            Text(ingredient.rawIngredient)
+                            Spacer()
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Material.thin)
+                        .clipShape(.rect(cornerRadius: 10))
                     }
-                    
                     
                     Spacer().frame(height: 8)
                 }

@@ -12,11 +12,11 @@ public struct RecipeInfoCard: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
-    private let recipe: Recipe
+    private let recipe: SDRecipe
     private let title: String
     private let image: String
     
-    public init (_ recipe: Recipe, title: String, image: String) {
+    public init (_ recipe: SDRecipe, title: String, image: String) {
         self.recipe = recipe
         self.title = title
         self.image = image
