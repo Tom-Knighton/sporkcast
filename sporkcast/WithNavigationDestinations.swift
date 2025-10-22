@@ -10,7 +10,7 @@ import SwiftUI
 import Recipe
 import RecipesList
 import Environment
-import API
+import Models
 import RecipeTimersList
 import Settings
 

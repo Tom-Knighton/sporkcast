@@ -9,7 +9,7 @@ import Foundation
 import SQLiteData
 
 @Table("Recipes")
-public struct DBRecipe {
+public struct DBRecipe: Identifiable, Sendable {
     public let id: UUID
     public let title: String
     public let description: String
@@ -52,7 +52,7 @@ public struct DBRecipe {
 }
 
 @Table("RecipeIngredientGroups")
-public struct DBRecipeIngredientGroup: Codable, Identifiable {
+public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable {
     public let id: UUID
     public let recipeId: UUID
     public let title: String
@@ -67,11 +67,11 @@ public struct DBRecipeIngredientGroup: Codable, Identifiable {
 }
 
 @Table("RecipeIngredients")
-public struct DBRecipeIngredient: Codable, Identifiable {
+public struct DBRecipeIngredient: Codable, Identifiable, Sendable {
     public let id: UUID
     public let ingredientGroupId: UUID
     public let sortIndex: Int
-    public let rawIndex: String
+    public let rawIngredient: String
     public let quantity: Double?
     public let quantityText: String?
     public let unit: String?
@@ -81,11 +81,11 @@ public struct DBRecipeIngredient: Codable, Identifiable {
     public let emojiDescriptor: String?
     public let owned: Bool
     
-    public init(id: UUID, ingredientGroupId: UUID, sortIndex: Int, rawIndex: String, quantity: Double?, quantityText: String?, unit: String?, unitText: String?, ingredient: String?, extra: String?, emojiDescriptor: String?, owned: Bool) {
+    public init(id: UUID, ingredientGroupId: UUID, sortIndex: Int, rawIngredient: String, quantity: Double?, quantityText: String?, unit: String?, unitText: String?, ingredient: String?, extra: String?, emojiDescriptor: String?, owned: Bool) {
         self.id = id
         self.ingredientGroupId = ingredientGroupId
         self.sortIndex = sortIndex
-        self.rawIndex = rawIndex
+        self.rawIngredient = rawIngredient
         self.quantity = quantity
         self.quantityText = quantityText
         self.unit = unit
@@ -98,7 +98,7 @@ public struct DBRecipeIngredient: Codable, Identifiable {
 }
 
 @Table("RecipeStepGroups")
-public struct DBRecipeStepGroup: Codable, Identifiable {
+public struct DBRecipeStepGroup: Codable, Identifiable, Sendable {
     public let id: UUID
     public let recipeId: UUID
     public let title: String
@@ -113,7 +113,7 @@ public struct DBRecipeStepGroup: Codable, Identifiable {
 }
 
 @Table("RecipeSteps")
-public struct DBRecipeStep: Codable, Identifiable {
+public struct DBRecipeStep: Codable, Identifiable, Sendable {
     public let id: UUID
     public let groupId: UUID
     public let sortIndex: Int
@@ -128,7 +128,7 @@ public struct DBRecipeStep: Codable, Identifiable {
 }
 
 @Table("RecipeStepTimings")
-public struct DBRecipeStepTiming: Codable, Identifiable {
+public struct DBRecipeStepTiming: Codable, Identifiable, Sendable {
     public let id: UUID
     public let recipeStepId: UUID
     public var timeInSeconds: Double
@@ -145,7 +145,7 @@ public struct DBRecipeStepTiming: Codable, Identifiable {
 }
 
 @Table("RecipeStepTemperature")
-public struct DBRecipeStepTemperature: Codable, Identifiable {
+public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable {
     public let id: UUID
     public let recipeStepId: UUID
     public var temperature: Double

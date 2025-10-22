@@ -9,7 +9,7 @@ import Foundation
 import SQLiteData
 
 @Selection
-public struct FullDBRecipe: Identifiable {
+public struct FullDBRecipe: Sendable, Identifiable {
     public let recipe: DBRecipe
     
     @Column(as: [DBRecipeIngredientGroup].JSONRepresentation.self)
@@ -35,20 +35,48 @@ public struct FullDBRecipe: Identifiable {
 
 public extension DBRecipe {
     
-    static var full: Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?)> {
-        let query: Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?)> = DBRecipe
+    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?)>
+    
+    static var full: FullSelect {
+        
+        
+        let base = DBRecipe
             .group(by: \.id)
-            .leftJoin(DBRecipeIngredientGroup.all) { $0.id.eq($1.recipeId) }
-            .leftJoin(DBRecipeIngredient.all) { $1.id.eq($2.ingredientGroupId) }
-            .leftJoin(DBRecipeStepGroup.all) { $0.id.eq($3.recipeId) }
-            .leftJoin(DBRecipeStep.all) { $3.id.eq($4.groupId) }
-            .leftJoin(DBRecipeStepTiming.all) { $4.id.eq($5.recipeStepId) }
-            .leftJoin(DBRecipeStepTemperature.all) { $4.id.eq($6.recipeStepId) }
+            .order(by: \.dateModified)
+        
+        let withIngGroups = base.leftJoin(DBRecipeIngredientGroup.all) {
+            $0.id.eq($1.recipeId)
+        }
+        
+        let withIngs = withIngGroups.leftJoin(DBRecipeIngredient.all) {
+            $1.id.eq($2.ingredientGroupId)
+        }
+        
+        let withStepGroups = withIngs.leftJoin(DBRecipeStepGroup.all) {
+            $0.id.eq($3.recipeId)
+        }
+        
+        let withSteps = withStepGroups.leftJoin(DBRecipeStep.all) {
+            $3.id.eq($4.groupId)
+        }
+        
+        let withStepTimings = withSteps.leftJoin(DBRecipeStepTiming.all) {
+            $4.id.eq($5.recipeStepId)
+        }
+        
+        let withStepTemps = withStepTimings
+            .leftJoin(DBRecipeStepTemperature.all) {
+                $4.id.eq($6.recipeStepId)
+            }
+    
+        let query = withStepTemps
             .select {
-                FullDBRecipe.Columns(
+                let igs = $1.jsonGroupArray(distinct: true)
+                let ings = $2.jsonGroupArray(distinct: true)
+                return FullDBRecipe.Columns(
                     recipe: $0,
-                    ingredientGroups: $1.jsonGroupArray(distinct: true),
-                    ingredients: $2.jsonGroupArray(distinct: true),
+                    ingredientGroups: igs,
+                    ingredients: ings,
                     stepGroups: $3.jsonGroupArray(distinct: true),
                     steps: $4.jsonGroupArray(distinct: true),
                     timings: $5.jsonGroupArray(distinct: true),
@@ -56,6 +84,8 @@ public extension DBRecipe {
                 )
             }
         
-        return query
+        
+       return query
     }
 }
+

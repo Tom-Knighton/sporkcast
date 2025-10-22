@@ -5,7 +5,7 @@
 //  Created by Tom Knighton on 14/09/2025.
 //
 
-import API
+import Models
 import Observation
 import FoundationModels
 import Foundation

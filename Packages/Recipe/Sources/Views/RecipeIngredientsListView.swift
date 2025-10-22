@@ -7,7 +7,7 @@
 
 import SwiftUI
 import FoundationModels
-import API
+import Models
 
 public struct RecipeIngredientsListView: View {
     

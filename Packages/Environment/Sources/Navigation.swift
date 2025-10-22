@@ -9,6 +9,7 @@ import AppRouter
 import Foundation
 import API
 import SwiftUI
+import Models
 
 public enum AppTab: String, Codable, TabType, CaseIterable {
     case recipes

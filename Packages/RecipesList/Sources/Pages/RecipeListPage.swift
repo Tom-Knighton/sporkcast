@@ -8,18 +8,21 @@
 import SwiftUI
 import Environment
 import UIKit
-import SwiftData
 import Design
 import API
+import Persistence
+import SQLiteData
 
 public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
     @Environment(\.modelContext) private var context
-    @Query(sort: \SDRecipe.dateModified, order: .reverse) private var recipes: [SDRecipe]
+
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
+    
+    @FetchAll(DBRecipe.full) private var recipes: [FullDBRecipe]
     
     public init() {}
     
@@ -100,17 +103,3 @@ public struct RecipeListPage: View {
     }
 }
 
-#Preview {
-    
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: SDRecipe.self, configurations: config)
-    
-    NavigationStack {
-        RecipeListPage()
-    }
-    .modelContainer(container)
-    .task {
-        let recipe = await SDRecipe(from: RecipeDTOMockBuilder().build())
-        container.mainContext.insert(recipe)
-    }
-}

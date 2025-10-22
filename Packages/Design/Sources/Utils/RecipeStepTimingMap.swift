@@ -7,7 +7,7 @@
 
 import Foundation
 import RegexBuilder
-import API
+import Models
 
 public struct MatchedTiming: Equatable, Hashable {
     public let range: Range<String.Index>
