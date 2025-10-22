@@ -12,8 +12,8 @@ import SQLiteData
 public struct DBRecipe: Identifiable, Sendable {
     public let id: UUID
     public let title: String
-    public let description: String
-    public let author: String
+    public let description: String?
+    public let author: String?
     public let sourceUrl: String
     public let imageAssetFileName: String?
     public let thumbnailData: Data?
@@ -29,7 +29,7 @@ public struct DBRecipe: Identifiable, Sendable {
     public let dateAdded: Date
     public let dateModified: Date
     
-    public init(id: UUID, title: String, description: String, author: String, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date) {
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date) {
         self.id = id
         self.title = title
         self.description = description
@@ -144,7 +144,7 @@ public struct DBRecipeStepTiming: Codable, Identifiable, Sendable {
     }
 }
 
-@Table("RecipeStepTemperature")
+@Table("RecipeStepTemperatures")
 public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable {
     public let id: UUID
     public let recipeStepId: UUID
@@ -158,5 +158,86 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable {
         self.temperature = temperature
         self.temperatureText = temperatureText
         self.temperatureUnitText = temperatureUnitText
+    }
+}
+
+public struct SchemaV1 {
+    public static func migrate(_ migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("Create Tables") { db in
+            try db.create(table: "Recipes") { e in
+                e.primaryKey("id", .text)
+                e.column("title", .text)
+                    .notNull()
+                e.column("description", .text)
+                e.column("author", .text)
+                e.column("sourceUrl", .text).notNull()
+                e.column("imageAssetFileName", .text)
+                e.column("thumbnailData", .blob)
+                e.column("imageUrl", .text)
+                e.column("dominantColorHex", .text)
+                e.column("minutesToPrepare", .double)
+                e.column("minutesToCook", .double)
+                e.column("totalMins", .double)
+                e.column("serves", .text)
+                e.column("overallRating", .double)
+                e.column("summarisedRating", .text)
+                e.column("summarisedSuggestion", .text)
+                e.column("dateAdded", .date)
+                e.column("dateModified", .date)
+            }
+            
+            try db.create(table: "RecipeIngredientGroups") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeId", .text).notNull().references("Recipes", onDelete: .cascade)
+                e.column("title", .text).notNull()
+                e.column("sortIndex", .integer).notNull()
+            }
+            
+            try db.create(table: "RecipeIngredients") { e in
+                e.primaryKey("id", .text)
+                e.column("ingredientGroupId", .text).notNull().references("RecipeIngredientGroups", onDelete: .cascade)
+                e.column("sortIndex", .integer).notNull()
+                e.column("rawIngredient", .text).notNull()
+                e.column("quantity", .integer)
+                e.column("quantityText", .text)
+                e.column("unit", .text)
+                e.column("unitText", .text)
+                e.column("ingredient", .text)
+                e.column("extra", .text)
+                e.column("emojiDescriptor", .text)
+                e.column("owned", .boolean)
+            }
+            
+            try db.create(table: "RecipeStepGroups") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeId", .text).notNull().references("Recipes", onDelete: .cascade)
+                e.column("title", .text).notNull()
+                e.column("sortIndex", .integer).notNull()
+            }
+            
+            try db.create(table: "RecipeSteps") { e in
+                e.primaryKey("id", .text)
+                e.column("groupId", .text).notNull().references("RecipeStepGroups", onDelete: .cascade)
+                e.column("sortIndex", .integer).notNull()
+                e.column("instruction", .text).notNull()
+            }
+            
+            try db.create(table: "RecipeStepTimings") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeStepId", .text).references("RecipeSteps", onDelete: .cascade)
+                e.column("timeInSeconds", .double).notNull()
+                e.column("timeText", .text).notNull()
+                e.column("timeUnitText", .text).notNull()
+            }
+            
+            try db.create(table: "RecipeStepTemperatures") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeStepId", .text).references("RecipeSteps", onDelete: .cascade)
+                e.column("temperature", .double).notNull()
+                e.column("temperatureText", .text).notNull( )
+                e.column("temperatureUnitText", .text).notNull()
+            }
+
+        }
     }
 }

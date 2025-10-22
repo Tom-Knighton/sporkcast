@@ -12,16 +12,17 @@ import Design
 import API
 import Persistence
 import SQLiteData
+import Models
 
 public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
-    @Environment(\.modelContext) private var context
 
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
     
+    @Dependency(\.defaultDatabase) var database
     @FetchAll(DBRecipe.full) private var recipes: [FullDBRecipe]
     
     public init() {}
@@ -62,8 +63,9 @@ public struct RecipeListPage: View {
             ToolbarSpacer(.fixed)
             ToolbarItem {
                 Button(action: { Task {
-                    try? context.delete(model: SDRecipe.self)
-                    try? context.save()
+                    try await database.write { db in
+                        try DBRecipe.delete().execute(db)
+                    }
                 }}) {
                     Image(systemName: "xmark")
                 }
@@ -79,9 +81,17 @@ public struct RecipeListPage: View {
                         let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
                         
                         if let recipeDTO {
-                            let recipe = await SDRecipe(from: recipeDTO)
-                            context.insert(recipe)
-                            try context.save()
+                            let (recipe, ingGroups, ings, stepGroups, steps, times, temps) = await RecipeDTO.entities(from: recipeDTO)
+                            
+                            try await database.write { db in
+                                try DBRecipe.insert { recipe }.execute(db)
+                                try DBRecipeIngredientGroup.insert { ingGroups }.execute(db)
+                                try DBRecipeIngredient.insert { ings }.execute(db)
+                                try DBRecipeStepGroup.insert { stepGroups }.execute(db)
+                                try DBRecipeStep.insert { steps }.execute(db)
+                                try DBRecipeStepTiming.insert { times }.execute(db)
+                                try DBRecipeStepTemperature.insert { temps }.execute(db)
+                            }
                             print("saved")
                         } else {
                             print("Failed parsing recipe")
