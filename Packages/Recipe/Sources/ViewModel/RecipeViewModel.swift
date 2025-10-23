@@ -10,15 +10,37 @@ import Observation
 import FoundationModels
 import Foundation
 import SwiftData
+import SwiftUI
+import SQLiteData
+import Persistence
 
 @Observable
 @MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
     public var recipe: Recipe
+    public var scrollOffset: CGFloat = 0
+    public var showNavTitle: Bool = false
+    public var segment: Int = 1
+    public var dominantColour: Color = .clear
+    
+    @ObservationIgnored
+    @Dependency(\.defaultDatabase) private var db
     
     public init(recipe: Recipe) {
         self.recipe = recipe
+    }
+    
+    /// Saves the new dominant colour for the recipe directly to the database and to the current view
+    public func setDominantColour(to colour: Color) async {
+        dominantColour = colour
+        
+        if let hex = colour.toHex() {
+            let id = recipe.id
+            try? await db.write { db in
+                try DBRecipe.find(id).update { $0.dominantColorHex = hex }.execute(db)
+            }
+        }
     }
     
     public func generateEmojis(_ context: ModelContext, for recipe: Recipe) throws {

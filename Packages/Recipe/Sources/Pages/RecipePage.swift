@@ -13,19 +13,14 @@ import API
 
 public struct RecipePage: View {
     
-    @State private var offset: CGFloat = 0
-    @State private var showNavTitle = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
-    @Environment(\.modelContext) private var context
-    @State private var selection: Int = 2
-    @State private var dominantColor: Color = .clear
     
     @State private var viewModel: RecipeViewModel
     
     public init(_ recipe: Recipe) {
         self.viewModel = .init(recipe: recipe)
-        self.dominantColor = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
+        self.viewModel.dominantColour = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
     
     public var body: some View {
@@ -39,7 +34,7 @@ public struct RecipePage: View {
                     .stretchy()
                     .ignoresSafeArea()
                     
-                    RecipeTitleView(showNavTitle: $showNavTitle)
+                    RecipeTitleView(showNavTitle: $viewModel.showNavTitle)
                     
                     VStack {
                         
@@ -96,13 +91,13 @@ public struct RecipePage: View {
                         
                         Spacer().frame(height: 20)
                         
-                        RecipeSourceButton(with: dominantColor) {
+                        RecipeSourceButton(with: viewModel.dominantColour) {
                             image()
                         }
                         
                         Spacer().frame(height: 20)
                         HStack {
-                            Picker("", selection: $selection) {
+                            Picker("", selection: $viewModel.segment) {
                                 Text("Ingredients")
                                     .tag(1)
                                 Text("Directions").tag(2)
@@ -113,11 +108,11 @@ public struct RecipePage: View {
                         
                         Spacer().frame(height: 24)
                         
-                        if selection == 1 {
-                            RecipeIngredientsListView(tint: dominantColor)
-                                .tint(dominantColor)
-                        } else if selection == 2 {
-                            RecipeStepsView(tint: dominantColor)
+                        if viewModel.segment == 1 {
+                            RecipeIngredientsListView(tint: viewModel.dominantColour)
+                                .tint(viewModel.dominantColour)
+                        } else if viewModel.segment == 2 {
+                            RecipeStepsView(tint: viewModel.dominantColour)
                         }
                         
                     }
@@ -131,7 +126,7 @@ public struct RecipePage: View {
         .onScrollGeometryChange(for: CGFloat.self, of: { geo in
             return geo.contentOffset.y + geo.contentInsets.top
         }, action: { new, old in
-            offset = new
+            viewModel.scrollOffset = new
         })
         .scrollClipDisabled(true)
         .ignoresSafeArea(.all, edges: .all.subtracting(.bottom))
@@ -150,55 +145,46 @@ public struct RecipePage: View {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.recipe.title)
                     .font(.headline)
-                    .opacity(showNavTitle ? 1 : 0)
-                    .accessibilityHidden(!showNavTitle)
-                    .animation(.easeInOut(duration: 0.2), value: showNavTitle)
+                    .opacity(viewModel.showNavTitle ? 1 : 0)
+                    .accessibilityHidden(!viewModel.showNavTitle)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
             }
         }
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
-                self.dominantColor = Color(hex: domC) ?? .clear
+                viewModel.dominantColour = Color(hex: domC) ?? .clear
             }
-        }
-}
-
-@ViewBuilder
-private func image() -> some View {
-    AsyncImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { img in
-        img
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .task {
-                if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
-                    setDominantColour(to: dom)
-                }
-            }
-    } placeholder: {
-        if let data = viewModel.recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
-            Image(uiImage: ui)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else if let file = viewModel.recipe.image.imageAssetFileName,
-                  let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
-                  let data = try? Data(contentsOf: url),
-                  let ui = UIImage(data: data) {
-            Image(uiImage: ui)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else {
-            Rectangle().opacity(0.1)
         }
     }
-}
-
-private func setDominantColour(to colour: Color) {
-    self.dominantColor = colour
     
-    if let hex = colour.toHex() {
-        self.viewModel.recipe.dominantColorHex = hex
-        try? context.save()
+    @ViewBuilder
+    private func image() -> some View {
+        AsyncImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { img in
+            img
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .task {
+                    if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
+                        await viewModel.setDominantColour(to: dom)
+                    }
+                }
+        } placeholder: {
+            if let data = viewModel.recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else if let file = viewModel.recipe.image.imageAssetFileName,
+                      let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
+                      let data = try? Data(contentsOf: url),
+                      let ui = UIImage(data: data) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Rectangle().opacity(0.1)
+            }
+        }
     }
-}
 }
 
 #Preview {
