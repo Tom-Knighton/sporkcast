@@ -10,6 +10,8 @@ import Design
 import Models
 import SwiftData
 import API
+import SQLiteData
+import Persistence
 
 public struct RecipePage: View {
     
@@ -19,6 +21,7 @@ public struct RecipePage: View {
     @State private var viewModel: RecipeViewModel
     
     public init(_ recipe: Recipe) {
+        print("View init")
         self.viewModel = .init(recipe: recipe)
         self.viewModel.dominantColour = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
@@ -154,6 +157,9 @@ public struct RecipePage: View {
             if let domC = newValue.dominantColorHex {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear
             }
+        }
+        .task(id: "emojis") {
+            try? await viewModel.generateEmojis()
         }
     }
     

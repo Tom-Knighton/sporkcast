@@ -49,7 +49,7 @@ public struct RecipeIngredient: Identifiable, Hashable, Equatable {
     public let unit: IngredientUnit?
     
     /// If present, the emoji that should represent this ingredient
-    public let emoji: String?
+    public var emoji: String?
     
     /// Whether the user owns this ingredient
     public let owned: Bool?

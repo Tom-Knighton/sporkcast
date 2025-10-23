@@ -9,7 +9,8 @@ import Foundation
 import SQLiteData
 
 @Selection
-public struct FullDBRecipe: Sendable, Identifiable {
+public struct FullDBRecipe: Sendable, Identifiable, Equatable {
+    
     public let recipe: DBRecipe
     
     @Column(as: [DBRecipeIngredientGroup].JSONRepresentation.self)

@@ -9,7 +9,7 @@ import Foundation
 import SQLiteData
 
 @Table("Recipes")
-public struct DBRecipe: Identifiable, Sendable {
+public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let title: String
     public let description: String?
@@ -52,7 +52,7 @@ public struct DBRecipe: Identifiable, Sendable {
 }
 
 @Table("RecipeIngredientGroups")
-public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable {
+public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let recipeId: UUID
     public let title: String
@@ -67,7 +67,7 @@ public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable {
 }
 
 @Table("RecipeIngredients")
-public struct DBRecipeIngredient: Codable, Identifiable, Sendable {
+public struct DBRecipeIngredient: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let ingredientGroupId: UUID
     public let sortIndex: Int
@@ -98,7 +98,7 @@ public struct DBRecipeIngredient: Codable, Identifiable, Sendable {
 }
 
 @Table("RecipeStepGroups")
-public struct DBRecipeStepGroup: Codable, Identifiable, Sendable {
+public struct DBRecipeStepGroup: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let recipeId: UUID
     public let title: String
@@ -113,7 +113,7 @@ public struct DBRecipeStepGroup: Codable, Identifiable, Sendable {
 }
 
 @Table("RecipeSteps")
-public struct DBRecipeStep: Codable, Identifiable, Sendable {
+public struct DBRecipeStep: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let groupId: UUID
     public let sortIndex: Int
@@ -128,7 +128,7 @@ public struct DBRecipeStep: Codable, Identifiable, Sendable {
 }
 
 @Table("RecipeStepTimings")
-public struct DBRecipeStepTiming: Codable, Identifiable, Sendable {
+public struct DBRecipeStepTiming: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let recipeStepId: UUID
     public var timeInSeconds: Double
@@ -145,7 +145,7 @@ public struct DBRecipeStepTiming: Codable, Identifiable, Sendable {
 }
 
 @Table("RecipeStepTemperatures")
-public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable {
+public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let recipeStepId: UUID
     public var temperature: Double

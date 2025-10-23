@@ -13,11 +13,10 @@ public struct RecipeIngredientsListView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
     public let tint: Color
-    @State private var ingredients: [RecipeIngredient] = []
         
     public var body: some View {
         VStack {
-            ForEach(ingredients) { ingredient in
+            ForEach(viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })) { ingredient in
                 HStack {
                     ZStack {
                         Circle()
@@ -42,11 +41,6 @@ public struct RecipeIngredientsListView: View {
             Spacer().frame(height: 8)
         }
         .safeAreaPadding(.bottom)
-        .onAppear {
-            if ingredients.isEmpty {
-                self.ingredients = viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })
-            }
-        }
     }
 }
 

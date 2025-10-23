@@ -18,17 +18,26 @@ import Persistence
 @MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
-    public var recipe: Recipe
+    @ObservationIgnored private var defaultRecipe: Recipe
+    @ObservationIgnored @FetchOne var dbRecipe: FullDBRecipe?
+    
     public var scrollOffset: CGFloat = 0
     public var showNavTitle: Bool = false
     public var segment: Int = 1
     public var dominantColour: Color = .clear
     
+    public var recipe: Recipe {
+        get {
+            self.dbRecipe?.toDomainModel() ?? defaultRecipe
+        }
+    }
+    
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var db
     
     public init(recipe: Recipe) {
-        self.recipe = recipe
+        self.defaultRecipe = recipe
+        self._dbRecipe = FetchOne(DBRecipe.full.find(recipe.id))
     }
     
     /// Saves the new dominant colour for the recipe directly to the database and to the current view
@@ -43,7 +52,18 @@ public class RecipeViewModel: @unchecked Sendable {
         }
     }
     
-    public func generateEmojis(_ context: ModelContext, for recipe: Recipe) throws {
+    /// Uses Apple Intelligence to generate emojis for each ingredient, and saves them to the model in one go
+    public func generateEmojis() async throws {
+        
+        let ingredients = recipe.ingredientSections.flatMap(\.ingredients)
+        
+        let ingredientsWithoutEmoji = ingredients.filter { $0.emoji == nil }
+        
+        if ingredientsWithoutEmoji.isEmpty {
+            return
+        }
+        
+        var ingredientEmojiMap: [UUID: String?] = [:]
         
         let session = LanguageModelSession {
                 """
@@ -53,36 +73,32 @@ public class RecipeViewModel: @unchecked Sendable {
         session.prewarm()
         let generalModel = SystemLanguageModel.default
         
-        guard generalModel.isAvailable else { return }
+        guard generalModel.isAvailable else { print("No model available"); return; }
         
         #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            print("preview, not generating emojis")
             return
         }
         #endif
         
-        let ingredients = recipe.ingredientSections.flatMap(\.ingredients)
-        
-        Task { [session, context] in
-            for ingredient in ingredients {
-                do {
-                    let response = try await session.respond(
-                        to: Prompt(ingredient.ingredientText),
-                        generating: EmojiResponse.self,
-                        includeSchemaInPrompt: false,
-                        options: .init(temperature: 0.5)
-                    )
-                    await MainActor.run {
-//                        ingredient.emoji = response.content.emoji
-                    }
-                } catch {
-                    print(error.localizedDescription)
-                }
-            }
-            await MainActor.run {
-                try? context.save()
+       
+        for ingredient in ingredients {
+            do {
+                let response = try await session.respond(to: Prompt(ingredient.ingredientText), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5))
+                ingredientEmojiMap[ingredient.id] = response.content.emoji
+            } catch {
+                print(error.localizedDescription)
             }
         }
+        
+        try await db.write{ [ingredientEmojiMap] db in
+            for entry in ingredientEmojiMap {
+                try DBRecipeIngredient.find(entry.key).update { $0.emojiDescriptor = entry.value }.execute(db)
+            }
+        }
+        
+        print("Finished generating")
     }
 }
 
