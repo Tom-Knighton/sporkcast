@@ -25,6 +25,7 @@ public class RecipeViewModel: @unchecked Sendable {
     public var showNavTitle: Bool = false
     public var segment: Int = 1
     public var dominantColour: Color = .clear
+    public var ingredientsGenerating: Bool = false
     
     public var recipe: Recipe {
         get {
@@ -82,11 +83,17 @@ public class RecipeViewModel: @unchecked Sendable {
         }
         #endif
         
+        self.ingredientsGenerating = true
+        
+        defer { self.ingredientsGenerating = false }
        
         for ingredient in ingredients {
             do {
                 let response = try await session.respond(to: Prompt(ingredient.ingredientText), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5))
-                ingredientEmojiMap[ingredient.id] = response.content.emoji
+                
+                if let emoji = response.content.emoji {
+                    ingredientEmojiMap[ingredient.id] = response.content.emoji
+                }
             } catch {
                 print(error.localizedDescription)
             }

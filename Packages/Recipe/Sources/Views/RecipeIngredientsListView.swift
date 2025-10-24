@@ -22,6 +22,10 @@ public struct RecipeIngredientsListView: View {
                         Circle()
                             .frame(width: 25, height: 25)
                         
+                        if viewModel.ingredientsGenerating {
+                            ProgressView()
+                        }
+                        
                         if let emoji = ingredient.emoji {
                             Text(emoji)
                                 .font(.caption)
