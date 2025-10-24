@@ -7,6 +7,7 @@
 
 import SwiftUI
 import API
+import Models
 import Design
 
 public struct HouseholdSettingsPage: View {
@@ -28,13 +29,13 @@ public struct HouseholdSettingsPage: View {
             Color.layer1.ignoresSafeArea()
             if households.canCreate {
                 NoHouseholdsView()
-            } else if let household = households.household {
-                householdView(for: household)
+            } else if let home = households.home {
+                householdView(for: home)
                     .interactiveDismissDisabled()
             }
         }
         .task {
-            self.name = households.household?.name ?? ""
+            self.name = households.home?.name ?? ""
         }
         .alert("Error", isPresented: $showError, actions: {
             Button(role: .cancel) {} label: {
@@ -57,7 +58,7 @@ public struct HouseholdSettingsPage: View {
         })
     }
     
-    @ViewBuilder private func householdView(for household: SDHousehold) -> some View {
+    @ViewBuilder private func householdView(for household: Home) -> some View {
         List {
             Section("Name") {
                 TextField("Name:", text: $name)

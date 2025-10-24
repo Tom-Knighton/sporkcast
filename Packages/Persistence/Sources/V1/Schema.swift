@@ -161,6 +161,17 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
+@Table("Homes")
+public struct DBHome: Codable, Identifiable, Sendable, Equatable {
+    public let id: UUID
+    public let name: String
+    
+    public init(id: UUID, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -238,6 +249,10 @@ public struct SchemaV1 {
                 e.column("temperatureUnitText", .text).notNull()
             }
 
+            try db.create(table: "Homes") { e in
+                e.primaryKey("id", .text)
+                e.column("name", .text).notNull()
+            }
         }
     }
 }

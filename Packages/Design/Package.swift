@@ -13,7 +13,7 @@ let package = Package(
             targets: ["Design"]
         ),
     ],
-    dependencies: [.package(path: "API"), .package(path: "Environment"), .package(path: "Models")],
+    dependencies: [.package(path: "API"), .package(path: "Environment"), .package(path: "Models"), .package(path: "Persistence")],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -21,6 +21,6 @@ let package = Package(
             name: "Design",
             dependencies: ["API", "Environment", "Models"]
         ),
-        .testTarget(name: "DesignTests", dependencies: ["Design", "Environment"])
+        .testTarget(name: "DesignTests", dependencies: ["Design", "Environment", "Persistence", "Models"])
     ]
 )

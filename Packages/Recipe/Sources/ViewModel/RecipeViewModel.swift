@@ -92,7 +92,7 @@ public class RecipeViewModel: @unchecked Sendable {
                 let response = try await session.respond(to: Prompt(ingredient.ingredientText), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5))
                 
                 if let emoji = response.content.emoji {
-                    ingredientEmojiMap[ingredient.id] = response.content.emoji
+                    ingredientEmojiMap[ingredient.id] = emoji
                 }
             } catch {
                 print(error.localizedDescription)

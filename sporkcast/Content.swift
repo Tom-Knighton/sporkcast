@@ -55,7 +55,7 @@ struct AppContent: View {
         .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
-        .environment(HouseholdService(context: context))
+        .environment(HouseholdService())
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
         .tabBarMinimizeBehavior(.onScrollDown)

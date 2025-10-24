@@ -8,40 +8,44 @@
 import SwiftData
 import Foundation
 import Observation
+import Persistence
+import SQLiteData
+import Dependencies
+import Models
 
 @MainActor
 @Observable
 public final class HouseholdService {
+    @ObservationIgnored
+    @Dependency(\.defaultDatabase) private var database
     
-    private let context: ModelContext
+    @ObservationIgnored
+    @FetchOne(DBHome.all) private var dbHome
     
-    private(set) public var household: SDHousehold?
-    private(set) public var isBusy = false
-    private(set) public var errorMessage: String?
-    
-    public var isInHousehold: Bool { household != nil }
-    public var canCreate: Bool { !isInHousehold }
-    
-    public init(context: ModelContext) {
-        self.context = context
-        Task { await refresh() }
-    }
-    
-    private func refresh() async {
-        do {
-            errorMessage = nil
-            var desc = FetchDescriptor<SDHousehold>()
-            desc.fetchLimit = 1
-            desc.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
-            household = try context.fetch(desc).first
-        } catch {
-            errorMessage = error.localizedDescription
+    public var home: Home? {
+        get {
+            if let dbHome {
+                return Home(from: dbHome)
+            }
+            
+            return nil
         }
     }
     
+    
+    private(set) public var isBusy = false
+    private(set) public var errorMessage: String?
+    
+    public var isInHome: Bool { home != nil }
+    public var canCreate: Bool { !isInHome }
+    
+    
+    public init() {}
+
+    
     @discardableResult
-    public func create(named rawName: String) async -> SDHousehold? {
-        guard !isBusy else { return household }
+    public func create(named rawName: String) async -> Home? {
+        guard !isBusy else { return home }
         isBusy = true
         defer { isBusy = false }
         
@@ -50,12 +54,14 @@ public final class HouseholdService {
             guard !name.isEmpty else { throw CreationError.invalidName }
             guard canCreate else { throw CreationError.alreadyInHousehold }
             
-            let h = SDHousehold(name: name)
-            context.insert(h)
-            try context.save()
-            household = h
+            let newDBHome = DBHome(id: UUID(), name: name)
+            
+            try await database.write { db in
+                try DBHome.insert { newDBHome }.execute(db)
+            }
+            
             errorMessage = nil
-            return h
+            return Home(from: newDBHome)
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             return nil
@@ -69,7 +75,7 @@ public final class HouseholdService {
             return false
         }
         
-        guard let h = household else {
+        guard let home else {
             errorMessage = LeaveError.noHousehold.errorDescription
             return false
         }
@@ -78,10 +84,11 @@ public final class HouseholdService {
         defer { isBusy = false }
         
         do {
-            context.delete(h)
-            try context.save()
-            
-            household = nil
+            let id = home.id
+            try await database.write { db in
+               try DBHome.find(id).delete().execute(db)
+            }
+
             errorMessage = nil
             return true
         } catch {
@@ -92,13 +99,15 @@ public final class HouseholdService {
     }
     
     public func rename(to rawName: String) async {
-        guard let h = household else { return }
+        guard let home else { return }
         do {
             let name = sanitize(name: rawName)
             guard !name.isEmpty else { throw CreationError.invalidName }
-            h.name = name
-            h.updatedAt = Date()
-            try context.save()
+            let id = home.id
+            try await database.write { db in
+                try DBHome.find(id).update { $0.name = name }.execute(db)
+            }
+
             errorMessage = nil
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -142,7 +151,7 @@ public extension HouseholdService {
             case .busy:
                 "Please wait for the current operation to finish."
             case .cloudShareOperationFailed(let message):
-                "Couldn’t update CloudKit sharing: \(message)"
+                "Couldn’t u pdate CloudKit sharing: \(message)"
             }
         }
     }

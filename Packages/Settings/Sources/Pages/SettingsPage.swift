@@ -30,7 +30,6 @@ public struct SettingsPage: View {
                     }
                 }
             }
-           
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
