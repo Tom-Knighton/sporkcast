@@ -11,9 +11,9 @@ import API
 
 public struct RecipeInfoStack: View {
     
-    private let recipe: Recipe
+    private let recipe: SDRecipe
     
-    public init (_ recipe: Recipe) {
+    public init (_ recipe: SDRecipe) {
         self.recipe = recipe
     }
     

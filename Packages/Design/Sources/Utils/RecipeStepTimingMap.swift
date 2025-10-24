@@ -7,7 +7,7 @@
 
 import Foundation
 import RegexBuilder
-import API
+import Models
 
 public struct MatchedTiming: Equatable, Hashable {
     public let range: Range<String.Index>
@@ -25,7 +25,7 @@ public extension RecipeStep {
     
     func matchedTimings() -> [MatchedTiming] {
         
-        guard !rawStep.isEmpty, let timings, !timings.isEmpty else { return [] }
+        guard !timings.isEmpty else { return [] }
         
         struct Key: Hashable { let timeText: String; let unit: String }
         
@@ -48,7 +48,7 @@ public extension RecipeStep {
             
             let regex = makeRegex(for: key)
             var ranges: [Range<String.Index>] = []
-            for match in rawStep.matches(of: regex) {
+            for match in self.instructionText.matches(of: regex) {
                 ranges.append(match.range)
             }
             
@@ -68,7 +68,7 @@ public extension RecipeStep {
         assigned.sort { a, b in a.range.lowerBound < b.range.lowerBound }
         
         return assigned.map { item in
-            MatchedTiming(range: item.range, seconds: item.seconds, displayText: String(rawStep[item.range]))
+            MatchedTiming(range: item.range, seconds: item.seconds, displayText: String(instructionText[item.range]))
         }
     }
 }

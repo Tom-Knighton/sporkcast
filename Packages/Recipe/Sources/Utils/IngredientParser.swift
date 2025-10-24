@@ -5,17 +5,18 @@
 //  Created by Tom Knighton on 18/09/2025.
 //
 
-import API
+import Models
 import SwiftUI
 import Foundation
 import RegexBuilder
+import Design
 
 public struct IngredientHighlighter {
     
     static func highlight(ingredient: RecipeIngredient, font: Font = .body, tint: Color = .mint) -> AttributedString {
         
-        var attr = AttributedString(ingredient.rawIngredient)
-        guard !ingredient.rawIngredient.isEmpty, let quantityText = ingredient.quantityText, !quantityText.isEmpty else { return attr }
+        var attr = AttributedString(ingredient.ingredientText)
+        guard !ingredient.ingredientText.isEmpty, let quantityText = ingredient.quantity?.quantityText, !quantityText.isEmpty else { return attr }
         
         func apply(_ r: Range<String.Index>) {
             guard let low = AttributedString.Index(r.lowerBound, within: attr),
@@ -31,10 +32,10 @@ public struct IngredientHighlighter {
             quantityText
         }
         
-        guard let qtyMatch = ingredient.rawIngredient.firstRange(of: qtyRegex) else { return attr }
+        guard let qtyMatch = ingredient.ingredientText.firstRange(of: qtyRegex) else { return attr }
         apply(qtyMatch)
         
-        if let unit = ingredient.unitText?.trimmingCharacters(in: .whitespacesAndNewlines), !unit.isEmpty {
+        if let unit = ingredient.unit?.unitText?.trimmingCharacters(in: .whitespacesAndNewlines), !unit.isEmpty {
             let unitRegex = Regex {
                 /(?i)/
                 ChoiceOf {
@@ -44,7 +45,7 @@ public struct IngredientHighlighter {
                 /\b/
             }
             
-            let candidates = ingredient.rawIngredient.ranges(of: unitRegex)
+            let candidates = ingredient.ingredientText.ranges(of: unitRegex)
             let picked = candidates.first(where: { $0.lowerBound >= qtyMatch.upperBound}) ?? candidates.first
             if let p = picked { apply(p) }
         }

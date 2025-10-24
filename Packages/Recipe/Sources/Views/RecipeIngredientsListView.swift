@@ -7,23 +7,26 @@
 
 import SwiftUI
 import FoundationModels
-import API
+import Models
 
 public struct RecipeIngredientsListView: View {
     
     @Environment(RecipeViewModel.self) private var viewModel
     public let tint: Color
-    @State private var ingredients: [RecipeIngredient] = []
         
     public var body: some View {
         VStack {
-            ForEach(ingredients) { ingredient in
+            ForEach(viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })) { ingredient in
                 HStack {
                     ZStack {
                         Circle()
                             .frame(width: 25, height: 25)
                         
-                        if let emoji = ingredient.emojiDescriptor {
+                        if viewModel.ingredientsGenerating {
+                            ProgressView()
+                        }
+                        
+                        if let emoji = ingredient.emoji {
                             Text(emoji)
                                 .font(.caption)
                         }
@@ -42,11 +45,6 @@ public struct RecipeIngredientsListView: View {
             Spacer().frame(height: 8)
         }
         .safeAreaPadding(.bottom)
-        .onAppear {
-            if ingredients.isEmpty {
-                self.ingredients = viewModel.recipe?.ingredients?.sorted(by: { $0.sortIndex < $1.sortIndex }) ?? []
-            }
-        }
     }
 }
 

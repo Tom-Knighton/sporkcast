@@ -6,10 +6,10 @@
 //
 
 public struct RecipeStepSectionDTO: Codable {
-    let title: String?
-    let steps: [RecipeStepDTO]?
+    public let title: String?
+    public let steps: [RecipeStepDTO]?
     
-    init(title: String?, steps: [RecipeStepDTO]?) {
+    public init(title: String?, steps: [RecipeStepDTO]?) {
         self.title = title
         self.steps = steps
     }

@@ -5,7 +5,7 @@
 //  Created by Tom Knighton on 21/09/2025.
 //
 
-import API
+import Models
 import Foundation
 import NaturalLanguage
 
@@ -103,7 +103,7 @@ public struct IngredientStepMatcher {
     }
     
     private func normalise(_ step: RecipeStep) -> NormalisedStep {
-        let lower = decodeHTML(step.rawStep.lowercased())
+        let lower = decodeHTML(step.instructionText.lowercased())
         let cleaned = lettersAndSeparatorsOnly(lower)
         let lemmas = lemmaTokens(cleaned)
         let tokenSet = Set(lemmas)
@@ -177,7 +177,7 @@ public struct IngredientStepMatcher {
     }
     
     public func generateVariants(for ingredient: RecipeIngredient, config: IngredientMatchingConfig = .shared) -> Set<String> {
-        let sources: [String] = [ingredient.ingredient, ingredient.rawIngredient, ingredient.extra, ingredient.unitText, ingredient.quantityText]
+        let sources: [String] = [ingredient.ingredientPart, ingredient.ingredientText, ingredient.extraInformation, ingredient.unit?.unitText, ingredient.quantity?.quantityText]
             .compactMap { $0 }
             .filter { !$0.isEmpty }
         

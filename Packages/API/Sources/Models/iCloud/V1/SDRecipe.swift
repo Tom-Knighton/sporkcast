@@ -10,9 +10,9 @@ import SwiftData
 import CryptoKit
 import UIKit
 import SwiftUI
-
+    
 @Model
-public final class Recipe {
+public final class SDRecipe {
     
     public var id: UUID = UUID()
     public var canonicalKey: String = ""
@@ -40,10 +40,10 @@ public final class Recipe {
     public var dateAdded: Date = Date()
     public var dateModified: Date = Date()
     
-    @Relationship(deleteRule: .cascade, inverse: \RecipeIngredient.recipe) public var ingredients: [RecipeIngredient]?
-    @Relationship(deleteRule: .cascade, inverse: \RecipeStepSection.recipe) public var stepSections: [RecipeStepSection]?
+    @Relationship(deleteRule: .cascade, inverse: \SDRecipeIngredient.recipe) public var ingredients: [SDRecipeIngredient]?
+    @Relationship(deleteRule: .cascade, inverse: \SDRecipeStepSection.recipe) public var stepSections: [SDRecipeStepSection]?
     
-    public init(id: UUID = .init(), canonicalKey: String, title: String, recipeDescription: String? = nil, author: String? = nil, sourceUrl: String, imageAssetFileName: String? = nil, minutesToPrepare: Double? = nil, minutesToCook: Double? = nil, totalMins: Double? = nil, serves: String? = nil, overallRating: Double? = nil, summarisedRatings: String? = nil, summarisedSuggestion: String? = nil, ratings: [String], dateAdded: Date, dateModified: Date, ingredients: [RecipeIngredient], stepSections: [RecipeStepSection]) {
+    public init(id: UUID = .init(), canonicalKey: String, title: String, recipeDescription: String? = nil, author: String? = nil, sourceUrl: String, imageAssetFileName: String? = nil, minutesToPrepare: Double? = nil, minutesToCook: Double? = nil, totalMins: Double? = nil, serves: String? = nil, overallRating: Double? = nil, summarisedRatings: String? = nil, summarisedSuggestion: String? = nil, ratings: [String], dateAdded: Date, dateModified: Date, ingredients: [SDRecipeIngredient], stepSections: [SDRecipeStepSection]) {
         self.id = id
         self.canonicalKey = canonicalKey
         self.title = title
@@ -67,7 +67,7 @@ public final class Recipe {
 }
 
 @Model
-public final class RecipeIngredient {
+public final class SDRecipeIngredient {
     public var rawIngredient: String = ""
     public var sortIndex: Int = 0
     public var quantity: Double?
@@ -81,9 +81,9 @@ public final class RecipeIngredient {
     public var emojiDescriptor: String?
     public var owned: Bool = false
     
-    @Relationship var recipe: Recipe?
+    @Relationship var recipe: SDRecipe?
     
-    public init(rawIngredient: String, sortIndex: Int, quantity: Double? = nil, quantityText: String? = nil, minQuantity: Double? = nil, maxQuantity: Double? = nil, unit: String? = nil, unitText: String? = nil, ingredient: String? = nil, extra: String? = nil, emojiDescriptor: String? = nil, owned: Bool, recipe: Recipe? = nil) {
+    public init(rawIngredient: String, sortIndex: Int, quantity: Double? = nil, quantityText: String? = nil, minQuantity: Double? = nil, maxQuantity: Double? = nil, unit: String? = nil, unitText: String? = nil, ingredient: String? = nil, extra: String? = nil, emojiDescriptor: String? = nil, owned: Bool, recipe: SDRecipe? = nil) {
         self.rawIngredient = rawIngredient
         self.sortIndex = sortIndex
         self.quantity = quantity
@@ -101,15 +101,15 @@ public final class RecipeIngredient {
 }
 
 @Model
-public final class RecipeStepSection {
+public final class SDRecipeStepSection {
     public var id: UUID = UUID()
     public var title: String = ""
     public var sortIndex: Int = 0
     
-    @Relationship public var recipe: Recipe?
-    @Relationship(deleteRule: .cascade, inverse: \RecipeStep.recipeStepSection) public var steps: [RecipeStep]?
+    @Relationship public var recipe: SDRecipe?
+    @Relationship(deleteRule: .cascade, inverse: \SDRecipeStep.recipeStepSection) public var steps: [SDRecipeStep]?
     
-    public init(title: String, sortIndex: Int, recipe: Recipe? = nil, steps: [RecipeStep]) {
+    public init(title: String, sortIndex: Int, recipe: SDRecipe? = nil, steps: [SDRecipeStep]) {
         self.id = UUID()
         self.title = title
         self.sortIndex = sortIndex
@@ -119,17 +119,17 @@ public final class RecipeStepSection {
 }
 
 @Model
-public final class RecipeStep: @unchecked Sendable {
+public final class SDRecipeStep: @unchecked Sendable {
     
     public var id: UUID = UUID()
     public var rawStep: String = ""
     public var sortIndex: Int = 0
     
-    @Relationship(deleteRule: .cascade, inverse: \RecipeStepTiming.recipeStep) public var timings: [RecipeStepTiming]?
-    @Relationship(deleteRule: .cascade, inverse: \RecipeStepTemp.recipeStep) public var temperatures: [RecipeStepTemp]?
-    @Relationship var recipeStepSection: RecipeStepSection?
+    @Relationship(deleteRule: .cascade, inverse: \SDRecipeStepTiming.recipeStep) public var timings: [SDRecipeStepTiming]?
+    @Relationship(deleteRule: .cascade, inverse: \SDRecipeStepTemp.recipeStep) public var temperatures: [SDRecipeStepTemp]?
+    @Relationship var recipeStepSection: SDRecipeStepSection?
     
-    public init(rawStep: String, sortIndex: Int, timings: [RecipeStepTiming], temperatures: [RecipeStepTemp], recipeStepSection: RecipeStepSection? = nil) {
+    public init(rawStep: String, sortIndex: Int, timings: [SDRecipeStepTiming], temperatures: [SDRecipeStepTemp], recipeStepSection: SDRecipeStepSection? = nil) {
         self.id = UUID()
         self.rawStep = rawStep
         self.sortIndex = sortIndex
@@ -140,14 +140,14 @@ public final class RecipeStep: @unchecked Sendable {
 }
 
 @Model
-public final class RecipeStepTiming {
+public final class SDRecipeStepTiming {
     public var timeInSeconds: Double = 0
     public var timeText: String = ""
     public var timeUnitText: String = ""
     
-    @Relationship var recipeStep: RecipeStep?
+    @Relationship var recipeStep: SDRecipeStep?
     
-    public init(timeInSeconds: Double, timeText: String, timeUnitText: String, recipeStep: RecipeStep? = nil) {
+    public init(timeInSeconds: Double, timeText: String, timeUnitText: String, recipeStep: SDRecipeStep? = nil) {
         self.timeInSeconds = timeInSeconds
         self.timeText = timeText
         self.timeUnitText = timeUnitText
@@ -157,14 +157,14 @@ public final class RecipeStepTiming {
 
 
 @Model
-public final class RecipeStepTemp {
+public final class SDRecipeStepTemp {
     public var temperature: Double = 0
     public var temperatureText: String = ""
     public var temperatureUnitText: String = ""
     
-    @Relationship var recipeStep: RecipeStep?
+    @Relationship var recipeStep: SDRecipeStep?
     
-    public init(temperature: Double, temperatureText: String, temperatureUnitText: String, recipeStep: RecipeStep? = nil) {
+    public init(temperature: Double, temperatureText: String, temperatureUnitText: String, recipeStep: SDRecipeStep? = nil) {
         self.temperature = temperature
         self.temperatureText = temperatureText
         self.temperatureUnitText = temperatureUnitText
@@ -173,19 +173,19 @@ public final class RecipeStepTemp {
 }
 
 
-public extension Recipe {
+public extension SDRecipe {
     
     convenience init(from dto: RecipeDTO) async {
         
-        let key = Recipe.canonicalKey(from: dto.url)
+        let key = SDRecipe.canonicalKey(from: dto.url)
         
         var thumbnailData: Data?
         var fileName: String?
         
         do {
             if let imageUrl = dto.imageUrl, let url = URL(string: imageUrl) {
-                if let download = try? await Recipe.downloadImageData(from: url) {
-                    let (thumb, ext) = try Recipe.makeThumbnailAndDetermineExt(from: download)
+                if let download = try? await SDRecipe.downloadImageData(from: url) {
+                    let (thumb, ext) = try SDRecipe.makeThumbnailAndDetermineExt(from: download)
                     let fileURL = try ImageStore.fileURL(forKey: key, ext: ext)
                     try download.write(to: fileURL, options: .atomic)
                     fileName = fileURL.lastPathComponent
@@ -213,28 +213,28 @@ public extension Recipe {
         self.overallRating = dto.ratings.overallRating
         self.ratings = dto.ratings.reviews?.map(\.text) ?? []
         
-        var ingredients: [RecipeIngredient] = []
+        var ingredients: [SDRecipeIngredient] = []
         for i in 0..<dto.ingredients.count {
             let dtoIng = dto.ingredients[i]
-            let newIng = RecipeIngredient(rawIngredient: dtoIng.fullIngredient, sortIndex: i, quantity: dtoIng.quantity, quantityText: dtoIng.quantityText, minQuantity: dtoIng.minQuantity, maxQuantity: dtoIng.maxQuantity, unit: dtoIng.unit, unitText: dtoIng.unitText, ingredient: dtoIng.ingredient, extra: dtoIng.extra, emojiDescriptor: nil, owned: false)
+            let newIng = SDRecipeIngredient(rawIngredient: dtoIng.fullIngredient, sortIndex: i, quantity: dtoIng.quantity, quantityText: dtoIng.quantityText, minQuantity: dtoIng.minQuantity, maxQuantity: dtoIng.maxQuantity, unit: dtoIng.unit, unitText: dtoIng.unitText, ingredient: dtoIng.ingredient, extra: dtoIng.extra, emojiDescriptor: nil, owned: false)
             ingredients.append(newIng)
         }
         self.ingredients = ingredients
         
-        var stepSections: [RecipeStepSection] = []
+        var stepSections: [SDRecipeStepSection] = []
         for i in 0..<dto.stepSections.count {
             let dtoSect = dto.stepSections[i]
             
-            var steps: [RecipeStep] = []
+            var steps: [SDRecipeStep] = []
             if let dtoSteps = dtoSect.steps {
                 for j in 0..<dtoSteps.count {
                     let dtoStep = dtoSteps[j]
-                    let newStep = RecipeStep(rawStep: dtoStep.step, sortIndex: j, timings: dtoStep.times.compactMap { RecipeStepTiming(timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)}, temperatures: dtoStep.temperatures.compactMap { RecipeStepTemp(temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText)})
+                    let newStep = SDRecipeStep(rawStep: dtoStep.step, sortIndex: j, timings: dtoStep.times.compactMap { SDRecipeStepTiming(timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)}, temperatures: dtoStep.temperatures.compactMap { SDRecipeStepTemp(temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText)})
                     steps.append(newStep)
                 }
             }
             
-            let newSect = RecipeStepSection(title: dtoSect.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", sortIndex: i, steps: steps)
+            let newSect = SDRecipeStepSection(title: dtoSect.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", sortIndex: i, steps: steps)
             stepSections.append(newSect)
         }
         self.stepSections = stepSections
@@ -303,5 +303,3 @@ public extension Recipe {
     }
 
 }
-
-

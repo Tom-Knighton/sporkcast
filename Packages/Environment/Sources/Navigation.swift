@@ -9,6 +9,7 @@ import AppRouter
 import Foundation
 import API
 import SwiftUI
+import Models
 
 public enum AppTab: String, Codable, TabType, CaseIterable {
     case recipes
@@ -33,7 +34,6 @@ public enum AppTab: String, Codable, TabType, CaseIterable {
 
 public enum AppDestination: DestinationType {
     case recipes
-    case recipeFromId(id: UUID)
     case recipe(recipe: Recipe)
     
     public static func from(path: String, fullPath: [String], parameters: [String : String]) -> AppDestination? {
@@ -46,6 +46,7 @@ public enum AppSheet: SheetType {
     public var id: Int { hashValue }
     
     case timersView
+    case householdSettings
 }
 
 public typealias AppRouter = Router<AppTab, AppDestination, AppSheet>

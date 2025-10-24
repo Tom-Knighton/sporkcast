@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E22179D92EA83B410006CE0B /* Models in Frameworks */ = {isa = PBXBuildFile; productRef = E22179D82EA83B410006CE0B /* Models */; };
 		E231FFB92E9ABCDD00ABD853 /* Settings in Frameworks */ = {isa = PBXBuildFile; productRef = E231FFB82E9ABCDD00ABD853 /* Settings */; };
 		E23AC6A72E88A16E00A1CC8E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */; };
 		E23AC6A82E88A16E00A1CC8E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */; };
@@ -66,6 +67,8 @@
 				API,
 				Design,
 				Environment,
+				Packages/Models,
+				Persistence,
 				Recipe,
 				RecipesList,
 				RecipeTimersList,
@@ -126,6 +129,7 @@
 			files = (
 				E231FFB92E9ABCDD00ABD853 /* Settings in Frameworks */,
 				E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */,
+				E22179D92EA83B410006CE0B /* Models in Frameworks */,
 				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
@@ -220,6 +224,7 @@
 				E254D73C2E7E01FF00CDE935 /* RecipesList */,
 				E2DE194D2E92852F00A712BD /* RecipeTimersList */,
 				E231FFB82E9ABCDD00ABD853 /* Settings */,
+				E22179D82EA83B410006CE0B /* Models */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -626,6 +631,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E22179D82EA83B410006CE0B /* Models */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Models;
+		};
 		E231FFB82E9ABCDD00ABD853 /* Settings */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Settings;

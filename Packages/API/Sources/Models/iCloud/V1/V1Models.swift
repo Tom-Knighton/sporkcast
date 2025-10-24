@@ -10,7 +10,7 @@ import SwiftData
 public struct V1Models {
     
     public static let sharedContainer: ModelContainer? = {
-        let schema = Schema([Recipe.self, RecipeIngredient.self, RecipeStepSection.self, RecipeStep.self, RecipeStepTiming.self, RecipeStepTemp.self])
+        let schema = Schema([SDRecipe.self, SDRecipeIngredient.self, SDRecipeStepSection.self, SDRecipeStep.self, SDRecipeStepTiming.self, SDRecipeStepTemp.self, SDHousehold.self])
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,

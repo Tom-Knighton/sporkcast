@@ -5,10 +5,11 @@
 //  Created by Tom Knighton on 20/09/2025.
 //
 
-import API
+import Models
 import SwiftUI
 import Design
 import Environment
+import API
 
 public struct RecipeCardView: View {
     
@@ -24,7 +25,7 @@ public struct RecipeCardView: View {
                 HStack {
                     Spacer()
                     
-                    if let totalMins = recipe.totalMins ?? recipe.minutesToCook {
+                    if let totalMins = recipe.timing.totalTime ?? recipe.timing.cookTime {
                         HStack {
                             Image(systemName: "clock")
                             Text("\(Int(totalMins))m")
@@ -80,7 +81,8 @@ public struct RecipeCardView: View {
             Button(role: .cancel) { } label: { Text("Cancel") }
             Button(role: .destructive) {
                 Task {
-                    context.delete(recipe)
+                    let id = recipe.id
+                    try? context.delete(model: SDRecipe.self, where: #Predicate<SDRecipe> { sd in sd.id == id })
                     try? context.save()
                 }
             } label: { Text("Delete") }
@@ -93,9 +95,9 @@ public struct RecipeCardView: View {
     
     @ViewBuilder
     private var image: some View {
-        if let data = recipe.thumbnailData, let ui = UIImage(data: data) {
+        if let data = recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
             Image(uiImage: ui).resizable().scaledToFill()
-        } else if let file = recipe.imageAssetFileName,
+        } else if let file = recipe.image.imageAssetFileName,
                   let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
                   let data = try? Data(contentsOf: url),
                   let ui = UIImage(data: data) {

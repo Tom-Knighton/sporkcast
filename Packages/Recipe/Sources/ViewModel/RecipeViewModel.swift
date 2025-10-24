@@ -5,56 +5,66 @@
 //  Created by Tom Knighton on 14/09/2025.
 //
 
-import API
+import Models
 import Observation
 import FoundationModels
 import Foundation
 import SwiftData
+import SwiftUI
+import SQLiteData
+import Persistence
 
 @Observable
 @MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
-    public var recipe: Recipe?
-    public var ingredientIconMap: [String: EmojiResponse] = [:]
+    @ObservationIgnored private var defaultRecipe: Recipe
+    @ObservationIgnored @FetchOne var dbRecipe: FullDBRecipe?
     
-    public init() {
-        recipe = nil
-    }
+    public var scrollOffset: CGFloat = 0
+    public var showNavTitle: Bool = false
+    public var segment: Int = 1
+    public var dominantColour: Color = .clear
+    public var ingredientsGenerating: Bool = false
     
-    public init(for recipe: Recipe, context: ModelContext) {
-        self.recipe = recipe
-        self.ingredientIconMap = [:]
-        
-        if recipe.ingredients?.allSatisfy({ $0.emojiDescriptor != nil }) == false {
-            try? generateEmojis(context)
+    public var recipe: Recipe {
+        get {
+            self.dbRecipe?.toDomainModel() ?? defaultRecipe
         }
     }
     
-    public init(with recipeId: UUID, context: ModelContext) async {
-        var descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == recipeId }, sortBy: [.init(\.dateModified)])
-        descriptor.fetchLimit = 1
+    @ObservationIgnored
+    @Dependency(\.defaultDatabase) private var db
+    
+    public init(recipe: Recipe) {
+        self.defaultRecipe = recipe
+        self._dbRecipe = FetchOne(DBRecipe.full.find(recipe.id))
+    }
+    
+    /// Saves the new dominant colour for the recipe directly to the database and to the current view
+    public func setDominantColour(to colour: Color) async {
+        dominantColour = colour
         
-        let results = try? context.fetch(descriptor)
-        self.recipe = results?.first
-        
-        if results?.first?.ingredients?.allSatisfy({ $0.emojiDescriptor != nil }) == false {
-            try? generateEmojis(context)
+        if let hex = colour.toHex() {
+            let id = recipe.id
+            try? await db.write { db in
+                try DBRecipe.find(id).update { $0.dominantColorHex = hex }.execute(db)
+            }
         }
     }
     
-    public init(for url: String, with client: any NetworkClient) async {
-        let recipeDto: RecipeDTO? = try? await client.post(Recipes.uploadFromUrl(url: "https://beatthebudget.com/recipe/chicken-katsu-curry/"))
+    /// Uses Apple Intelligence to generate emojis for each ingredient, and saves them to the model in one go
+    public func generateEmojis() async throws {
         
-        if let recipeDto {
-            self.recipe = await Recipe(from: recipeDto)
-        } else {
-            self.recipe = nil
+        let ingredients = recipe.ingredientSections.flatMap(\.ingredients)
+        
+        let ingredientsWithoutEmoji = ingredients.filter { $0.emoji == nil }
+        
+        if ingredientsWithoutEmoji.isEmpty {
+            return
         }
-    }
-    
-    public func generateEmojis(_ context: ModelContext) throws {
-        guard let recipe else { return }
+        
+        var ingredientEmojiMap: [UUID: String?] = [:]
         
         let session = LanguageModelSession {
                 """
@@ -64,36 +74,38 @@ public class RecipeViewModel: @unchecked Sendable {
         session.prewarm()
         let generalModel = SystemLanguageModel.default
         
-        guard generalModel.isAvailable else { return }
+        guard generalModel.isAvailable else { print("No model available"); return; }
         
         #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            print("preview, not generating emojis")
             return
         }
         #endif
         
-        let ingredients = recipe.ingredients ?? []
+        self.ingredientsGenerating = true
         
-        Task { [session, context] in
-            for ingredient in ingredients {
-                do {
-                    let response = try await session.respond(
-                        to: Prompt(ingredient.rawIngredient),
-                        generating: EmojiResponse.self,
-                        includeSchemaInPrompt: false,
-                        options: .init(temperature: 0.5)
-                    )
-                    await MainActor.run {
-                        ingredient.emojiDescriptor = response.content.emoji
-                    }
-                } catch {
-                    print(error.localizedDescription)
+        defer { self.ingredientsGenerating = false }
+       
+        for ingredient in ingredients {
+            do {
+                let response = try await session.respond(to: Prompt(ingredient.ingredientText), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5))
+                
+                if let emoji = response.content.emoji {
+                    ingredientEmojiMap[ingredient.id] = response.content.emoji
                 }
-            }
-            await MainActor.run {
-                try? context.save()
+            } catch {
+                print(error.localizedDescription)
             }
         }
+        
+        try await db.write{ [ingredientEmojiMap] db in
+            for entry in ingredientEmojiMap {
+                try DBRecipeIngredient.find(entry.key).update { $0.emojiDescriptor = entry.value }.execute(db)
+            }
+        }
+        
+        print("Finished generating")
     }
 }
 
