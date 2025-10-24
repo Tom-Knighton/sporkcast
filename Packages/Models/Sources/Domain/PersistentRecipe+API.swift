@@ -12,7 +12,7 @@ import CryptoKit
 import UIKit
 
 public extension RecipeDTO {
-    static func entities(from dto: RecipeDTO) async -> (DBRecipe, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature]) {
+    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature]) {
         
         let recipeId = UUID()
         let now = Date()
@@ -36,7 +36,7 @@ public extension RecipeDTO {
             print("Error downloading image: \(error)")
         }
         
-         let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, imageAssetFileName: fileName, thumbnailData: thumbnailData, imageUrl: dto.imageUrl, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now)
+         let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, imageAssetFileName: fileName, thumbnailData: thumbnailData, imageUrl: dto.imageUrl, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
         
         // TODO: Support ingredient groups
         let groupId = UUID()

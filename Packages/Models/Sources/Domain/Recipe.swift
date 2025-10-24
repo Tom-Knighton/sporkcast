@@ -50,9 +50,12 @@ public struct Recipe: Identifiable, Hashable {
 
     /// The primary colour associated with the recipe
     public var dominantColorHex: String?
+    
+    /// The id of the home this recipe is a part of, if any
+    public var homeId: UUID?
 
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?) {
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
@@ -67,6 +70,7 @@ public struct Recipe: Identifiable, Hashable {
         self.ingredientSections = ingredientSections
         self.stepSections = stepSections
         self.dominantColorHex = dominantColorHex
+        self.homeId = homeId
     }
 }
 

@@ -18,6 +18,7 @@ struct SporkcastApp: App {
     init() {
         prepareDependencies {
             $0.defaultDatabase = try! Database().appDb()
+            $0.defaultSyncEngine = try! SyncEngine(for: $0.defaultDatabase, tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self)
         }
     }
     
@@ -38,6 +39,7 @@ private struct Database {
         
 #if DEBUG
         config.prepareDatabase { db in
+            try db.attachMetadatabase()
             db.trace(options: .profile) {
                 if context == .preview {
                     print("\($0.expandedDescription)")

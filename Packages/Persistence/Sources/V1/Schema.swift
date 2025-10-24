@@ -29,7 +29,9 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let dateAdded: Date
     public let dateModified: Date
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date) {
+    public let homeId: UUID?
+    
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
@@ -48,6 +50,7 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
         self.summarisedSuggestion = summarisedSuggestion
         self.dateAdded = dateAdded
         self.dateModified = dateModified
+        self.homeId = homeId
     }
 }
 
@@ -175,6 +178,12 @@ public struct DBHome: Codable, Identifiable, Sendable, Equatable {
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
+            
+            try db.create(table: "Homes") { e in
+                e.primaryKey("id", .text)
+                e.column("name", .text).notNull()
+            }
+            
             try db.create(table: "Recipes") { e in
                 e.primaryKey("id", .text)
                 e.column("title", .text)
@@ -195,6 +204,7 @@ public struct SchemaV1 {
                 e.column("summarisedSuggestion", .text)
                 e.column("dateAdded", .date)
                 e.column("dateModified", .date)
+                e.column("homeId", .text).references("Homes", onDelete: .cascade)
             }
             
             try db.create(table: "RecipeIngredientGroups") { e in
@@ -247,11 +257,6 @@ public struct SchemaV1 {
                 e.column("temperature", .double).notNull()
                 e.column("temperatureText", .text).notNull( )
                 e.column("temperatureUnitText", .text).notNull()
-            }
-
-            try db.create(table: "Homes") { e in
-                e.primaryKey("id", .text)
-                e.column("name", .text).notNull()
             }
         }
     }
