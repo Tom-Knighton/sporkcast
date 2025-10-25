@@ -42,7 +42,6 @@ public extension DBRecipe {
     
     static var full: FullSelect {
         
-        
         let base = DBRecipe
             .group(by: \.id)
             .order(by: \.dateModified)
