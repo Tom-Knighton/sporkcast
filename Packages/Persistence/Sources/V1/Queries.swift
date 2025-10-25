@@ -13,6 +13,8 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
     
     public let recipe: DBRecipe
     
+    public let imageData: DBRecipeImage?
+    
     @Column(as: [DBRecipeIngredientGroup].JSONRepresentation.self)
     public let ingredientGroups: [DBRecipeIngredientGroup]
     
@@ -36,7 +38,7 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
 
 public extension DBRecipe {
     
-    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?)>
+    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?)>
     
     static var full: FullSelect {
         
@@ -69,13 +71,19 @@ public extension DBRecipe {
             .leftJoin(DBRecipeStepTemperature.all) {
                 $4.id.eq($6.recipeStepId)
             }
+        
+        let withImage = withStepTemps
+            .leftJoin(DBRecipeImage.all) {
+                $0.id.eq($7.recipeId)
+            }
     
-        let query = withStepTemps
+        let query = withImage
             .select {
                 let igs = $1.jsonGroupArray(distinct: true)
                 let ings = $2.jsonGroupArray(distinct: true)
                 return FullDBRecipe.Columns(
                     recipe: $0,
+                    imageData: $7,
                     ingredientGroups: igs,
                     ingredients: ings,
                     stepGroups: $3.jsonGroupArray(distinct: true),

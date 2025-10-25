@@ -75,17 +75,13 @@ public struct Recipe: Identifiable, Hashable {
 }
 
 public struct RecipeImage: Hashable {
-    /// If the image for this recipe is stored/downloaded locally - the name of that file
-    public let imageAssetFileName: String?
-    
     /// A data representation of the image stored
     public let imageThumbnailData: Data?
     
     /// The url to the image originally imported
     public let imageUrl: String?
     
-    public init(imageAssetFileName: String?, imageThumbnailData: Data?, imageUrl: String?) {
-        self.imageAssetFileName = imageAssetFileName
+    public init(imageThumbnailData: Data?, imageUrl: String?) {
         self.imageThumbnailData = imageThumbnailData
         self.imageUrl = imageUrl
     }

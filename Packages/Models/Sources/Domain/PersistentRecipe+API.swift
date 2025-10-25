@@ -12,7 +12,7 @@ import CryptoKit
 import UIKit
 
 public extension RecipeDTO {
-    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature]) {
+    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature]) {
         
         let recipeId = UUID()
         let now = Date()
@@ -20,23 +20,21 @@ public extension RecipeDTO {
         let key = RecipeDTO.canonicalKey(from: dto.url)
         
         var thumbnailData: Data?
-        var fileName: String?
         
         do {
             if let imageUrl = dto.imageUrl, let url = URL(string: imageUrl) {
                 if let download = try? await RecipeDTO.downloadImageData(from: url) {
-                    let (thumb, ext) = try RecipeDTO.makeThumbnailAndDetermineExt(from: download)
-                    let fileURL = try ImageStore.fileURL(forKey: key, ext: ext)
-                    try download.write(to: fileURL, options: .atomic)
-                    fileName = fileURL.lastPathComponent
+                    let (thumb, _) = try RecipeDTO.makeThumbnailAndDetermineExt(from: download)
                     thumbnailData = thumb
                 }
             }
         } catch {
             print("Error downloading image: \(error)")
         }
+                
+        let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
         
-         let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, imageAssetFileName: fileName, thumbnailData: thumbnailData, imageUrl: dto.imageUrl, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
+        let recipeImage = DBRecipeImage(recipeId: recipe.id, imageSourceUrl: dto.imageUrl, imageData: thumbnailData)
         
         // TODO: Support ingredient groups
         let groupId = UUID()
@@ -68,7 +66,7 @@ public extension RecipeDTO {
             stepGroups.append(dbGroup)
         }
         
-        return (recipe, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps)
+        return (recipe, recipeImage, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps)
     }
     
     private static func downloadImageData(from url: URL) async throws -> Data {

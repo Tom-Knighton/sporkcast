@@ -14,7 +14,7 @@ public extension FullDBRecipe {
             Coverts the db model to the domain Recipe struct
      */
     func toDomainModel() -> Recipe {
-        let image = RecipeImage(imageAssetFileName: self.recipe.imageAssetFileName, imageThumbnailData: self.recipe.thumbnailData, imageUrl: self.recipe.imageUrl)
+        let image = RecipeImage(imageThumbnailData: self.imageData?.imageData, imageUrl: self.imageData?.imageSourceUrl)
         let timing = RecipeTiming(totalTime: self.recipe.totalMins, prepTime: self.recipe.minutesToPrepare, cookTime: self.recipe.minutesToCook)
         let ratingInfo = RecipeRatingInfo(overallRating: self.recipe.overallRating, summarisedRating: self.recipe.summarisedRating, ratings: [])
         

@@ -18,7 +18,7 @@ struct SporkcastApp: App {
     init() {
         prepareDependencies {
             $0.defaultDatabase = try! Database().appDb()
-            $0.defaultSyncEngine = try! SyncEngine(for: $0.defaultDatabase, tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self)
+            $0.defaultSyncEngine = try! SyncEngine(for: $0.defaultDatabase, tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self)
         }
     }
     

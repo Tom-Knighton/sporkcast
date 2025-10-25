@@ -15,9 +15,6 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let description: String?
     public let author: String?
     public let sourceUrl: String
-    public let imageAssetFileName: String?
-    public let thumbnailData: Data?
-    public let imageUrl: String?
     public let dominantColorHex: String?
     public let minutesToPrepare: Double?
     public let minutesToCook: Double?
@@ -31,15 +28,12 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     
     public let homeId: UUID?
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
         self.author = author
         self.sourceUrl = sourceUrl
-        self.imageAssetFileName = imageAssetFileName
-        self.thumbnailData = thumbnailData
-        self.imageUrl = imageUrl
         self.dominantColorHex = dominantColorHex
         self.minutesToPrepare = minutesToPrepare
         self.minutesToCook = minutesToCook
@@ -51,6 +45,23 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
         self.dateAdded = dateAdded
         self.dateModified = dateModified
         self.homeId = homeId
+    }
+}
+
+@Table("RecipeImages")
+public struct DBRecipeImage: Codable, Identifiable, Sendable, Equatable {
+    
+    @Column(primaryKey: true)
+    public let recipeId: DBRecipe.ID
+    public let imageSourceUrl: String?
+    public var imageData: Data?
+    
+    public var id: DBRecipe.ID { recipeId }
+    
+    public init(recipeId: DBRecipe.ID, imageSourceUrl: String?, imageData: Data?) {
+        self.recipeId = recipeId
+        self.imageSourceUrl = imageSourceUrl
+        self.imageData = imageData
     }
 }
 
@@ -205,6 +216,12 @@ public struct SchemaV1 {
                 e.column("dateAdded", .date)
                 e.column("dateModified", .date)
                 e.column("homeId", .text).references("Homes", onDelete: .cascade)
+            }
+            
+            try db.create(table: "RecipeImages") { e in
+                e.primaryKey("recipeId", .text).references("Recipes", onDelete: .cascade)
+                e.column("imageData", .blob)
+                e.column("imageSourceUrl", .text)
             }
             
             try db.create(table: "RecipeIngredientGroups") { e in
