@@ -11,8 +11,8 @@ import Design
 
 public struct NoHouseholdsView: View {
     
-    @Environment(HouseholdService.self) private var households
-    
+    @Environment(\.homeServices) private var households
+
     public var body: some View {
         ZStack {
             Color.layer1.ignoresSafeArea()
@@ -22,7 +22,7 @@ public struct NoHouseholdsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 
                 Button(action: {
-                    Task {
+                    Task { [households] in
                         let _ = await households.create(named: "My Home")
                     }
                 }) {

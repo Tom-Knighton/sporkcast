@@ -9,11 +9,17 @@ import SwiftUI
 import API
 import Models
 import Design
+import IssueReporting
+import CloudKit
+import SQLiteData
+import Dependencies
+import Environment
 
 public struct HouseholdSettingsPage: View {
     
-    @Environment(HouseholdService.self) private var households
+    @Environment(\.homeServices) private var households
     @Environment(AlertManager.self) private var alerts
+    @Environment(CloudKitGate.self) private var ckState
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
@@ -21,10 +27,11 @@ public struct HouseholdSettingsPage: View {
     @State private var showError: Bool = false
     @State private var showDeleteConfirmation: Bool = false
     
+    @State private var sharedRecord: SharedRecord?
+    
     public init() {}
     
     public var body: some View {
-        @Bindable var alerts = alerts
         ZStack {
             Color.layer1.ignoresSafeArea()
             if households.canCreate {
@@ -49,7 +56,7 @@ public struct HouseholdSettingsPage: View {
                 Text("Cancel")
             }
             Button(role: .destructive, action: {
-                Task { await households.leave(disbandIfOwner: true) }
+                Task { [households] in  await households.leave(disbandIfOwner: true) }
             }) {
                 Text("Leave Home")
             }
@@ -62,6 +69,35 @@ public struct HouseholdSettingsPage: View {
         List {
             Section("Name") {
                 TextField("Name:", text: $name)
+            }
+            
+            Section("Members") {
+                if ckState.canUseCloudKit {
+                    ShareLink(item: ShareHome(homes: households), preview: SharePreview("Join \(household.name) on Sporkast")) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Invite to Home", systemImage: "plus")
+                                .bold()
+                            Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
+                                .font(.subheadline)
+                                .tint(.gray)
+                        }
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Invite to Home", systemImage: "plus")
+                            .bold()
+                            .foregroundStyle(.secondary)
+                        Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text(ckState.unavailableReason)
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                    }
+                    .disabled(true)
+                }
+                
+                
             }
             
             Section("Danger") {
@@ -93,6 +129,14 @@ public struct HouseholdSettingsPage: View {
             }
         }
         .fontDesign(.rounded)
+        .sheet(item: $sharedRecord) { sharedRecord in
+            if let url = sharedRecord.share.url {
+                ActivityView(activityItems: [url])
+            } else {
+                Text("Preparing share…")
+                    .padding()
+            }
+        }
     }
     
     private func save() async {
@@ -105,4 +149,45 @@ public struct HouseholdSettingsPage: View {
         await households.rename(to: name.trimmingCharacters(in: .whitespacesAndNewlines))
         self.dismiss()
     }
+}
+
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+    }
+    
+    func updateUIViewController(
+        _ uiViewController: UIActivityViewController,
+        context: Context
+    ) {
+        // no-op
+    }
+}
+
+struct ShareHome: Transferable {
+    
+    let homes: any HouseholdServiceProtocol
+    
+    static var transferRepresentation: some TransferRepresentation {
+        CKShareTransferRepresentation { home in
+            return .prepareShare(container: .default(), allowedSharingOptions: .init(allowedParticipantPermissionOptions: [.readWrite], allowedParticipantAccessOptions: [.specifiedRecipientsOnly])) {
+                return try await home.homes.share().share
+            }
+        }
+    }
+}
+
+
+#Preview {
+    NavigationStack {
+        HouseholdSettingsPage()
+    }
+    .environment(\.homeServices, MockHouseholdService(withHome: true))
+    .environment(AlertManager())
 }

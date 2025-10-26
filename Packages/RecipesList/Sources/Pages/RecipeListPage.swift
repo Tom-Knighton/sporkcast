@@ -17,8 +17,8 @@ import Models
 public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
-    @Environment(HouseholdService.self) private var homes
-    
+    @Environment(\.homeServices) private var homes
+
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""

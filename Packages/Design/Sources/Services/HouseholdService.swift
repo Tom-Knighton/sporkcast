@@ -12,12 +12,36 @@ import Persistence
 import SQLiteData
 import Dependencies
 import Models
+import CloudKit
+import SwiftUI
 
-@MainActor
+public protocol HouseholdServiceProtocol {
+    var home: Home? { get }
+    var isInHome: Bool { get }
+    var canCreate: Bool { get }
+    
+    @MainActor
+    @discardableResult
+    func create(named rawName: String) async -> Home?
+    
+    @MainActor
+    @discardableResult
+    func leave(disbandIfOwner: Bool) async -> Bool?
+    
+    @MainActor
+    func rename(to rawName: String) async
+    
+    @MainActor
+    func share() async throws -> SharedRecord
+}
+
 @Observable
-public final class HouseholdService {
+public final class HouseholdService: HouseholdServiceProtocol {
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
+    
+    @ObservationIgnored
+    @Dependency(\.defaultSyncEngine) private var syncEngine
     
     @ObservationIgnored
     @FetchOne(DBHome.all) private var dbHome
@@ -114,13 +138,23 @@ public final class HouseholdService {
         }
     }
     
+    public func share() async throws -> SQLiteData.SharedRecord {
+        guard let dbHome else { throw HouseholdError.noHome  }
+        return try await syncEngine.share(record: dbHome) { share in
+            share[CKShare.SystemFieldKey.title] = "Join \(dbHome.name) on Sporkast!"
+            share.publicPermission = .none
+        }
+    }
+    
     private func sanitize(name: String) -> String {
         name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
     }
     
-    
+    public enum HouseholdError: Error {
+        case noHome
+    }
 }
 
 public extension HouseholdService {
@@ -156,3 +190,42 @@ public extension HouseholdService {
         }
     }
 }
+
+
+@Observable
+public final class MockHouseholdService: HouseholdServiceProtocol {
+    public var home: Home?
+    
+    public var isInHome: Bool { home != nil }
+    
+    public var canCreate: Bool { home == nil }
+    
+    public init(withHome: Bool = false) {
+        if withHome {
+            self.home = .init(id: UUID(), name: "Mock Home")
+        }
+    }
+    
+    public func create(named rawName: String) async -> Models.Home? {
+        self.home = .init(id: UUID(), name: rawName)
+        return self.home
+    }
+    
+    public func leave(disbandIfOwner: Bool) async -> Bool? {
+        self.home = nil
+        return true
+    }
+    
+    public func rename(to rawName: String) async {
+        self.home?.name = rawName
+    }
+    
+    public func share() async throws -> SQLiteData.SharedRecord {
+        throw MockError.notImplemented
+    }
+    
+    public enum MockError: Error {
+        case notImplemented
+    }
+}
+

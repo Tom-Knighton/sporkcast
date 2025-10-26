@@ -25,7 +25,7 @@ public struct SettingsPage: View {
             
             Section {
                 Button(action: { appRouter.presentSheet(.householdSettings) }) {
-                    NavigationLink(destination: HouseholdSettingsPage()) {
+                    NavigationLink(destination: EmptyView()) {
                         Label("Home", systemImage: "house.fill")
                     }
                 }

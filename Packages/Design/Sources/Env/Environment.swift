@@ -14,4 +14,5 @@ public extension EnvironmentValues {
     
     @Entry var networkClient: any NetworkClient = APIClient(host: "")
     @Entry var appSettings: SettingsStore = SettingsStore()
+    @Entry var homeServices: any HouseholdServiceProtocol = HouseholdService()
 }
