@@ -22,6 +22,7 @@ struct AppContent: View {
     @State private var appRouter: AppRouter
     @State private var alarmManager = RecipeTimerStore.shared
     @State private var alertManager = AlertManager.shared
+    @State private var households = HouseholdService.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
@@ -54,7 +55,7 @@ struct AppContent: View {
         .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
-        .environment(\.homeServices, HouseholdService())
+        .environment(\.homeServices, HouseholdService.shared)
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
         .environment(CloudKitGate())

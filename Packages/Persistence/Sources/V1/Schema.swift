@@ -177,6 +177,7 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
 
 @Table("Homes")
 public struct DBHome: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
     public let id: UUID
     public let name: String
     

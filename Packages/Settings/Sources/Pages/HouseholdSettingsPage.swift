@@ -72,6 +72,11 @@ public struct HouseholdSettingsPage: View {
             }
             
             Section("Members") {
+                
+                ForEach(households.residents) { resident in
+                    Text(resident.name)
+                }
+                
                 if ckState.canUseCloudKit {
                     ShareLink(item: ShareHome(homes: households), preview: SharePreview("Join \(household.name) on Sporkast")) {
                         VStack(alignment: .leading, spacing: 12) {

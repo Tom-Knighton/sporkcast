@@ -14,11 +14,21 @@ import Dependencies
 import Models
 import CloudKit
 import SwiftUI
+import Combine
+
+public struct HomeResident: Identifiable, Hashable, Equatable {
+    public let name: String
+    public let role: String
+    public let isUser: Bool
+    
+    public var id: String { name }
+}
 
 public protocol HouseholdServiceProtocol {
     var home: Home? { get }
     var isInHome: Bool { get }
     var canCreate: Bool { get }
+    var residents: [HomeResident] { get }
     
     @MainActor
     @discardableResult
@@ -35,8 +45,12 @@ public protocol HouseholdServiceProtocol {
     func share() async throws -> SharedRecord
 }
 
+
 @Observable
-public final class HouseholdService: HouseholdServiceProtocol {
+public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendable {
+    
+    public static let shared = HouseholdService()
+    
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
     
@@ -45,6 +59,9 @@ public final class HouseholdService: HouseholdServiceProtocol {
     
     @ObservationIgnored
     @FetchOne(DBHome.all) private var dbHome
+    
+    @ObservationIgnored
+    private var cancellables = Set<AnyCancellable>()
     
     public var home: Home? {
         get {
@@ -56,6 +73,7 @@ public final class HouseholdService: HouseholdServiceProtocol {
         }
     }
     
+    private(set) public var residents: [HomeResident] = []
     
     private(set) public var isBusy = false
     private(set) public var errorMessage: String?
@@ -64,7 +82,36 @@ public final class HouseholdService: HouseholdServiceProtocol {
     public var canCreate: Bool { !isInHome }
     
     
-    public init() {}
+    public init() {
+        if let dbHome {
+            Task {
+                do {
+                    try await self.refreshShareMetadata(for: dbHome)
+                } catch {
+                    print(error.localizedDescription)
+                }
+            }
+
+        }
+        
+        $dbHome.publisher.sink { [dbHome] newHome in
+            if newHome != dbHome {
+                Task {
+                    do {
+                        try await self.refreshShareMetadata(for: dbHome)
+                    } catch {
+                        print(error.localizedDescription)
+                    }
+                }
+            }
+           
+        }
+        .store(in: &cancellables)
+    }
+    
+    deinit {
+        cancellables.removeAll()
+    }
 
     
     @discardableResult
@@ -110,9 +157,9 @@ public final class HouseholdService: HouseholdServiceProtocol {
         do {
             let id = home.id
             try await database.write { db in
-               try DBHome.find(id).delete().execute(db)
+                try DBHome.find(id).delete().execute(db)
             }
-
+            
             errorMessage = nil
             return true
         } catch {
@@ -131,7 +178,7 @@ public final class HouseholdService: HouseholdServiceProtocol {
             try await database.write { db in
                 try DBHome.find(id).update { $0.name = name }.execute(db)
             }
-
+            
             errorMessage = nil
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -142,7 +189,7 @@ public final class HouseholdService: HouseholdServiceProtocol {
         guard let dbHome else { throw HouseholdError.noHome  }
         return try await syncEngine.share(record: dbHome) { share in
             share[CKShare.SystemFieldKey.title] = "Join \(dbHome.name) on Sporkast!"
-            share.publicPermission = .none
+            share.publicPermission = .readOnly
         }
     }
     
@@ -152,8 +199,50 @@ public final class HouseholdService: HouseholdServiceProtocol {
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
     }
     
+    private func refreshShareMetadata(for dbHome: DBHome?) async throws {
+        guard let dbHome else { return }
+        
+        let metadataAll = try await self.database.read { db in
+            try DBHome
+                .metadata(for: dbHome.id)
+                .fetchAll(db)
+        }
+        
+        let metadata = metadataAll.first(where: { $0.recordPrimaryKey.uppercased() == dbHome.id.uuidString })
+                
+        guard let currentUserId = try? await CKContainer.default().userRecordID(), let metadata, let serverRecord = metadata.lastKnownServerRecord, let shareRef = serverRecord.share else {
+            return
+        }
+        
+        var residents: [HomeResident] = []
+        if let share = try? await CKContainer.default().sharedCloudDatabase.record(for: shareRef.recordID) as? CKShare {
+            residents.append(share.owner.toResident(currentId: currentUserId))
+            residents.append(contentsOf: share.participants.compactMap { $0.toResident(currentId: currentUserId) }.filter { $0.role != "Owner" })
+        } else if let share = try? await CKContainer.default().privateCloudDatabase.record(for: shareRef.recordID) as? CKShare {
+            residents.append(share.owner.toResident(currentId: currentUserId))
+            residents.append(contentsOf: share.participants.compactMap { $0.toResident(currentId: currentUserId) }.filter { $0.role != "Owner" })
+        }
+        
+        self.residents = residents
+    }
+    
     public enum HouseholdError: Error {
         case noHome
+    }
+}
+
+extension CKShare.Participant {
+    func toResident(currentId: CKRecord.ID) -> HomeResident {
+        let isOwner = self.role == .owner
+        let isCurrent = currentId.recordName == self.userIdentity.userRecordID?.recordName || self.userIdentity.userRecordID?.recordName == "__defaultOwner__"
+        
+        let name = isCurrent ? "You" : self.userIdentity.nameComponents?.givenName ?? (isOwner ? "(Owner)" : "(Member)")
+        var displayName = "\(name)"
+        if let email = self.userIdentity.lookupInfo?.emailAddress {
+            displayName += " (\(email))"
+        }
+        
+        return .init(name: displayName, role: isOwner ? "Owner" : "Member", isUser: isCurrent)
     }
 }
 
@@ -185,7 +274,7 @@ public extension HouseholdService {
             case .busy:
                 "Please wait for the current operation to finish."
             case .cloudShareOperationFailed(let message):
-                "Couldn’t u pdate CloudKit sharing: \(message)"
+                "Couldn’t update CloudKit sharing: \(message)"
             }
         }
     }
@@ -199,6 +288,8 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     public var isInHome: Bool { home != nil }
     
     public var canCreate: Bool { home == nil }
+    
+    public var residents: [HomeResident] = []
     
     public init(withHome: Bool = false) {
         if withHome {

@@ -16,7 +16,7 @@ import CloudKit
 @main
 struct SporkcastApp: App {
     
-    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate 
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     init() {
         prepareDependencies {
