@@ -11,9 +11,12 @@ import SwiftData
 import SQLiteData
 import OSLog
 import Persistence
+import CloudKit
 
 @main
 struct SporkcastApp: App {
+    
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate 
     
     init() {
         prepareDependencies {
@@ -26,6 +29,35 @@ struct SporkcastApp: App {
         WindowGroup {
             AppContent()
                 .modelContainer(V1Models.sharedContainer!)
+        }
+    }
+}
+
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        config.delegateClass = SceneDelegate.self
+        return config
+    }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    
+    @Dependency(\.defaultSyncEngine) private var syncEngine
+    var window: UIWindow?
+    
+    func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        Task {
+            try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+        }
+    }
+    
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard let ckData = connectionOptions.cloudKitShareMetadata else { return }
+        
+        Task {
+            try await syncEngine.acceptShare(metadata: ckData)
         }
     }
 }

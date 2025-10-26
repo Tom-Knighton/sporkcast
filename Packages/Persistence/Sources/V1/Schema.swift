@@ -215,8 +215,9 @@ public struct SchemaV1 {
                 e.column("summarisedSuggestion", .text)
                 e.column("dateAdded", .date)
                 e.column("dateModified", .date)
-                e.column("homeId", .text).references("Homes", onDelete: .cascade)
+                e.column("homeId", .text).references("Homes", onDelete: .setNull)
             }
+            
             
             try db.create(table: "RecipeImages") { e in
                 e.primaryKey("recipeId", .text).references("Recipes", onDelete: .cascade)

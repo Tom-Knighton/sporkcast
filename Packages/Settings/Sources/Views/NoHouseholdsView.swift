@@ -29,9 +29,11 @@ public struct NoHouseholdsView: View {
                     Label("Start Home", systemImage: "plus")
                         .bold()
                         .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.all, 8)
                 }
-                .buttonStyle(.glassProminent)
-                .tint(.blue)
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive().tint(.blue))
                 .buttonSizing(.flexible)
             }
             .scenePadding()
