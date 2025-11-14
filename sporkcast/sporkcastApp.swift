@@ -12,6 +12,7 @@ import SQLiteData
 import OSLog
 import Persistence
 import CloudKit
+import Design
 
 @main
 struct SporkcastApp: App {
@@ -48,17 +49,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     
     func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
-        Task {
-            try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-        }
+        HouseholdService.shared.pendingInvite = cloudKitShareMetadata
     }
     
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let ckData = connectionOptions.cloudKitShareMetadata else { return }
         
-        Task {
-            try await syncEngine.acceptShare(metadata: ckData)
-        }
+        HouseholdService.shared.pendingInvite = ckData
     }
 }
 

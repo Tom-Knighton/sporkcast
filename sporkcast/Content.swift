@@ -15,6 +15,7 @@ import Recipe
 import Design
 internal import AppRouter
 import Settings
+import CloudKit
 
 struct AppContent: View {
     @Namespace private var appRouterNamespace
@@ -68,13 +69,16 @@ struct AppContent: View {
                 showAlert = true
             }
         }
-//        .alert(alertManager.title, isPresented: $alertManager.isShowingAlert, actions: {
-//            Button(role: .cancel) {} label: {
-//                Text("OK")
-//            }
-//        }, message: {
-//            Text(alertManager.message ?? "")
-//        })
+        .fullScreenCover(item: $households.pendingInvite, content: { invite in
+            HomeInvitePage(for: invite)
+        })
+        .alert(alertManager.title, isPresented: $alertManager.isShowingAlert, actions: {
+            Button(role: .cancel) {} label: {
+                Text("OK")
+            }
+        }, message: {
+            Text(alertManager.message ?? "")
+        })
         .alert(
             alerting?.metadata.title ?? alerting?.title ?? "Timer",
             isPresented: $showAlert
@@ -115,4 +119,8 @@ extension AppContent {
             return .dark
         }
     }
+}
+
+extension CKShare.Metadata: @retroactive Identifiable {
+    
 }

@@ -29,6 +29,7 @@ public protocol HouseholdServiceProtocol {
     var isInHome: Bool { get }
     var canCreate: Bool { get }
     var residents: [HomeResident] { get }
+    var pendingInvite: CKShare.Metadata? { get set }
     
     @MainActor
     @discardableResult
@@ -50,6 +51,8 @@ public protocol HouseholdServiceProtocol {
 public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendable {
     
     public static let shared = HouseholdService()
+    
+    public var pendingInvite: CKShare.Metadata? = nil
     
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
@@ -95,6 +98,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
         }
         
         $dbHome.publisher.sink { [dbHome] newHome in
+            print("Home Update")
             if newHome != dbHome {
                 Task {
                     do {
@@ -106,7 +110,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             }
            
         }
-        .store(in: &cancellables)
+        .store(in: &cancellables)        
     }
     
     deinit {
@@ -146,7 +150,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             return false
         }
         
-        guard let home else {
+        guard let home, let dbHome else {
             errorMessage = LeaveError.noHousehold.errorDescription
             return false
         }
@@ -155,14 +159,34 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
         defer { isBusy = false }
         
         do {
-            let id = home.id
-            try await database.write { db in
-                try DBHome.find(id).delete().execute(db)
+            
+            let share = try await database.read { db in
+                try SyncMetadata
+                    .find(dbHome.syncMetadataID)
+                    .select(\.share)
+                    .fetchOne(db)
+                ?? nil
             }
             
+            if let share {
+                let ckDb = share.isCurrentUserOwner ? CKContainer.default().privateCloudDatabase : CKContainer.default().sharedCloudDatabase
+                try await ckDb.deleteRecord(withID: share.recordID)
+                try await syncEngine.syncChanges()
+                try await database.write { db in
+                    try DBHome.delete().execute(db)
+                }
+                try await syncEngine.deleteLocalData()
+            } else {
+                try await database.write { db in
+                    try DBHome.delete().execute(db)
+                }
+            }
+
+            self.residents.removeAll()
             errorMessage = nil
             return true
         } catch {
+            print(error.localizedDescription)
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             return false
         }
@@ -200,11 +224,14 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     }
     
     private func refreshShareMetadata(for dbHome: DBHome?) async throws {
-        guard let dbHome else { return }
+        guard let dbHome else {
+            self.residents.removeAll()
+            return
+        }
         
         let metadataAll = try await self.database.read { db in
-            try DBHome
-                .metadata(for: dbHome.id)
+            try SyncMetadata
+                .find(dbHome.syncMetadataID)
                 .fetchAll(db)
         }
         
@@ -223,6 +250,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             residents.append(contentsOf: share.participants.compactMap { $0.toResident(currentId: currentUserId) }.filter { $0.role != "Owner" })
         }
         
+        print("Sync residents")
         self.residents = residents
     }
     
@@ -236,13 +264,30 @@ extension CKShare.Participant {
         let isOwner = self.role == .owner
         let isCurrent = currentId.recordName == self.userIdentity.userRecordID?.recordName || self.userIdentity.userRecordID?.recordName == "__defaultOwner__"
         
+        let status = switch self.acceptanceStatus {
+        case .accepted: "Member"
+        case .pending: "Pending"
+        case .removed: "Left"
+        case .unknown: "Unknown"
+        default:
+            "Unknown"
+        }
         let name = isCurrent ? "You" : self.userIdentity.nameComponents?.givenName ?? (isOwner ? "(Owner)" : "(Member)")
         var displayName = "\(name)"
         if let email = self.userIdentity.lookupInfo?.emailAddress {
             displayName += " (\(email))"
         }
         
+        displayName += " - \(status)"
+        
         return .init(name: displayName, role: isOwner ? "Owner" : "Member", isUser: isCurrent)
+    }
+}
+
+extension CKShare {
+    var isCurrentUserOwner: Bool {
+        guard let me = currentUserParticipant else { return false }
+        return me.role == .owner
     }
 }
 
@@ -290,6 +335,8 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     public var canCreate: Bool { home == nil }
     
     public var residents: [HomeResident] = []
+    
+    public var pendingInvite: CKShare.Metadata? = nil
     
     public init(withHome: Bool = false) {
         if withHome {
