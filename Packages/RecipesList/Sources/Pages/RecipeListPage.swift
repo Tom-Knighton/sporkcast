@@ -17,6 +17,7 @@ import Models
 public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
+    @Environment(\.homeServices) private var homes
 
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
@@ -81,10 +82,11 @@ public struct RecipeListPage: View {
                         let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
                         
                         if let recipeDTO {
-                            let (recipe, ingGroups, ings, stepGroups, steps, times, temps) = await RecipeDTO.entities(from: recipeDTO)
+                            let (recipe, image, ingGroups, ings, stepGroups, steps, times, temps) = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
                             
                             try await database.write { db in
                                 try DBRecipe.insert { recipe }.execute(db)
+                                try DBRecipeImage.insert { image }.execute(db)
                                 try DBRecipeIngredientGroup.insert { ingGroups }.execute(db)
                                 try DBRecipeIngredient.insert { ings }.execute(db)
                                 try DBRecipeStepGroup.insert { stepGroups }.execute(db)

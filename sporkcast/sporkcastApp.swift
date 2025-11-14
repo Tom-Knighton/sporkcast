@@ -11,13 +11,18 @@ import SwiftData
 import SQLiteData
 import OSLog
 import Persistence
+import CloudKit
+import Design
 
 @main
 struct SporkcastApp: App {
     
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    
     init() {
         prepareDependencies {
             $0.defaultDatabase = try! Database().appDb()
+            $0.defaultSyncEngine = try! SyncEngine(for: $0.defaultDatabase, tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self)
         }
     }
     
@@ -26,6 +31,31 @@ struct SporkcastApp: App {
             AppContent()
                 .modelContainer(V1Models.sharedContainer!)
         }
+    }
+}
+
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        config.delegateClass = SceneDelegate.self
+        return config
+    }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    
+    @Dependency(\.defaultSyncEngine) private var syncEngine
+    var window: UIWindow?
+    
+    func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        HouseholdService.shared.pendingInvite = cloudKitShareMetadata
+    }
+    
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard let ckData = connectionOptions.cloudKitShareMetadata else { return }
+        
+        HouseholdService.shared.pendingInvite = ckData
     }
 }
 
@@ -38,6 +68,7 @@ private struct Database {
         
 #if DEBUG
         config.prepareDatabase { db in
+            try db.attachMetadatabase()
             db.trace(options: .profile) {
                 if context == .preview {
                     print("\($0.expandedDescription)")

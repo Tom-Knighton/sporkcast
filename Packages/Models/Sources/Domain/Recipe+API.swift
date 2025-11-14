@@ -10,7 +10,7 @@ import API
 
 public extension SDRecipe {
     func toDomainModel() -> Recipe {
-        let image = RecipeImage(imageAssetFileName: self.imageAssetFileName, imageThumbnailData: self.thumbnailData, imageUrl: self.imageUrl)
+        let image = RecipeImage(imageThumbnailData: self.thumbnailData, imageUrl: self.imageUrl)
         let timing = RecipeTiming(totalTime: self.totalMins, prepTime: self.minutesToPrepare, cookTime: self.minutesToCook)
         let ratingInfo = RecipeRatingInfo(overallRating: self.overallRating, summarisedRating: self.summarisedRatings, ratings: self.ratings)
         
@@ -30,7 +30,7 @@ public extension SDRecipe {
             stepSections.append(.init(id: sdSect.id, sortIndex: sdSect.sortIndex, title: sdSect.title, steps: steps))
         }
         
-        let recipe = Recipe(id: self.id, title: self.title, description: self.recipeDescription, author: self.author, sourceUrl: self.sourceUrl, image: image, timing: timing, serves: self.serves, ratingInfo: ratingInfo, dateAdded: self.dateAdded, dateModified: self.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.dominantColorHex)
+        let recipe = Recipe(id: self.id, title: self.title, description: self.recipeDescription, author: self.author, sourceUrl: self.sourceUrl, image: image, timing: timing, serves: self.serves, ratingInfo: ratingInfo, dateAdded: self.dateAdded, dateModified: self.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.dominantColorHex, homeId: nil)
         
         return recipe
     }

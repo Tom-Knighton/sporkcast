@@ -14,7 +14,7 @@ public extension FullDBRecipe {
             Coverts the db model to the domain Recipe struct
      */
     func toDomainModel() -> Recipe {
-        let image = RecipeImage(imageAssetFileName: self.recipe.imageAssetFileName, imageThumbnailData: self.recipe.thumbnailData, imageUrl: self.recipe.imageUrl)
+        let image = RecipeImage(imageThumbnailData: self.imageData?.imageData, imageUrl: self.imageData?.imageSourceUrl)
         let timing = RecipeTiming(totalTime: self.recipe.totalMins, prepTime: self.recipe.minutesToPrepare, cookTime: self.recipe.minutesToCook)
         let ratingInfo = RecipeRatingInfo(overallRating: self.recipe.overallRating, summarisedRating: self.recipe.summarisedRating, ratings: [])
         
@@ -38,6 +38,6 @@ public extension FullDBRecipe {
             return RecipeStepSection(id: grp.id, sortIndex: grp.sortIndex, title: grp.title, steps: steps)
         }
         
-        return Recipe(id: self.recipe.id, title: self.recipe.title, description: self.recipe.description, author: self.recipe.author, sourceUrl: self.recipe.sourceUrl, image: image, timing: timing, serves: self.recipe.serves, ratingInfo: ratingInfo, dateAdded: self.recipe.dateAdded, dateModified: self.recipe.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.recipe.dominantColorHex)
+        return Recipe(id: self.recipe.id, title: self.recipe.title, description: self.recipe.description, author: self.recipe.author, sourceUrl: self.recipe.sourceUrl, image: image, timing: timing, serves: self.recipe.serves, ratingInfo: ratingInfo, dateAdded: self.recipe.dateAdded, dateModified: self.recipe.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.recipe.dominantColorHex, homeId: self.recipe.homeId)
     }
 }

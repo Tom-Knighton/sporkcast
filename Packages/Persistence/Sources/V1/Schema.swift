@@ -15,9 +15,6 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let description: String?
     public let author: String?
     public let sourceUrl: String
-    public let imageAssetFileName: String?
-    public let thumbnailData: Data?
-    public let imageUrl: String?
     public let dominantColorHex: String?
     public let minutesToPrepare: Double?
     public let minutesToCook: Double?
@@ -29,15 +26,14 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let dateAdded: Date
     public let dateModified: Date
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, imageAssetFileName: String?, thumbnailData: Data?, imageUrl: String?, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date) {
+    public let homeId: UUID?
+    
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
         self.author = author
         self.sourceUrl = sourceUrl
-        self.imageAssetFileName = imageAssetFileName
-        self.thumbnailData = thumbnailData
-        self.imageUrl = imageUrl
         self.dominantColorHex = dominantColorHex
         self.minutesToPrepare = minutesToPrepare
         self.minutesToCook = minutesToCook
@@ -48,6 +44,24 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
         self.summarisedSuggestion = summarisedSuggestion
         self.dateAdded = dateAdded
         self.dateModified = dateModified
+        self.homeId = homeId
+    }
+}
+
+@Table("RecipeImages")
+public struct DBRecipeImage: Codable, Identifiable, Sendable, Equatable {
+    
+    @Column(primaryKey: true)
+    public let recipeId: DBRecipe.ID
+    public let imageSourceUrl: String?
+    public var imageData: Data?
+    
+    public var id: DBRecipe.ID { recipeId }
+    
+    public init(recipeId: DBRecipe.ID, imageSourceUrl: String?, imageData: Data?) {
+        self.recipeId = recipeId
+        self.imageSourceUrl = imageSourceUrl
+        self.imageData = imageData
     }
 }
 
@@ -161,9 +175,27 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
+@Table("Homes")
+public struct DBHome: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let name: String
+    
+    public init(id: UUID, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
+            
+            try db.create(table: "Homes") { e in
+                e.primaryKey("id", .text)
+                e.column("name", .text).notNull()
+            }
+            
             try db.create(table: "Recipes") { e in
                 e.primaryKey("id", .text)
                 e.column("title", .text)
@@ -184,6 +216,14 @@ public struct SchemaV1 {
                 e.column("summarisedSuggestion", .text)
                 e.column("dateAdded", .date)
                 e.column("dateModified", .date)
+                e.column("homeId", .text).references("Homes", onDelete: .setNull)
+            }
+            
+            
+            try db.create(table: "RecipeImages") { e in
+                e.primaryKey("recipeId", .text).references("Recipes", onDelete: .cascade)
+                e.column("imageData", .blob)
+                e.column("imageSourceUrl", .text)
             }
             
             try db.create(table: "RecipeIngredientGroups") { e in
@@ -237,7 +277,6 @@ public struct SchemaV1 {
                 e.column("temperatureText", .text).notNull( )
                 e.column("temperatureUnitText", .text).notNull()
             }
-
         }
     }
 }

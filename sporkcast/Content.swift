@@ -15,6 +15,7 @@ import Recipe
 import Design
 internal import AppRouter
 import Settings
+import CloudKit
 
 struct AppContent: View {
     @Namespace private var appRouterNamespace
@@ -22,6 +23,7 @@ struct AppContent: View {
     @State private var appRouter: AppRouter
     @State private var alarmManager = RecipeTimerStore.shared
     @State private var alertManager = AlertManager.shared
+    @State private var households = HouseholdService.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
@@ -38,26 +40,26 @@ struct AppContent: View {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     RecipeListPage()
-                        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
                 }
             }
         } settings: {
             NavigationStack(path: $appRouter[.settings]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     SettingsPage()
-                        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
                 }
             }
         }
+        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
         .preferredColorScheme(getColorScheme())
         .tint(Color.primary)
         .environment(appRouter)
         .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
-        .environment(HouseholdService(context: context))
+        .environment(\.homeServices, HouseholdService.shared)
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
+        .environment(CloudKitGate())
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
         .tabViewBottomAccessory { bottomAccessory }
@@ -67,6 +69,9 @@ struct AppContent: View {
                 showAlert = true
             }
         }
+        .fullScreenCover(item: $households.pendingInvite, content: { invite in
+            HomeInvitePage(for: invite)
+        })
         .alert(alertManager.title, isPresented: $alertManager.isShowingAlert, actions: {
             Button(role: .cancel) {} label: {
                 Text("OK")
@@ -114,4 +119,8 @@ extension AppContent {
             return .dark
         }
     }
+}
+
+extension CKShare.Metadata: @retroactive Identifiable {
+    
 }

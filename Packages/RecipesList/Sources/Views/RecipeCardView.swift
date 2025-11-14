@@ -97,11 +97,6 @@ public struct RecipeCardView: View {
     private var image: some View {
         if let data = recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
             Image(uiImage: ui).resizable().scaledToFill()
-        } else if let file = recipe.image.imageAssetFileName,
-                  let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
-                  let data = try? Data(contentsOf: url),
-                  let ui = UIImage(data: data) {
-            Image(uiImage: ui).resizable().scaledToFill()
         } else {
             Rectangle().opacity(0.1)
         }

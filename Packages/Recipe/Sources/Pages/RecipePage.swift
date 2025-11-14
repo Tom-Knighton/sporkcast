@@ -179,13 +179,6 @@ public struct RecipePage: View {
                 Image(uiImage: ui)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-            } else if let file = viewModel.recipe.image.imageAssetFileName,
-                      let url = try? ImageStore.imagesDirectory().appendingPathComponent(file),
-                      let data = try? Data(contentsOf: url),
-                      let ui = UIImage(data: data) {
-                Image(uiImage: ui)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
             } else {
                 Rectangle().opacity(0.1)
             }

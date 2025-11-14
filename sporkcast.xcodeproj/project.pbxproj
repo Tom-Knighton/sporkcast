@@ -67,7 +67,6 @@
 				API,
 				Design,
 				Environment,
-				Packages/Models,
 				Persistence,
 				Recipe,
 				RecipesList,
