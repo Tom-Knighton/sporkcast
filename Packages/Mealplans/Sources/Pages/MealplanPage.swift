@@ -21,6 +21,7 @@ public struct MealplanPage: View {
     @State private var endDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
     @State private var now = Date()
     @State private var scrollPosition: ScrollPosition = .init(id: 1)
+    @State private var isDraggingEntry: Bool = false
     
     @FetchAll var mealplanEntries: [FullDBMealplanEntry]
     @Dependency(\.defaultDatabase) private var db
@@ -43,7 +44,7 @@ public struct MealplanPage: View {
                     LazyVStack {
                         ForEach(days, id: \.self) { day in
                             let mealplanEntries = self.mealplanEntries.filter { calendar.isDate($0.mealplanEntry.date, inSameDayAs: day)}
-                            MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() })
+                            MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() }, isDraggingEntry: $isDraggingEntry)
                                 .id(day.formatted(date: .numeric, time: .omitted))
                                 .onAppear {
                                     extendDaysIfNeeded(currentDay: day)
@@ -64,6 +65,7 @@ public struct MealplanPage: View {
                     }
                 }
                 .scrollPosition($scrollPosition)
+                .environment(\.isMealplanDragging, isDraggingEntry)
                 
             }
         }

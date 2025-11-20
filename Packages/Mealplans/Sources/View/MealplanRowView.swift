@@ -24,14 +24,16 @@ public struct MealplanRowView: View {
     @State private var isRowTargeted = false
     @State private var hoveringIndex: Int? = nil
     @State private var draggingId: UUID? = nil
+    @Binding private var isDragging: Bool
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
     }
     
-    public init(for day: Date, with entries: [MealplanEntry]) {
+    public init(for day: Date, with entries: [MealplanEntry], isDraggingEntry: Binding<Bool>) {
         self.day = day
         self.entries = entries
+        self._isDragging = isDraggingEntry
     }
         
     public var body: some View {
@@ -44,9 +46,23 @@ public struct MealplanRowView: View {
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal)
+                .contentShape(.rect)
+                .dropDestination(for: MealplanEntry.self) { items, session in
+                    Task {
+                        self.draggingId = nil
+                        self.isDragging = false
+                        try await self.moveEntryToDay(entryId: items[0].id, date: day, index: 0)
+                    }
+                    return true
+                } isTargeted: { val in
+                    withAnimation {
+                        self.isRowTargeted = val
+                    }
+                }
                 
-                DropGap(index: 0, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
+                DropGap(index: 0, hoveringIndex: $hoveringIndex, overrideIsTargeted: isRowTargeted) { insertIndex, droppedEntry in
                     self.draggingId = nil
+                    self.isDragging = false
                     try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
                 }
                 
@@ -68,6 +84,7 @@ public struct MealplanRowView: View {
                         
                         DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
                             self.draggingId = nil
+                            self.isDragging = false
                             try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
                         }
                     }
@@ -88,6 +105,9 @@ public struct MealplanRowView: View {
                     .fill(isInPast ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
             }
             .contentShape(.rect)
+            .onChange(of: self.draggingId, { _, newValue in
+                self.isDragging = newValue != nil
+            })
         }
     }
     
@@ -132,22 +152,26 @@ public struct MealplanRowView: View {
 private struct DropGap: View {
     let index: Int
     @Binding var hoveringIndex: Int?
+    var overrideIsTargeted: Bool = false
     var onDropAt: (_ index: Int, _ recipes: MealplanEntry) async throws -> Void
     
     @State private var isTargeted = false
+    @Environment(\.isMealplanDragging) private var isDragging
     
     var body: some View {
         ZStack(alignment: .center) {
-            Rectangle()
-                .frame(height: 20)
-                .opacity(0.0001)
-            
-            RoundedRectangle(cornerRadius: 2)
-                .fill(isActive ? .blue : .layer2)
-                .frame(height: isActive ? 135 : 2)
-                .opacity(isActive ? 0.8 : 0.01)
+            if isDragging {
+                Rectangle()
+                    .frame(height: 20)
+                    .opacity(0.0001)
+                
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(isActive ? .blue : .layer2)
+                    .frame(height: isActive ? 135 : 2)
+                    .opacity(isActive ? 0.8 : 0.01)
+            }
         }
-        .animation(.easeInOut(duration: 0.12), value: isActive)
+        .animation(.easeInOut, value: isActive)
         .dropDestination(for: MealplanEntry.self) { items, _ in
             Task {
                 try? await onDropAt(index, items[0])
@@ -162,7 +186,7 @@ private struct DropGap: View {
         }
     }
     
-    private var isActive: Bool { isTargeted || hoveringIndex == index }
+    private var isActive: Bool { isTargeted || hoveringIndex == index || overrideIsTargeted }
 }
 
 //#Preview {
