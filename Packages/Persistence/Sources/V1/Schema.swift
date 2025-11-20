@@ -187,6 +187,24 @@ public struct DBHome: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("MealplanEntries")
+public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let date: Date
+    public let index: Int
+    public let noteText: String?
+    public let recipeId: UUID?
+    
+    public init(id: UUID, date: Date, index: Int, noteText: String?, recipeId: UUID?) {
+        self.id = id
+        self.date = date
+        self.index = index
+        self.noteText = noteText
+        self.recipeId = recipeId
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -276,6 +294,14 @@ public struct SchemaV1 {
                 e.column("temperature", .double).notNull()
                 e.column("temperatureText", .text).notNull( )
                 e.column("temperatureUnitText", .text).notNull()
+            }
+            
+            try db.create(table: "MealplanEntries") { e in
+                e.primaryKey("id", .text)
+                e.column("date", .date)
+                e.column("index", .integer)
+                e.column("noteText", .text)
+                e.column("recipeId", .text).references("Recipes", onDelete: .cascade)
             }
         }
     }

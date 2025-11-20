@@ -9,7 +9,7 @@ import Foundation
 import API
 import Persistence
 
-public struct Recipe: Identifiable, Hashable {
+public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     
     /// The title of the recipe
@@ -74,7 +74,7 @@ public struct Recipe: Identifiable, Hashable {
     }
 }
 
-public struct RecipeImage: Hashable {
+public struct RecipeImage: Hashable, Sendable, Codable {
     /// A data representation of the image stored
     public let imageThumbnailData: Data?
     
@@ -87,7 +87,7 @@ public struct RecipeImage: Hashable {
     }
 }
 
-public struct RecipeTiming: Hashable {
+public struct RecipeTiming: Hashable, Sendable, Codable {
     
     /// The total amount of minutes this recipe takes to prepare + cook
     public let totalTime: Double?
@@ -105,7 +105,7 @@ public struct RecipeTiming: Hashable {
     }
 }
 
-public struct RecipeRatingInfo: Hashable {
+public struct RecipeRatingInfo: Hashable, Sendable, Codable {
     
     /// The overall score rating the recipe has received
     public let overallRating: Double?

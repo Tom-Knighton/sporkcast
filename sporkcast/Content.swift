@@ -13,6 +13,7 @@ import RecipeTimersList
 import RecipesList
 import Recipe
 import Design
+import Mealplans
 internal import AppRouter
 import Settings
 import CloudKit
@@ -42,6 +43,12 @@ struct AppContent: View {
                     RecipeListPage()
                 }
             }
+        } mealplans: {
+            NavigationStack(path: $appRouter[.mealplan]) {
+                WithNavigationDestinations(namespace: appRouterNamespace) {
+                    MealplanPage()
+                }
+            }
         } settings: {
             NavigationStack(path: $appRouter[.settings]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
@@ -62,7 +69,7 @@ struct AppContent: View {
         .environment(CloudKitGate())
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
-        .tabViewBottomAccessory { bottomAccessory }
+        .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }
         .onChange(of: alarmManager.timers, initial: true) { _, newValue in
             if let first = newValue.first(where: { $0.alarmState == .alerting }) {
                 alerting = first
@@ -123,4 +130,22 @@ extension AppContent {
 
 extension CKShare.Metadata: @retroactive Identifiable {
     
+}
+
+extension View {
+    @ViewBuilder
+    func tabViewBottomAccessoryCompat<Accessory: View>(
+        isEnabled: Bool,
+        @ViewBuilder content: @escaping () -> Accessory
+    ) -> some View {
+        if #available(iOS 26.1, *) {
+            self.tabViewBottomAccessory(isEnabled: isEnabled, content: content)
+        } else {
+            if isEnabled {
+                self.tabViewBottomAccessory(content: content)
+            } else {
+                self
+            }
+        }
+    }
 }

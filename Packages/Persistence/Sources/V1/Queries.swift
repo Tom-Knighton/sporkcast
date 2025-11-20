@@ -36,6 +36,16 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
     public var id: UUID { recipe.id }
 }
 
+@Selection
+public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
+    
+    public let mealplanEntry: DBMealplanEntry
+    public let recipe: DBRecipe?
+    public let image: DBRecipeImage?
+    
+    public var id: UUID { mealplanEntry.id }
+}
+
 public extension DBRecipe {
     
     typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?)>
@@ -88,12 +98,39 @@ public extension DBRecipe {
                     stepGroups: $3.jsonGroupArray(distinct: true),
                     steps: $4.jsonGroupArray(distinct: true),
                     timings: $5.jsonGroupArray(distinct: true),
-                    temperatures: $6.jsonGroupArray(distinct: true),
+                    temperatures: $6.jsonGroupArray(distinct: true)
                 )
             }
         
         
        return query
+    }
+}
+
+public extension DBMealplanEntry {
+    
+    typealias FullSelect = Select<FullDBMealplanEntry, DBMealplanEntry, (DBRecipe?, DBRecipeImage?)>
+    
+    static func full(startDate: Date, endDate: Date) -> FullSelect {
+        let base = DBMealplanEntry
+            .group(by: \.id)
+            .order(by: \.date)
+            .where { $0.date >= #bind(startDate) && $0.date <= #bind(endDate)}
+        
+        let withRecipe = base.leftJoin(DBRecipe.all) {
+            $0.recipeId.eq($1.id)
+        }
+        
+        let withImage = withRecipe.leftJoin(DBRecipeImage.all) {
+            $0.recipeId.eq($2.recipeId)
+        }
+                
+        let query = withImage
+            .select {
+                return FullDBMealplanEntry.Columns(mealplanEntry: $0, recipe: $1, image: $2)
+            } 
+        
+        return query
     }
 }
 
