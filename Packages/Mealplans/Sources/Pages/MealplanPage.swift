@@ -16,6 +16,7 @@ public struct MealplanPage: View {
     
     public init() {}
     
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
     @State private var startDate = Date().lastMonday()
     @State private var endDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
@@ -44,7 +45,7 @@ public struct MealplanPage: View {
                     LazyVStack {
                         ForEach(days, id: \.self) { day in
                             let mealplanEntries = self.mealplanEntries.filter { calendar.isDate($0.mealplanEntry.date, inSameDayAs: day)}
-                            MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() }, isDraggingEntry: $isDraggingEntry)
+                            MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() }, currentDate: now, isDraggingEntry: $isDraggingEntry)
                                 .id(day.formatted(date: .numeric, time: .omitted))
                                 .onAppear {
                                     extendDaysIfNeeded(currentDay: day)
@@ -72,6 +73,30 @@ public struct MealplanPage: View {
         .navigationTitle("Mealplan")
         .task(id: [startDate, endDate]) {
             await updateQuery()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                now = Date()
+                let newStart = Date().lastMonday()
+                if newStart != startDate {
+                    startDate = newStart
+                    endDate = calendar.date(byAdding: .day, value: 7, to: .now)!
+                }
+                Task {
+                    await updateQuery()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            now = Date()
+            let newStart = Date().lastMonday()
+            if newStart != startDate {
+                startDate = newStart
+                endDate = calendar.date(byAdding: .day, value: 7, to: .now)!
+            }
+            Task {
+                await updateQuery()
+            }
         }
         .toolbar {
             ToolbarItem {

@@ -20,19 +20,22 @@ public struct MealplanRowView: View {
     @Dependency(\.defaultDatabase) private var db
     public let day: Date
     public let entries: [MealplanEntry]
+    public let currentDate: Date
     
     @State private var isRowTargeted = false
     @State private var hoveringIndex: Int? = nil
     @State private var draggingId: UUID? = nil
     @Binding private var isDragging: Bool
+    @State private var showAddSheet: Bool = false
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
     }
     
-    public init(for day: Date, with entries: [MealplanEntry], isDraggingEntry: Binding<Bool>) {
+    public init(for day: Date, with entries: [MealplanEntry], currentDate: Date, isDraggingEntry: Binding<Bool>) {
         self.day = day
         self.entries = entries
+        self.currentDate = currentDate
         self._isDragging = isDraggingEntry
     }
         
@@ -108,6 +111,7 @@ public struct MealplanRowView: View {
             .onChange(of: self.draggingId, { _, newValue in
                 self.isDragging = newValue != nil
             })
+            .id(currentDate)
         }
     }
     
@@ -129,7 +133,7 @@ public struct MealplanRowView: View {
     
     func dayDifferenceFromNow(for date: Date) -> Int
     {
-        let startOfNow = calendar.startOfDay(for: Date())
+        let startOfNow = calendar.startOfDay(for: currentDate)
         let startOfTimeStamp = calendar.startOfDay(for: date)
         let components = calendar.dateComponents([.day], from: startOfNow, to: startOfTimeStamp)
         let day = components.day
