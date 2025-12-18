@@ -59,6 +59,9 @@ public struct MealplanRowView: View {
                         Button(action: { self.showAddSheet = true }) {
                             Label("Add Meal", systemImage: "plus.circle")
                         }
+                        Button(action: { Task { try? await insertRandomMeal() } }) {
+                            Label("Random Meal", systemImage: "arrow.trianglehead.swap")
+                        }
                         Divider()
                         
                         Button(action: { self.noteDraft = .init(id: nil, text: "")}) {
@@ -237,6 +240,23 @@ public struct MealplanRowView: View {
         let components = calendar.dateComponents([.day], from: startOfNow, to: startOfTimeStamp)
         let day = components.day
         return day ?? 0
+    }
+    
+    func insertRandomMeal() async throws {
+        let recipe = try await db.read { db in
+            try DBRecipe
+                .order { _ in #sql("RANDOM()")}
+                .fetchOne(db)
+        }
+        
+        if let recipe {
+            let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: recipe.id)
+            try await db.write { db in
+                try DBMealplanEntry
+                    .insert { newEntry }
+                    .execute(db)
+            }
+        }
     }
     
     func removeEntry(id: UUID) async throws {
