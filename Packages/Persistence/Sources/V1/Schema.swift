@@ -237,7 +237,6 @@ public struct SchemaV1 {
                 e.column("homeId", .text).references("Homes", onDelete: .setNull)
             }
             
-            
             try db.create(table: "RecipeImages") { e in
                 e.primaryKey("recipeId", .text).references("Recipes", onDelete: .cascade)
                 e.column("imageData", .blob)

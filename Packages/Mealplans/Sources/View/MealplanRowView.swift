@@ -93,38 +93,7 @@ public struct MealplanRowView: View {
                 }
                 
                 ForEach(self.entries.enumerated(), id: \.element.id) { (idx, entry) in
-                    if let recipe = entry.recipe, draggingId != entry.id {
-                        RecipeCardView(recipe: recipe, enablePreview: false)
-                            .padding(4)
-                            .draggable(entry) {
-                                RecipeCardView(recipe: recipe, enablePreview: false)
-                                    .environment(router)
-                                    .onAppear {
-                                        self.draggingId = entry.id
-                                    }
-                            }
-                            .transition(.opacity)
-                        DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
-                            self.draggingId = nil
-                            self.isDragging = false
-                            try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
-                        }
-                    } else if let note = entry.note, draggingId != entry.id {
-                        NoteView(text: note)
-                            .draggable(entry) {
-                                NoteView(text: note)
-                                    .onAppear {
-                                        self.draggingId = entry.id
-                                    }
-                            }
-                            .transition(.opacity)
-                            .padding(4)
-                            .contextMenu {
-                                Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                            }
-                    }
+                    rowView(for: entry, idx)
                 }
             }
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
@@ -156,6 +125,68 @@ public struct MealplanRowView: View {
                 .presentationDetents([.fraction(0.2)])
             }
             .id(currentDate)
+        }
+    }
+    
+    @ViewBuilder
+    private func rowView(for entry: MealplanEntry, _ idx: Int) -> some View {
+        if let recipe = entry.recipe, draggingId != entry.id {
+            RecipeCardView(recipe: recipe, enablePreview: false)
+                .padding(4)
+                .draggable(entry) {
+                    RecipeCardView(recipe: recipe, enablePreview: false)
+                        .environment(router)
+                        .onAppear {
+                            self.draggingId = entry.id
+                        }
+                }
+                .transition(.opacity)
+                .contextMenu {
+                    Button(action: {
+                        self.draggingId = nil
+                        self.router.navigateTo(.recipe(recipe: recipe))
+                    }) {
+                        Text("Open Recipe")
+                    }
+                    Divider()
+                    Button(role: .destructive, action: {
+                        Task { try? await removeEntry(id: entry.id) }
+                    }) {
+                        Label("Remove meal", systemImage: "trash")
+                    }
+                }
+                .onTapGesture {
+                    self.draggingId = nil
+                    self.router.navigateTo(.recipe(recipe: recipe))
+                }
+            
+            DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
+                self.draggingId = nil
+                self.isDragging = false
+                try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
+            }
+            
+        } else if let note = entry.note, draggingId != entry.id {
+            NoteView(text: note)
+                .draggable(entry) {
+                    NoteView(text: note)
+                        .onAppear {
+                            self.draggingId = entry.id
+                        }
+                }
+                .transition(.opacity)
+                .padding(4)
+                .contextMenu {
+                    Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive, action: {
+                        Task { try? await removeEntry(id: entry.id) }
+                    }) {
+                        Label("Remove note", systemImage: "trash")
+                    }
+                }
         }
     }
     
@@ -206,6 +237,15 @@ public struct MealplanRowView: View {
         let components = calendar.dateComponents([.day], from: startOfNow, to: startOfTimeStamp)
         let day = components.day
         return day ?? 0
+    }
+    
+    func removeEntry(id: UUID) async throws {
+        try await db.write { db in
+            try DBMealplanEntry
+                .find(id)
+                .delete()
+                .execute(db)
+        }
     }
     
     func moveEntryToDay(entryId: UUID, date: Date, index: Int) async throws {
