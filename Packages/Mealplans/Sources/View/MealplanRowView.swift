@@ -38,7 +38,7 @@ public struct MealplanRowView: View {
         self.currentDate = currentDate
         self._isDragging = isDraggingEntry
     }
-        
+    
     public var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -46,6 +46,12 @@ public struct MealplanRowView: View {
                     Text(dayTitle(for: day))
                         .bold()
                     Spacer()
+                    
+                    Button(action: { self.showAddSheet = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.white, .green)
+                            .font(.title)
+                    }
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal)
@@ -79,12 +85,12 @@ public struct MealplanRowView: View {
                                     .onAppear {
                                         self.draggingId = entry.id
                                     }
-                                    .onDisappear {
-                                        self.draggingId = nil
-                                    }
                             }
                             .transition(.opacity)
-                        
+//                            .overlay {
+//                                Text(String(describing: entry.mealplanEntry.index))
+//                            }
+//                        
                         DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
                             self.draggingId = nil
                             self.isDragging = false
@@ -93,7 +99,7 @@ public struct MealplanRowView: View {
                     }
                     
                     // TODO: Notes
-
+                    
                 }
             }
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
@@ -111,7 +117,34 @@ public struct MealplanRowView: View {
             .onChange(of: self.draggingId, { _, newValue in
                 self.isDragging = newValue != nil
             })
+            .sheet(isPresented: $showAddSheet) {
+                selectorSheetView()
+            }
             .id(currentDate)
+        }
+    }
+    
+    @ViewBuilder
+    private func selectorSheetView() -> some View {
+        NavigationStack {
+            RecipePickerPage() { selectedId in
+                self.showAddSheet.toggle()
+                do {
+                    let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: selectedId)
+                    try await db.write { db in
+                        try DBMealplanEntry
+                            .insert { newEntry }
+                            .execute(db)
+                    }
+                } catch {
+                    print(error)
+                }
+            }
+            .toolbar {
+                ToolbarItem {
+                    Button(role: .close) { self.showAddSheet = false }
+                }
+            }
         }
     }
     
@@ -142,6 +175,7 @@ public struct MealplanRowView: View {
     
     func moveEntryToDay(entryId: UUID, date: Date, index: Int) async throws {
         try await db.write { db in
+            
             try DBMealplanEntry
                 .find(entryId)
                 .update { entry in
@@ -149,6 +183,17 @@ public struct MealplanRowView: View {
                     entry.index = index
                 }
                 .execute(db)
+            
+            for entry in entries {
+                if entry.id != entryId && entry.index >= index {
+                    try DBMealplanEntry
+                        .find(entry.id)
+                        .update { e in
+                            e.index = e.index + 1
+                        }
+                        .execute(db)
+                }
+            }
         }
     }
 }
@@ -194,7 +239,7 @@ private struct DropGap: View {
 }
 
 //#Preview {
-//    
+//
 //    @Previewable @Environment(\.calendar) var calendar
 //    @Previewable @State var appRouter: AppRouter = .init(initialTab: .mealplan)
 //    NavigationStack {

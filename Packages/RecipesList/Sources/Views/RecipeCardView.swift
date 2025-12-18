@@ -13,8 +13,6 @@ import API
 
 public struct RecipeCardView: View {
     
-    @State private var showDeleteConfirm = false
-    @Environment(AppRouter.self) private var router
     let recipe: Recipe
     let hasPreview: Bool
     
@@ -71,29 +69,6 @@ public struct RecipeCardView: View {
         .clipShape(.rect(cornerRadius: 10))
         .fontDesign(.rounded)
         .contentShape(Rectangle())
-        .contextMenu {
-            Button(action: { router.navigateTo(.recipe(recipe: recipe)) }) {
-                Label("Open", systemImage: "hand.point.up")
-            }
-            Divider()
-            Button(role: .destructive) {
-                self.showDeleteConfirm = true
-            } label: { Label("Delete", systemImage: "trash").tint(.red) }
-        }
-        .alert("Delete Recipe", isPresented: $showDeleteConfirm) {
-            Button(role: .cancel) { } label: { Text("Cancel") }
-//            Button(role: .destructive) {
-//                Task {
-//                    let id = recipe.id
-//                    try? context.delete(model: SDRecipe.self, where: #Predicate<SDRecipe> { sd in sd.id == id })
-//                    try? context.save()
-//                }
-//            } label: { Text("Delete") }
-        } message: {
-            Text("Are you sure you want to delete this recipe? This cannot be undone.")
-        }
-
-
     }
     
     @ViewBuilder

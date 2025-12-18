@@ -44,27 +44,23 @@ public struct MealplanPage: View {
                 ScrollView {
                     LazyVStack {
                         ForEach(days, id: \.self) { day in
-                            let mealplanEntries = self.mealplanEntries.filter { calendar.isDate($0.mealplanEntry.date, inSameDayAs: day)}
+                            let mealplanEntries = self.mealplanEntries
+                                .filter { calendar.isDate($0.mealplanEntry.date, inSameDayAs: day)}
+                                .sorted(by: { $0.mealplanEntry.index < $1.mealplanEntry.index })
                             MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() }, currentDate: now, isDraggingEntry: $isDraggingEntry)
                                 .id(day.formatted(date: .numeric, time: .omitted))
                                 .onAppear {
                                     extendDaysIfNeeded(currentDay: day)
                                 }
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-                                .listRowBackground(Color.clear)
                         }
-                        
                     }
                     .scrollTargetLayout()
                     .scrollContentBackground(.hidden)
-                    .listStyle(.plain)
-                    .safeAreaPadding()
                     .onAppear {
-//                        reader.scrollTo(now.formatted(date: .numeric, time: .omitted), anchor: .top)
                         self.scrollPosition = .init(id: now.formatted(date: .numeric, time: .omitted), anchor: .top)
                     }
                 }
+                .contentMargins(.horizontal, 16, for: .scrollContent)
                 .scrollPosition($scrollPosition)
                 .environment(\.isMealplanDragging, isDraggingEntry)
                 
