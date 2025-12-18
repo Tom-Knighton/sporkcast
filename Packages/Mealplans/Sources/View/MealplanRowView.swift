@@ -13,20 +13,28 @@ import Persistence
 import Models
 import Environment
 
+private struct NoteDraft: Identifiable, Equatable {
+    let id: UUID?
+    var text: String
+}
+
 public struct MealplanRowView: View {
     
     @Environment(AppRouter.self) private var router
     @Environment(\.calendar) private var calendar
     @Dependency(\.defaultDatabase) private var db
-    public let day: Date
-    public let entries: [MealplanEntry]
-    public let currentDate: Date
     
     @State private var isRowTargeted = false
     @State private var hoveringIndex: Int? = nil
     @State private var draggingId: UUID? = nil
     @Binding private var isDragging: Bool
+    
     @State private var showAddSheet: Bool = false
+    @State private var noteDraft: NoteDraft? = nil
+    
+    public let day: Date
+    public let entries: [MealplanEntry]
+    public let currentDate: Date
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
@@ -47,7 +55,16 @@ public struct MealplanRowView: View {
                         .bold()
                     Spacer()
                     
-                    Button(action: { self.showAddSheet = true }) {
+                    Menu {
+                        Button(action: { self.showAddSheet = true }) {
+                            Label("Add Meal", systemImage: "plus.circle")
+                        }
+                        Divider()
+                        
+                        Button(action: { self.noteDraft = .init(id: nil, text: "")}) {
+                            Label("Add Note", systemImage: "pencil")
+                        }
+                    } label: {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(.white, .green)
                             .font(.title)
@@ -87,19 +104,27 @@ public struct MealplanRowView: View {
                                     }
                             }
                             .transition(.opacity)
-//                            .overlay {
-//                                Text(String(describing: entry.mealplanEntry.index))
-//                            }
-//                        
                         DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
                             self.draggingId = nil
                             self.isDragging = false
                             try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
                         }
+                    } else if let note = entry.note, draggingId != entry.id {
+                        NoteView(text: note)
+                            .draggable(entry) {
+                                NoteView(text: note)
+                                    .onAppear {
+                                        self.draggingId = entry.id
+                                    }
+                            }
+                            .transition(.opacity)
+                            .padding(4)
+                            .contextMenu {
+                                Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                            }
                     }
-                    
-                    // TODO: Notes
-                    
                 }
             }
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
@@ -119,6 +144,16 @@ public struct MealplanRowView: View {
             })
             .sheet(isPresented: $showAddSheet) {
                 selectorSheetView()
+            }
+            .sheet(item: $noteDraft) { draft in
+                NoteSheetView(initialText: draft.text, title: draft.id == nil ? "Add Note" : "Edit Note") { newText in
+                    Task {
+                        await self.upsertNote(id: draft.id, text: newText)
+                    }
+                } onCancel: {
+                    self.noteDraft = nil
+                }
+                .presentationDetents([.fraction(0.2)])
             }
             .id(currentDate)
         }
@@ -194,6 +229,32 @@ public struct MealplanRowView: View {
                         .execute(db)
                 }
             }
+        }
+    }
+    
+    func upsertNote(id: UUID?, text: String) async {
+        defer { self.noteDraft = nil }
+        
+        do {
+            if let id {
+                try await db.write { db in
+                    try DBMealplanEntry
+                        .find(id)
+                        .update { e in
+                            e.noteText = text
+                        }
+                        .execute(db)
+                }
+            } else {
+                let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: text, recipeId: nil)
+                try await db.write { db in
+                    try DBMealplanEntry
+                        .insert { newEntry }
+                        .execute(db)
+                }
+            }
+        } catch {
+            print(error)
         }
     }
 }
