@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct RecipeIngredientGroup: Identifiable, Hashable {
+public struct RecipeIngredientGroup: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     
     /// The title of the ingredients section i.e. 'For the sauce' etc.
@@ -26,7 +26,7 @@ public struct RecipeIngredientGroup: Identifiable, Hashable {
     }
 }
 
-public struct RecipeIngredient: Identifiable, Hashable, Equatable {
+public struct RecipeIngredient: Identifiable, Hashable, Equatable, Sendable, Codable {
     public let id: UUID
     
     /// Where the ingredient is ordered within it's group
@@ -67,7 +67,7 @@ public struct RecipeIngredient: Identifiable, Hashable, Equatable {
     }
 }
 
-public struct IngredientQuantity: Hashable {
+public struct IngredientQuantity: Hashable, Sendable, Codable {
     
     /// If parsed, the actual integer quantity of the ingredient i.e. '2' or '2.5
     public let quantity: Double?
@@ -81,7 +81,7 @@ public struct IngredientQuantity: Hashable {
     }
 }
 
-public struct IngredientUnit: Hashable {
+public struct IngredientUnit: Hashable, Sendable, Codable {
     
     /// If parsed, the actual unit of the ingredient i.e. 'cup' 'teaspoon' etc.
     public let unit: String?

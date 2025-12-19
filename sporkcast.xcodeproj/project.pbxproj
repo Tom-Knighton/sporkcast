@@ -19,6 +19,7 @@
 		E2BBA9142E5B2D8600846D3E /* Design in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9132E5B2D8600846D3E /* Design */; };
 		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
 		E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */ = {isa = PBXBuildFile; productRef = E2DE194D2E92852F00A712BD /* RecipeTimersList */; };
+		E2ED82532EC8A1CF000E0318 /* Mealplans in Frameworks */ = {isa = PBXBuildFile; productRef = E2ED82522EC8A1CF000E0318 /* Mealplans */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 				API,
 				Design,
 				Environment,
+				Mealplans,
 				Persistence,
 				Recipe,
 				RecipesList,
@@ -133,6 +135,7 @@
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
 				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
+				E2ED82532EC8A1CF000E0318 /* Mealplans in Frameworks */,
 				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -224,6 +227,7 @@
 				E2DE194D2E92852F00A712BD /* RecipeTimersList */,
 				E231FFB82E9ABCDD00ABD853 /* Settings */,
 				E22179D82EA83B410006CE0B /* Models */,
+				E2ED82522EC8A1CF000E0318 /* Mealplans */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -536,6 +540,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -576,6 +581,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -665,6 +671,10 @@
 		E2DE194D2E92852F00A712BD /* RecipeTimersList */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RecipeTimersList;
+		};
+		E2ED82522EC8A1CF000E0318 /* Mealplans */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Mealplans;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

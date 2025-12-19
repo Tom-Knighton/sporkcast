@@ -34,11 +34,10 @@ public struct SettingsPage: View {
                 }
             }
             
+            #if DEBUG
             Section {
                 Button(action: {
                     Task {
-//                        try? await db.erase()
-//                        try? await syncEngine.deleteLocalData()
                         do {
                             try await db.write { db in
                                 try DBHome.delete().execute(db)
@@ -68,6 +67,7 @@ public struct SettingsPage: View {
                     Text("Export DB")
                 }
             }
+            #endif
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")

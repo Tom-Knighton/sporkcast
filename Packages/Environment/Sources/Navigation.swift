@@ -13,6 +13,7 @@ import Models
 
 public enum AppTab: String, Codable, TabType, CaseIterable {
     case recipes
+    case mealplan
     case settings
     
     public var id: String { rawValue }
@@ -20,6 +21,7 @@ public enum AppTab: String, Codable, TabType, CaseIterable {
     public var icon: String {
         switch self {
         case .recipes: return "square.stack"
+        case .mealplan: return "calendar"
         case .settings: return "gearshape.fill"
         }
     }
@@ -27,6 +29,7 @@ public enum AppTab: String, Codable, TabType, CaseIterable {
     public var title: String {
         switch self {
         case .recipes: return "Recipes"
+        case .mealplan: return "Mealplan"
         case .settings: return "Settings"
         }
     }

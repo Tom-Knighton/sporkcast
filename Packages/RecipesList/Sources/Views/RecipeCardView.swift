@@ -13,10 +13,13 @@ import API
 
 public struct RecipeCardView: View {
     
-    @State private var showDeleteConfirm = false
-    @Environment(AppRouter.self) private var router
-    @Environment(\.modelContext) private var context
     let recipe: Recipe
+    let hasPreview: Bool
+    
+    public init(recipe: Recipe, enablePreview: Bool = true) {
+        self.recipe = recipe
+        self.hasPreview = enablePreview
+    }
     
     public var body: some View {
         ZStack {
@@ -61,73 +64,26 @@ public struct RecipeCardView: View {
             }
             .padding()
         }
-        .frame(maxWidth: .infinity, minHeight: 150)
+        .frame(maxWidth: .infinity, minHeight: 135)
         .background(image)
         .clipShape(.rect(cornerRadius: 10))
         .fontDesign(.rounded)
         .contentShape(Rectangle())
-        .contextMenu {
-            Button(action: { router.navigateTo(.recipe(recipe: recipe)) }) {
-                Label("Open", systemImage: "hand.point.up")
-            }
-            Divider()
-            Button(role: .destructive) {
-                self.showDeleteConfirm = true
-            } label: { Label("Delete", systemImage: "trash").tint(.red) }
-        } preview: {
-            RecipePreview(recipe: recipe)
-        }
-        .alert("Delete Recipe", isPresented: $showDeleteConfirm) {
-            Button(role: .cancel) { } label: { Text("Cancel") }
-            Button(role: .destructive) {
-                Task {
-                    let id = recipe.id
-                    try? context.delete(model: SDRecipe.self, where: #Predicate<SDRecipe> { sd in sd.id == id })
-                    try? context.save()
-                }
-            } label: { Text("Delete") }
-        } message: {
-            Text("Are you sure you want to delete this recipe? This cannot be undone.")
-        }
-
-
     }
     
     @ViewBuilder
     private var image: some View {
         if let data = recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
             Image(uiImage: ui).resizable().scaledToFill()
+        } else if let url = recipe.image.imageUrl {
+            AsyncImage(url: URL(string: url)) { img in
+                img.resizable().scaledToFill()
+            } placeholder: {
+                EmptyView()
+            }
+
         } else {
             Rectangle().opacity(0.1)
         }
-    }
-}
-
-
-class PrivateImage {
-    private let baseImage: UIImage
-    
-    init?(privateSystemName name: String) {
-        guard let bundleClass = NSClassFromString("SFSCoreGlyphsBundle") as AnyObject?,
-              let bundle = bundleClass.perform(NSSelectorFromString("private"))?.takeUnretainedValue(),
-              let assetManagerClass = NSClassFromString("_UIAssetManager") as AnyObject?,
-              let assetManager = assetManagerClass.perform(NSSelectorFromString("assetManagerForBundle:"), with: bundle)?.takeUnretainedValue(),
-              let baseImage = assetManager.perform(NSSelectorFromString("imageNamed:"), with: name)?.takeUnretainedValue() as? UIImage else {
-            return nil
-        }
-        self.baseImage = baseImage
-    }
-    
-    func imageAsset() -> Image? {
-        Image(uiImage: self.baseImage.withRenderingMode(.alwaysTemplate))
-    }
-}
-
-extension Image {
-    init?(privateSystemName: String) {
-        guard let privateImage = PrivateImage(privateSystemName: privateSystemName) else {
-            return nil
-        }
-        self = privateImage.imageAsset() ?? Image(systemName: "questionmark.square.fill")
     }
 }

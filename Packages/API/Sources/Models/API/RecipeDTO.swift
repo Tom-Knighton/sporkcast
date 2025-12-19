@@ -41,5 +41,3 @@ public class RecipeDTO: Codable {
         self.ratings = ratings
     }
 }
-
-extension SDRecipe: @unchecked Sendable {}

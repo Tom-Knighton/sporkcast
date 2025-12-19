@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct RecipeStepSection: Identifiable, Hashable {
+public struct RecipeStepSection: Identifiable, Hashable, Sendable, Codable {
     
     public let id: UUID
     
@@ -27,7 +27,7 @@ public struct RecipeStepSection: Identifiable, Hashable {
     }
 }
 
-public struct RecipeStep: Identifiable, Hashable {
+public struct RecipeStep: Identifiable, Hashable, Sendable, Codable {
     
     public let id: UUID
     
@@ -52,7 +52,7 @@ public struct RecipeStep: Identifiable, Hashable {
     }
 }
 
-public struct RecipeStepTiming: Identifiable, Hashable {
+public struct RecipeStepTiming: Identifiable, Hashable, Sendable, Codable {
     
     public let id: UUID
     
@@ -73,7 +73,7 @@ public struct RecipeStepTiming: Identifiable, Hashable {
     }
 }
 
-public struct RecipeStepTemperature: Identifiable, Hashable {
+public struct RecipeStepTemperature: Identifiable, Hashable, Sendable, Codable {
     
     public let id: UUID
     

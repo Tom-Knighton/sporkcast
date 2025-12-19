@@ -29,7 +29,6 @@ struct SporkcastApp: App {
     var body: some Scene {
         WindowGroup {
             AppContent()
-                .modelContainer(V1Models.sharedContainer!)
         }
     }
 }
@@ -66,9 +65,10 @@ private struct Database {
         @Dependency(\.context) var context
         var config = Configuration()
         
-#if DEBUG
         config.prepareDatabase { db in
             try db.attachMetadatabase()
+            
+            #if DEBUG
             db.trace(options: .profile) {
                 if context == .preview {
                     print("\($0.expandedDescription)")
@@ -76,8 +76,8 @@ private struct Database {
                     logger.debug("\($0.expandedDescription)")
                 }
             }
+            #endif
         }
-#endif
         
         let database = try defaultDatabase(configuration: config)
         logger.info("open \(database.path)")

@@ -18,7 +18,8 @@ public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
     @Environment(\.homeServices) private var homes
-
+    @State private var showDeleteConfirm = false
+    @Environment(AppRouter.self) private var router
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
@@ -37,6 +38,20 @@ public struct RecipeListPage: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zm.zoomNamespace)
+                    .contextMenu {
+                        Button(action: { router.navigateTo(.recipe(recipe: model)) }) {
+                            Label("Open", systemImage: "hand.point.up")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            self.showDeleteConfirm = true
+                        } label: { Label("Delete", systemImage: "trash").tint(.red) }
+                    }
+                    .alert("Delete Recipe", isPresented: $showDeleteConfirm) {
+                        Button(role: .cancel) { } label: { Text("Cancel") }
+                    } message: {
+                        Text("Are you sure you want to delete this recipe? This cannot be undone.")
+                    }
             }
             .navigationLinkIndicatorVisibility(.hidden)
             .listRowSeparator(.hidden)

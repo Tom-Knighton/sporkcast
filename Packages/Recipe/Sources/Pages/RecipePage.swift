@@ -186,18 +186,18 @@ public struct RecipePage: View {
     }
 }
 
-#Preview {
-    AsyncModel { asyncVal in
-        NavigationStack {
-            RecipePage(asyncVal)
-                .withPreviewEnvs()
-        }
-    } model: {
-        await SDRecipe(from: RecipeDTOMockBuilder().build()).toDomainModel()
-    }
-    
-    
-}
+//#Preview {
+//    AsyncModel { asyncVal in
+//        NavigationStack {
+//            RecipePage(asyncVal)
+//                .withPreviewEnvs()
+//        }
+//    } model: {
+//        await SDRecipe(from: RecipeDTOMockBuilder().build()).toDomainModel()
+//    }
+//    
+//    
+//}
 
 struct AsyncModel<VisualContent: View, ModelData>: View {
     // Standard view builder, accepting async-fetched data as a parameter
