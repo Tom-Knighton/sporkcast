@@ -94,33 +94,6 @@ public struct MealplanPage: View {
                 await updateQuery()
             }
         }
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    Task {
-                        do {
-                            let recipeId = try await db.read { db in
-                                try DBRecipe
-                                    .select(\.id)
-                                    .fetchOne(db)
-                            }
-                                                        
-                            let newEntry = DBMealplanEntry(id: UUID(), date: Date(), index: 0, noteText: nil, recipeId: recipeId)
-                            try await db.write { db in
-                                try DBMealplanEntry
-                                    .insert { newEntry }
-                                    .execute(db)
-                            }
-                        } catch {
-                            print(error.localizedDescription)
-                        }
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                }
-
-            }
-        }
     }
     
     private func extendDaysIfNeeded(currentDay: Date) {
