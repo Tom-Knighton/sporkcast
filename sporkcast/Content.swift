@@ -66,7 +66,7 @@ struct AppContent: View {
         .environment(\.homeServices, HouseholdService.shared)
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
-        .environment(CloudKitGate())
+        .environment(\.cloudKit, CloudKitGate())
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
         .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }

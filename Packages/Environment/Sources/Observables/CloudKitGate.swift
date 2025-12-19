@@ -31,9 +31,36 @@ public enum CloudGate: Equatable, Sendable {
     }
 }
 
+public protocol CloudKitGateProtocol: AnyObject {
+    var state: CloudGate { get set }
+    func startMonitoring()
+    func refresh() async
+    var canUseCloudKit: Bool { get }
+    var unavailableReason: String { get }
+}
+
+public extension CloudKitGateProtocol {
+    var canUseCloudKit: Bool { state == .available }
+    
+    var unavailableReason: String {
+        switch state {
+        case .available:
+            return ""
+        case .noAccount:
+            return "You’re not signed into iCloud on this device."
+        case .restricted:
+            return "iCloud is restricted on this device."
+        case .temporarilyUnavailable:
+            return "iCloud is temporarily unavailable. Try again later."
+        case .couldNotDetermine(let error):
+            if let error { return "Couldn’t determine iCloud status: \(error.localizedDescription)" }
+            return "Couldn’t determine iCloud status."
+        }
+    }
+}
+
 @Observable
-@MainActor
-public final class CloudKitGate {
+public final class CloudKitGate: CloudKitGateProtocol, @unchecked Sendable {
     public var state: CloudGate = .couldNotDetermine(nil)
     
     @ObservationIgnored
@@ -69,24 +96,6 @@ public final class CloudKitGate {
         } catch {
             logger.error("accountStatus() failed: \(error.localizedDescription, privacy: .public)")
             state = .couldNotDetermine(error)
-        }
-    }
-    
-    public var canUseCloudKit: Bool { state == .available }
-    
-    public var unavailableReason: String {
-        switch state {
-        case .available:
-            return ""
-        case .noAccount:
-            return "You’re not signed into iCloud on this device."
-        case .restricted:
-            return "iCloud is restricted on this device."
-        case .temporarilyUnavailable:
-            return "iCloud is temporarily unavailable. Try again later."
-        case .couldNotDetermine(let error):
-            if let error { return "Couldn’t determine iCloud status: \(error.localizedDescription)" }
-            return "Couldn’t determine iCloud status."
         }
     }
 }

@@ -10,6 +10,7 @@ import Design
 import Environment
 import SQLiteData
 import Persistence
+import API
 
 public struct SettingsPage: View {
     
@@ -101,7 +102,14 @@ struct ShareSheet: UIViewControllerRepresentable {
 }
 
 #Preview {
+    let _ = PreviewSupport.preparePreviewDatabase()
+
     NavigationStack {
         SettingsPage()
     }
+    .environment(AppRouter(initialTab: .settings))
+    .environment(\.homeServices, HouseholdService.shared)
+    .environment(\.appSettings, SettingsStore())
+    .environment(\.cloudKit, MockCloudKitGate())
+    .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
 }

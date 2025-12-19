@@ -5,6 +5,7 @@
 //  Created by Tom Knighton on 15/11/2025.
 //
 
+import Environment
 import SwiftUI
 import Design
 import Dependencies
@@ -114,4 +115,57 @@ public struct MealplanPage: View {
             print(error.localizedDescription)
         }
     }
+}
+
+#Preview {
+    let today = Calendar(identifier: .iso8601).startOfDay(for: .now)
+    let recipeId = UUID()
+    
+    let _ = PreviewSupport.preparePreviewDatabase(seed: { db in
+        let now = Date()
+        let recipe = DBRecipe(
+            id: recipeId,
+            title: "Preview Stir Fry",
+            description: "Colourful veggies with noodles and peanut sauce.",
+            author: "Preview Kitchen",
+            sourceUrl: "https://example.com/stirfry",
+            dominantColorHex: nil,
+            minutesToPrepare: 10,
+            minutesToCook: 15,
+            totalMins: 25,
+            serves: "2",
+            overallRating: 4.7,
+            summarisedRating: "Quick comfort food",
+            summarisedSuggestion: nil,
+            dateAdded: now,
+            dateModified: now,
+            homeId: nil
+        )
+        
+        
+        do {
+            try db.write { db in
+                try DBRecipe.insert { recipe }.execute(db)
+                try DBRecipeImage.insert { DBRecipeImage(recipeId: recipeId, imageSourceUrl: "https://www.allrecipes.com/thmb/xcOdImFBdut09lTsPnOxIjnv-2E=/0x512/filters:no_upscale():max_bytes(150000):strip_icc()/228823-quick-beef-stir-fry-DDMFS-4x3-1f79b031d3134f02ac27d79e967dfef5.jpg", imageData: nil) }.execute(db)
+                try DBMealplanEntry.insert {
+                    DBMealplanEntry(
+                        id: UUID(),
+                        date: today,
+                        index: 0,
+                        noteText: "Add extra chilli flakes",
+                        recipeId: recipeId
+                    )
+                }
+                .execute(db)
+            }
+        } catch {
+            print("Preview DB setup failed: \(error)")
+        }
+    })
+    
+    NavigationStack {
+        MealplanPage()
+    }
+    .environment(AppRouter(initialTab: .mealplan))
+    
 }
