@@ -52,6 +52,7 @@
 		E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.countdownextensionExtension.entitlements; sourceTree = "<group>"; };
 		E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = countdownextensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -146,6 +147,7 @@
 		E2BBA8F02E59224700846D3E = {
 			isa = PBXGroup;
 			children = (
+				E2BBD5F82EF610AF00F7097E /* ci_scripts */,
 				E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */,
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
 				E2BBA90B2E5B2BBB00846D3E /* Packages */,
@@ -171,6 +173,14 @@
 				E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		E2BBD5F82EF610AF00F7097E /* ci_scripts */ = {
+			isa = PBXGroup;
+			children = (
+				E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */,
+			);
+			path = ci_scripts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
