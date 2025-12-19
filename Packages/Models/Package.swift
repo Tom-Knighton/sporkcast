@@ -21,6 +21,10 @@ let package = Package(
             name: "Models",
             dependencies: ["API", "Persistence"]
         ),
+        .testTarget(
+            name: "ModelsTests",
+            dependencies: ["Models", "Persistence"]
+        ),
 
     ]
 )

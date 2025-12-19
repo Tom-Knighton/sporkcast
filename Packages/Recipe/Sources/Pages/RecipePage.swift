@@ -12,6 +12,7 @@ import SwiftData
 import API
 import SQLiteData
 import Persistence
+import Environment
 
 public struct RecipePage: View {
     
@@ -186,18 +187,52 @@ public struct RecipePage: View {
     }
 }
 
-//#Preview {
-//    AsyncModel { asyncVal in
-//        NavigationStack {
-//            RecipePage(asyncVal)
-//                .withPreviewEnvs()
-//        }
-//    } model: {
-//        await SDRecipe(from: RecipeDTOMockBuilder().build()).toDomainModel()
-//    }
-//    
-//    
-//}
+#Preview {
+    let _ = PreviewSupport.preparePreviewDatabase()
+
+    let recipe = Recipe(
+        id: UUID(),
+        title: "Preview Carbonara",
+        description: "Creamy pasta with crispy pancetta and pecorino.",
+        author: "Preview Chef",
+        sourceUrl: "https://example.com/carbonara",
+        image: .init(imageThumbnailData: nil, imageUrl: nil),
+        timing: .init(totalTime: 30, prepTime: 10, cookTime: 20),
+        serves: "4",
+        ratingInfo: .init(overallRating: 4.8, summarisedRating: "Rich and comforting", ratings: []),
+        dateAdded: .now,
+        dateModified: .now,
+        ingredientSections: [
+            .init(
+                id: UUID(),
+                title: "Main Ingredients",
+                sortIndex: 0,
+                ingredients: [
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                ]
+            )
+        ],
+        stepSections: [
+            .init(
+                id: UUID(),
+                sortIndex: 0,
+                title: "Steps",
+                steps: [
+                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [])
+                ]
+            )
+        ],
+        dominantColorHex: nil,
+        homeId: nil
+    )
+
+    return NavigationStack {
+        RecipePage(recipe)
+    }
+    .environment(AppRouter(initialTab: .recipes))
+}
 
 struct AsyncModel<VisualContent: View, ModelData>: View {
     // Standard view builder, accepting async-fetched data as a parameter

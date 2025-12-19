@@ -354,5 +354,11 @@ struct AnimatedDots: View {
 }
 
 #Preview {
-    HomeInvitePage(demoTitle: "Test Home", demoOwnerName: "Demo User", demoEmail: nil)
+    let database = PreviewSupport.preparePreviewDatabase()
+
+    return NavigationStack {
+        HomeInvitePage(demoTitle: "Test Home", demoOwnerName: "Demo User", demoEmail: nil)
+            .environment(AppRouter(initialTab: .settings))
+            .environment(database)
+    }
 }

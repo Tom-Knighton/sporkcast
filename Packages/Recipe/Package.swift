@@ -21,5 +21,9 @@ let package = Package(
             name: "Recipe",
             dependencies: ["Design", "API", "Environment"]
         ),
+        .testTarget(
+            name: "RecipeTests",
+            dependencies: ["Recipe", "Design", "Persistence", "Models"]
+        )
     ],
 )

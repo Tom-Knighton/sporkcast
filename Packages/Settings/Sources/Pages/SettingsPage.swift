@@ -101,7 +101,19 @@ struct ShareSheet: UIViewControllerRepresentable {
 }
 
 #Preview {
-    NavigationStack {
+    let database = PreviewSupport.preparePreviewDatabase()
+
+    return NavigationStack {
         SettingsPage()
     }
+    .environment(AppRouter(initialTab: .settings))
+    .environment(\.homeServices, HouseholdService.shared)
+    .environment(\.appSettings, SettingsStore())
+    .environment(CloudKitGate())
+    .environment(
+        \.
+            networkClient,
+        APIClient(host: "https://api.dev.recipe.tomk.online/")
+    )
+    .environment(database)
 }
