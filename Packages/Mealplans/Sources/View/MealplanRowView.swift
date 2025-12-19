@@ -49,6 +49,10 @@ public struct MealplanRowView: View {
     
     public var body: some View {
         ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 10) )
+                .allowsHitTesting(false)
             VStack(spacing: 0) {
                 HStack {
                     Text(dayTitle(for: day))
@@ -69,9 +73,14 @@ public struct MealplanRowView: View {
                         }
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.white, .green)
+                            .foregroundStyle(.white, .blue)
                             .font(.title)
+                            .frame(width: 28, height: 28)
+                            .contentShape(.rect)
+                            .fixedSize()
                     }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal)
@@ -103,7 +112,7 @@ public struct MealplanRowView: View {
             .fontDesign(.rounded)
             .frame(minHeight: 50)
             .frame(maxWidth: .infinity)
-            .glassEffect(in: .rect(cornerRadius: 10))
+//            .glassEffect(in: .rect(cornerRadius: 10))
             .clipShape(.rect(cornerRadius: 10))
             .background {
                 RoundedRectangle(cornerRadius: 10)
