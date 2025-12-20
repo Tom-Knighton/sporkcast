@@ -20,6 +20,7 @@ private struct NoteDraft: Identifiable, Equatable {
 
 public struct MealplanRowView: View {
     
+    @Environment(ZoomManager.self) private var zm
     @Environment(AppRouter.self) private var router
     @Environment(\.calendar) private var calendar
     @Dependency(\.defaultDatabase) private var db
@@ -112,7 +113,6 @@ public struct MealplanRowView: View {
             .fontDesign(.rounded)
             .frame(minHeight: 50)
             .frame(maxWidth: .infinity)
-//            .glassEffect(in: .rect(cornerRadius: 10))
             .clipShape(.rect(cornerRadius: 10))
             .background {
                 RoundedRectangle(cornerRadius: 10)
@@ -145,6 +145,7 @@ public struct MealplanRowView: View {
         if let recipe = entry.recipe, draggingId != entry.id {
             RecipeCardView(recipe: recipe, enablePreview: false)
                 .padding(4)
+                .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
                 .draggable(entry) {
                     RecipeCardView(recipe: recipe, enablePreview: false)
                         .environment(router)
@@ -169,7 +170,7 @@ public struct MealplanRowView: View {
                 }
                 .onTapGesture {
                     self.draggingId = nil
-                    self.router.navigateTo(.recipe(recipe: recipe))
+                    self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
                 }
             
             DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
@@ -369,6 +370,7 @@ private struct DropGap: View {
 }
 
 #Preview {
+    @Previewable @Namespace var zm
     @Previewable @State var isDraggingEntry = false
 
     let calendar = Calendar(identifier: .iso8601)
@@ -421,5 +423,6 @@ private struct DropGap: View {
         }
         .navigationTitle("Mealplans")
         .environment(AppRouter(initialTab: .mealplan))
+        .environment(ZoomManager(zm))
     }
 }

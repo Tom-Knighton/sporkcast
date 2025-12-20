@@ -30,10 +30,10 @@ struct WithNavigationDestinations<Content: View>: View {
                     
                 case .recipes:
                     RecipeListPage()
-                case let .recipe(recipe):
+                case let .recipe(recipe, suffix):
                     RecipePage(recipe)
                         .navigationTransition(.zoom(
-                            sourceID: "zoom-\(recipe.id.uuidString)",
+                            sourceID: "zoom-\(recipe.id.uuidString)\(suffix != nil ? "-\(suffix!)" : "")",
                             in: namespace
                         ))
                 }
