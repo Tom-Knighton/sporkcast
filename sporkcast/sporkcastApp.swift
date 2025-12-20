@@ -9,7 +9,6 @@ import SwiftUI
 import API
 import SwiftData
 import SQLiteData
-import OSLog
 import Persistence
 import CloudKit
 import Design
@@ -21,8 +20,16 @@ struct SporkcastApp: App {
     
     init() {
         prepareDependencies {
-            $0.defaultDatabase = try! Database().appDb()
-            $0.defaultSyncEngine = try! SyncEngine(for: $0.defaultDatabase, tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self)
+            $0.defaultDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
+                #if DEBUG
+                    print(description)
+                #endif
+            })
+
+            $0.defaultSyncEngine = try! SyncEngine(
+                for: $0.defaultDatabase,
+                tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self
+            )
         }
     }
     
@@ -57,45 +64,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         HouseholdService.shared.pendingInvite = ckData
     }
 }
-
-private struct Database {
-    private let logger = Logger(subsystem: "Sporkast", category: "Database")
-    
-    public func appDb() throws -> any DatabaseWriter {
-        @Dependency(\.context) var context
-        var config = Configuration()
-        
-        config.prepareDatabase { db in
-            try db.attachMetadatabase()
-            
-            #if DEBUG
-            db.trace(options: .profile) {
-                if context == .preview {
-                    print("\($0.expandedDescription)")
-                } else {
-                    logger.debug("\($0.expandedDescription)")
-                }
-            }
-            #endif
-        }
-        
-        let database = try defaultDatabase(configuration: config)
-        logger.info("open \(database.path)")
-        
-        var migrator = DatabaseMigrator()
-#if DEBUG
-        migrator.eraseDatabaseOnSchemaChange = true
-#endif
-        
-        SchemaV1.migrate(&migrator)
-        
-        try migrator.migrate(database)
-        
-        return database
-    }
-}
-
-
 
 // Tabs:
 // - Cookbook (Ask recipe about changes w/ AI?)

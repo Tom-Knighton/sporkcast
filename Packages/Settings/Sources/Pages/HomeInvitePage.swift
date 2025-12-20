@@ -5,6 +5,7 @@
 //  Created by Tom Knighton on 26/10/2025.
 //
 
+import Environment
 import SwiftUI
 import Design
 import CloudKit
@@ -354,5 +355,10 @@ struct AnimatedDots: View {
 }
 
 #Preview {
-    HomeInvitePage(demoTitle: "Test Home", demoOwnerName: "Demo User", demoEmail: nil)
+    let _ = PreviewSupport.preparePreviewDatabase()
+
+    NavigationStack {
+        HomeInvitePage(demoTitle: "Test Home", demoOwnerName: "Demo User", demoEmail: nil)
+            .environment(AppRouter(initialTab: .settings))
+    }
 }

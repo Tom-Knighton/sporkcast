@@ -19,7 +19,7 @@ public struct HouseholdSettingsPage: View {
     
     @Environment(\.homeServices) private var households
     @Environment(AlertManager.self) private var alerts
-    @Environment(CloudKitGate.self) private var ckState
+    @Environment(\.cloudKit) private var ckState
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
@@ -190,9 +190,12 @@ struct ShareHome: Transferable {
 
 
 #Preview {
+    
+    let _ = PreviewSupport.preparePreviewDatabase()
     NavigationStack {
         HouseholdSettingsPage()
     }
     .environment(\.homeServices, MockHouseholdService(withHome: true))
     .environment(AlertManager())
+    .environment(\.cloudKit, MockCloudKitGate())
 }

@@ -368,26 +368,58 @@ private struct DropGap: View {
     private var isActive: Bool { isTargeted || hoveringIndex == index || overrideIsTargeted }
 }
 
-//#Preview {
-//
-//    @Previewable @Environment(\.calendar) var calendar
-//    @Previewable @State var appRouter: AppRouter = .init(initialTab: .mealplan)
-//    NavigationStack {
-//        ZStack {
-//            Color.layer1.ignoresSafeArea()
-//            ScrollView {
-//                LazyVStack {
-//                    MealplanRowView(for: calendar.date(byAdding: .day, value: -1, to: Date())!)
-//                    MealplanRowView(for: Date())
-//                    MealplanRowView(for: calendar.date(byAdding: .day, value: 1, to: Date())!)
-//                    MealplanRowView(for: calendar.date(byAdding: .day, value: 2, to: Date())!)
-//                    MealplanRowView(for: calendar.date(byAdding: .day, value: 3, to: Date())!)
-//                }
-//            }
-//        }
-//        .safeAreaPadding()
-//        .navigationTitle("Mealplans")
-//        .preferredColorScheme(.dark)
-//        .environment(appRouter)
-//    }
-//}
+#Preview {
+    @Previewable @State var isDraggingEntry = false
+
+    let calendar = Calendar(identifier: .iso8601)
+    let today = calendar.startOfDay(for: .now)
+
+    let entries = [
+        MealplanEntry(
+            id: UUID(),
+            date: today,
+            index: 0,
+            note: "Prep veggies early",
+            recipe: Recipe(
+                id: UUID(),
+                title: "Preview Pasta",
+                description: "A speedy weekday pasta with tomato and basil.",
+                author: "Preview Chef",
+                sourceUrl: "https://example.com/pasta",
+                image: .init(imageThumbnailData: nil, imageUrl: "https://www.allrecipes.com/thmb/xcOdImFBdut09lTsPnOxIjnv-2E=/0x512/filters:no_upscale():max_bytes(150000):strip_icc()/228823-quick-beef-stir-fry-DDMFS-4x3-1f79b031d3134f02ac27d79e967dfef5.jpg"),
+                timing: .init(totalTime: 25, prepTime: 10, cookTime: 15),
+                serves: "2",
+                ratingInfo: .init(overallRating: 4.5, summarisedRating: "Fresh and light", ratings: []),
+                dateAdded: .now,
+                dateModified: .now,
+                ingredientSections: [],
+                stepSections: [],
+                dominantColorHex: nil,
+                homeId: nil
+            )
+        ),
+        MealplanEntry(
+            id: UUID(),
+            date: today,
+            index: 1,
+            note: "I'm a note",
+            recipe: nil
+        ),
+    ]
+
+    return NavigationStack {
+        ZStack {
+            Color.layer1.ignoresSafeArea()
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    MealplanRowView(for: calendar.date(byAdding: .day, value: -1, to: today)!, with: [], currentDate: today, isDraggingEntry: $isDraggingEntry)
+                    MealplanRowView(for: today, with: entries, currentDate: today, isDraggingEntry: $isDraggingEntry)
+                    MealplanRowView(for: calendar.date(byAdding: .day, value: 1, to: today)!, with: [], currentDate: today, isDraggingEntry: $isDraggingEntry)
+                }
+            }
+            .safeAreaPadding()
+        }
+        .navigationTitle("Mealplans")
+        .environment(AppRouter(initialTab: .mealplan))
+    }
+}
