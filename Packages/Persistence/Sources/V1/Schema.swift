@@ -195,13 +195,15 @@ public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
     public let index: Int
     public let noteText: String?
     public let recipeId: UUID?
+    public let homeId: UUID?
     
-    public init(id: UUID, date: Date, index: Int, noteText: String?, recipeId: UUID?) {
+    public init(id: UUID, date: Date, index: Int, noteText: String?, recipeId: UUID?, homeId: UUID?) {
         self.id = id
         self.date = date
         self.index = index
         self.noteText = noteText
         self.recipeId = recipeId
+        self.homeId = homeId
     }
 }
 
@@ -300,7 +302,8 @@ public struct SchemaV1 {
                 e.column("date", .date)
                 e.column("index", .integer)
                 e.column("noteText", .text)
-                e.column("recipeId", .text).references("Recipes", onDelete: .cascade)
+                e.column("recipeId", .text)
+                e.column("homeId", .text).references("Homes", onDelete: .setNull)
             }
         }
     }

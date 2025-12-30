@@ -19,6 +19,6 @@ public extension FullDBMealplanEntry {
             recipe = Recipe(id: dbRecipe.id, title: dbRecipe.title, description: dbRecipe.description, author: dbRecipe.author, sourceUrl: dbRecipe.sourceUrl, image: image, timing: .init(totalTime: dbRecipe.totalMins, prepTime: dbRecipe.minutesToPrepare, cookTime: dbRecipe.minutesToCook), serves: dbRecipe.serves, ratingInfo: nil, dateAdded: dbRecipe.dateAdded, dateModified: dbRecipe.dateModified, ingredientSections: [], stepSections: [], dominantColorHex: dbRecipe.dominantColorHex, homeId: dbRecipe.homeId)
         }
         
-        return MealplanEntry(id: self.id, date: self.mealplanEntry.date, index: self.mealplanEntry.index, note: self.mealplanEntry.noteText, recipe: recipe)
+        return MealplanEntry(id: self.id, date: self.mealplanEntry.date, index: self.mealplanEntry.index, note: self.mealplanEntry.noteText, recipe: recipe, homeId: self.mealplanEntry.homeId)
     }
 }

@@ -14,13 +14,14 @@ public struct MealplanEntry: Sendable, Codable, Identifiable, Hashable {
     public let index: Int
     public let note: String?
     public let recipe: Recipe?
+    public let homeId: UUID?
     
-    
-    public init(id: UUID, date: Date, index: Int, note: String?, recipe: Recipe?) {
+    public init(id: UUID, date: Date, index: Int, note: String?, recipe: Recipe?, homeId: UUID? = nil) {
         self.id = id
         self.date = date
         self.index = index
         self.note = note
         self.recipe = recipe
+        self.homeId = homeId
     }
 }

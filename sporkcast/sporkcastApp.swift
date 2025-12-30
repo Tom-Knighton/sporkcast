@@ -28,7 +28,7 @@ struct SporkcastApp: App {
 
             $0.defaultSyncEngine = try! SyncEngine(
                 for: $0.defaultDatabase,
-                tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self
+                tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self, DBMealplanEntry.self,
             )
         }
     }
