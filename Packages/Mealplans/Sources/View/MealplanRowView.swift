@@ -20,6 +20,7 @@ private struct NoteDraft: Identifiable, Equatable {
 
 public struct MealplanRowView: View {
     
+    @Environment(\.homeServices) private var homes
     @Environment(ZoomManager.self) private var zm
     @Environment(AppRouter.self) private var router
     @Environment(\.calendar) private var calendar
@@ -107,6 +108,9 @@ public struct MealplanRowView: View {
                 
                 ForEach(self.entries.enumerated(), id: \.element.id) { (idx, entry) in
                     rowView(for: entry, idx)
+                        .overlay {
+                            Text(entry.homeId?.uuidString ?? "No Home")
+                        }
                 }
             }
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
@@ -209,7 +213,7 @@ public struct MealplanRowView: View {
             RecipePickerPage() { selectedId in
                 self.showAddSheet.toggle()
                 do {
-                    let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: selectedId)
+                    let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: selectedId, homeId: homes.home?.id)
                     try await db.write { db in
                         try DBMealplanEntry
                             .insert { newEntry }
@@ -260,7 +264,7 @@ public struct MealplanRowView: View {
         }
         
         if let recipe {
-            let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: recipe.id)
+            let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: recipe.id, homeId: homes.home?.id)
             try await db.write { db in
                 try DBMealplanEntry
                     .insert { newEntry }
@@ -316,7 +320,7 @@ public struct MealplanRowView: View {
                         .execute(db)
                 }
             } else {
-                let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: text, recipeId: nil)
+                let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: text, recipeId: nil, homeId: homes.home?.id)
                 try await db.write { db in
                     try DBMealplanEntry
                         .insert { newEntry }

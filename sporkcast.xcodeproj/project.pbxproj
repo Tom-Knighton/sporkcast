@@ -53,6 +53,7 @@
 		E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = countdownextensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
+		E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tomja.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -183,6 +184,13 @@
 			path = ci_scripts;
 			sourceTree = "<group>";
 		};
+		E2BC10E62EF85E6500C86006 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -273,6 +281,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E2BBA8FA2E59224700846D3E /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = E2BC10E62EF85E6500C86006 /* Products */;
+					ProjectRef = E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				E2BBA8F82E59224700846D3E /* sporkcast */,

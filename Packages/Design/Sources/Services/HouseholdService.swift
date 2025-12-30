@@ -44,6 +44,8 @@ public protocol HouseholdServiceProtocol {
     
     @MainActor
     func share() async throws -> SharedRecord
+    
+    func syncEntities() async
 }
 
 
@@ -217,6 +219,29 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
         }
     }
     
+    public func syncEntities() async {
+        guard let dbHome else { return }
+        
+        let homeId = dbHome.id
+        try? await database.write { db in
+            try DBRecipe
+                .where { $0.id != homeId }
+                .update { update in
+                    update.homeId = homeId
+                }
+                .execute(db)
+        }
+        
+        try? await database.write { db in
+            try DBMealplanEntry
+                .where { $0.id != homeId }
+                .update { update in
+                    update.homeId = homeId
+                }
+                .execute(db)
+        }
+    }
+    
     private func sanitize(name: String) -> String {
         name
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -365,5 +390,10 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     public enum MockError: Error {
         case notImplemented
     }
+    
+    public func syncEntities() async {
+        return
+    }
+    
 }
 

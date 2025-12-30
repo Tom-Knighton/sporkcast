@@ -15,6 +15,7 @@ import Recipe
 import Design
 import Mealplans
 internal import AppRouter
+import Models
 import Settings
 import CloudKit
 
@@ -99,6 +100,9 @@ struct AppContent: View {
             }
         } message: {
             Text(alerting?.metadata.description ?? "")
+        }
+        .task(id: households.home?.id) {
+            await households.syncEntities()
         }
     }
     

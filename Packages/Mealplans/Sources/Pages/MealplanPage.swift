@@ -153,7 +153,8 @@ public struct MealplanPage: View {
                         date: today,
                         index: 0,
                         noteText: "Add extra chilli flakes",
-                        recipeId: recipeId
+                        recipeId: recipeId,
+                        homeId: nil,
                     )
                 }
                 .execute(db)

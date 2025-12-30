@@ -23,7 +23,8 @@ public enum PreviewSupport {
                 DBRecipeStep.self,
                 DBRecipeStepTiming.self,
                 DBRecipeStepTemperature.self,
-                DBRecipeImage.self
+                DBRecipeImage.self,
+                DBMealplanEntry.self,
             )
             
             if let seed {
