@@ -8,25 +8,23 @@
 import Environment
 import SwiftUI
 import Design
-import Dependencies
 import Persistence
-import SQLiteData
 import Models
 
 public struct MealplanPage: View {
     
-    public init() {}
     
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
+    
     @State private var startDate = Date().lastMonday()
     @State private var endDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
     @State private var now = Date()
     @State private var scrollPosition: ScrollPosition = .init(id: 1)
     @State private var isDraggingEntry: Bool = false
+    @State private var repository = MealplanRepository()
     
-    @FetchAll var mealplanEntries: [FullDBMealplanEntry]
-    @Dependency(\.defaultDatabase) private var db
+    public init() {}
     
     private var days: [Date] {
         var result: [Date] = []
@@ -45,10 +43,10 @@ public struct MealplanPage: View {
                 ScrollView {
                     LazyVStack {
                         ForEach(days, id: \.self) { day in
-                            let mealplanEntries = self.mealplanEntries
-                                .filter { calendar.isDate($0.mealplanEntry.date, inSameDayAs: day)}
-                                .sorted(by: { $0.mealplanEntry.index < $1.mealplanEntry.index })
-                            MealplanRowView(for: day, with: mealplanEntries.compactMap { $0.toDomainModel() }, currentDate: now, isDraggingEntry: $isDraggingEntry)
+                            let mealplanEntries = repository.entries
+                                .filter { calendar.isDate($0.date, inSameDayAs: day)}
+                                .sorted(by: { $0.index < $1.index })
+                            MealplanRowView(for: day, with: mealplanEntries, currentDate: now, isDraggingEntry: $isDraggingEntry)
                                 .id(day.formatted(date: .numeric, time: .omitted))
                                 .onAppear {
                                     extendDaysIfNeeded(currentDay: day)
@@ -67,6 +65,7 @@ public struct MealplanPage: View {
                 
             }
         }
+        .environment(repository)
         .navigationTitle("Mealplan")
         .task(id: [startDate, endDate]) {
             await updateQuery()
@@ -108,9 +107,7 @@ public struct MealplanPage: View {
     
     private func updateQuery() async {
         do {
-            try await $mealplanEntries.load(
-                DBMealplanEntry.full(startDate: startDate, endDate: endDate)
-            )
+            try await repository.loadEntries(startDate: startDate, endDate: endDate)
         } catch {
             print(error.localizedDescription)
         }

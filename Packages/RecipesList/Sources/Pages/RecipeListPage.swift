@@ -10,8 +10,6 @@ import Environment
 import UIKit
 import Design
 import API
-import Persistence
-import SQLiteData
 import Models
 
 public struct RecipeListPage: View {
@@ -24,22 +22,20 @@ public struct RecipeListPage: View {
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
     
-    @Dependency(\.defaultDatabase) var database
-    @FetchAll(DBRecipe.full) private var recipes: [FullDBRecipe]
+    @State private var repository = RecipesRepository()
     
     public init() {}
     
     public var body: some View {
-        List(recipes) { recipe in
-            let model = recipe.toDomainModel()
+        List(repository.recipes) { recipe in
             @Bindable var zm = zoomManager
-            NavigationLink(value: AppDestination.recipe(recipe: model)) {
-                RecipeCardView(recipe: model)
+            NavigationLink(value: AppDestination.recipe(recipe: recipe)) {
+                RecipeCardView(recipe: recipe)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zm.zoomNamespace)
                     .contextMenu {
-                        Button(action: { router.navigateTo(.recipe(recipe: model)) }) {
+                        Button(action: { router.navigateTo(.recipe(recipe: recipe)) }) {
                             Label("Open", systemImage: "hand.point.up")
                         }
                         Divider()
@@ -79,9 +75,7 @@ public struct RecipeListPage: View {
             ToolbarSpacer(.fixed)
             ToolbarItem {
                 Button(action: { Task {
-                    try await database.write { db in
-                        try DBRecipe.delete().execute(db)
-                    }
+                    try await repository.deleteAll()
                 }}) {
                     Image(systemName: "xmark")
                 }
@@ -97,18 +91,8 @@ public struct RecipeListPage: View {
                         let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
                         
                         if let recipeDTO {
-                            let (recipe, image, ingGroups, ings, stepGroups, steps, times, temps) = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
-                            
-                            try await database.write { db in
-                                try DBRecipe.insert { recipe }.execute(db)
-                                try DBRecipeImage.insert { image }.execute(db)
-                                try DBRecipeIngredientGroup.insert { ingGroups }.execute(db)
-                                try DBRecipeIngredient.insert { ings }.execute(db)
-                                try DBRecipeStepGroup.insert { stepGroups }.execute(db)
-                                try DBRecipeStep.insert { steps }.execute(db)
-                                try DBRecipeStepTiming.insert { times }.execute(db)
-                                try DBRecipeStepTemperature.insert { temps }.execute(db)
-                            }
+                            let entities = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
+                            try await repository.saveImportedRecipe(entities)
                             print("saved")
                         } else {
                             print("Failed parsing recipe")
@@ -129,4 +113,3 @@ public struct RecipeListPage: View {
         
     }
 }
-

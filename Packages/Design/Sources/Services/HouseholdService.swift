@@ -5,16 +5,15 @@
 //  Created by Tom Knighton on 11/10/2025.
 //
 
-import SwiftData
 import Foundation
 import Observation
-import Persistence
 import SQLiteData
 import Dependencies
 import Models
 import CloudKit
-import SwiftUI
 import Combine
+import Environment
+import Persistence
 
 public struct HomeResident: Identifiable, Hashable, Equatable {
     public let name: String
@@ -57,25 +56,16 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     public var pendingInvite: CKShare.Metadata? = nil
     
     @ObservationIgnored
-    @Dependency(\.defaultDatabase) private var database
-    
-    @ObservationIgnored
     @Dependency(\.defaultSyncEngine) private var syncEngine
     
     @ObservationIgnored
-    @FetchOne(DBHome.all) private var dbHome
+    private let repository: HouseholdRepository
     
     @ObservationIgnored
     private var cancellables = Set<AnyCancellable>()
     
     public var home: Home? {
-        get {
-            if let dbHome {
-                return Home(from: dbHome)
-            }
-            
-            return nil
-        }
+        repository.home
     }
     
     private(set) public var residents: [HomeResident] = []
@@ -87,11 +77,12 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     public var canCreate: Bool { !isInHome }
     
     
-    public init() {
-        if let dbHome {
+    public init(repository: HouseholdRepository = HouseholdRepository()) {
+        self.repository = repository
+        if repository.home != nil {
             Task {
                 do {
-                    try await self.refreshShareMetadata(for: dbHome)
+                    try await self.refreshShareMetadata()
                 } catch {
                     print(error.localizedDescription)
                 }
@@ -99,18 +90,14 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
 
         }
         
-        $dbHome.publisher.sink { [dbHome] newHome in
-            print("Home Update")
-            if newHome != dbHome {
-                Task {
-                    do {
-                        try await self.refreshShareMetadata(for: dbHome)
-                    } catch {
-                        print(error.localizedDescription)
-                    }
+        repository.homePublisher.sink { _ in
+            Task {
+                do {
+                    try await self.refreshShareMetadata()
+                } catch {
+                    print(error.localizedDescription)
                 }
             }
-           
         }
         .store(in: &cancellables)        
     }
@@ -131,11 +118,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             guard !name.isEmpty else { throw CreationError.invalidName }
             guard canCreate else { throw CreationError.alreadyInHousehold }
             
-            let newDBHome = DBHome(id: UUID(), name: name)
-            
-            try await database.write { db in
-                try DBHome.insert { newDBHome }.execute(db)
-            }
+            let newDBHome = try await repository.createHome(named: name)
             
             errorMessage = nil
             return Home(from: newDBHome)
@@ -152,7 +135,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             return false
         }
         
-        guard let home, let dbHome else {
+        if home == nil {
             errorMessage = LeaveError.noHousehold.errorDescription
             return false
         }
@@ -162,26 +145,16 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
         
         do {
             
-            let share = try await database.read { db in
-                try SyncMetadata
-                    .find(dbHome.syncMetadataID)
-                    .select(\.share)
-                    .fetchOne(db)
-                ?? nil
-            }
+            let share = try await repository.shareHome()
             
             if let share {
                 let ckDb = share.isCurrentUserOwner ? CKContainer.default().privateCloudDatabase : CKContainer.default().sharedCloudDatabase
                 try await ckDb.deleteRecord(withID: share.recordID)
                 try await syncEngine.syncChanges()
-                try await database.write { db in
-                    try DBHome.delete().execute(db)
-                }
+                try await repository.deleteHome()
                 try await syncEngine.deleteLocalData()
             } else {
-                try await database.write { db in
-                    try DBHome.delete().execute(db)
-                }
+                try await repository.deleteHome()
             }
 
             self.residents.removeAll()
@@ -196,14 +169,12 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     }
     
     public func rename(to rawName: String) async {
-        guard let home else { return }
+        guard home != nil else { return }
+        
         do {
             let name = sanitize(name: rawName)
             guard !name.isEmpty else { throw CreationError.invalidName }
-            let id = home.id
-            try await database.write { db in
-                try DBHome.find(id).update { $0.name = name }.execute(db)
-            }
+            try await repository.updateHomeName(name: name)
             
             errorMessage = nil
         } catch {
@@ -212,7 +183,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     }
     
     public func share() async throws -> SQLiteData.SharedRecord {
-        guard let dbHome else { throw HouseholdError.noHome  }
+        guard let dbHome = repository._dbHome else { throw HouseholdError.noHome  }
         return try await syncEngine.share(record: dbHome) { share in
             share[CKShare.SystemFieldKey.title] = "Join \(dbHome.name) on Sporkast!"
             share.publicPermission = .readOnly
@@ -220,26 +191,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     }
     
     public func syncEntities() async {
-        guard let dbHome else { return }
-        
-        let homeId = dbHome.id
-        try? await database.write { db in
-            try DBRecipe
-                .where { $0.id != homeId }
-                .update { update in
-                    update.homeId = homeId
-                }
-                .execute(db)
-        }
-        
-        try? await database.write { db in
-            try DBMealplanEntry
-                .where { $0.id != homeId }
-                .update { update in
-                    update.homeId = homeId
-                }
-                .execute(db)
-        }
+        await repository.syncHomeEntities()
     }
     
     private func sanitize(name: String) -> String {
@@ -248,19 +200,15 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
     }
     
-    private func refreshShareMetadata(for dbHome: DBHome?) async throws {
-        guard let dbHome else {
+    private func refreshShareMetadata() async throws {
+        guard let home else {
             self.residents.removeAll()
             return
         }
         
-        let metadataAll = try await self.database.read { db in
-            try SyncMetadata
-                .find(dbHome.syncMetadataID)
-                .fetchAll(db)
-        }
+        let metadataAll = try await repository.homeShareMetadata()
         
-        let metadata = metadataAll.first(where: { $0.recordPrimaryKey.uppercased() == dbHome.id.uuidString })
+        let metadata = metadataAll.first(where: { $0.recordPrimaryKey.uppercased() == home.id.uuidString })
                 
         guard let currentUserId = try? await CKContainer.default().userRecordID(), let metadata, let serverRecord = metadata.lastKnownServerRecord, let shareRef = serverRecord.share else {
             return
@@ -396,4 +344,3 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     }
     
 }
-

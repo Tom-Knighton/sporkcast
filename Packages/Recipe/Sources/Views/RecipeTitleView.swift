@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import API
+import Models
 
 public struct RecipeTitleView: View {
     

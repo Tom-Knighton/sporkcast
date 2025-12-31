@@ -6,14 +6,12 @@
 //
 
 import SwiftUI
-import Persistence
-import SQLiteData
 import Models
+import Environment
 
 public struct RecipePickerPage: View {
     
-    @Dependency(\.defaultDatabase) var database
-    @FetchAll(DBRecipe.full) private var recipes: [FullDBRecipe]
+    @State private var repository = RecipesRepository()
     private let onRecipeSelected: (UUID) async -> Void
     
     public init(_ onRecipeSelected: @escaping (UUID) async -> Void) {
@@ -21,10 +19,9 @@ public struct RecipePickerPage: View {
     }
     
     public var body: some View {
-        List(recipes) { recipe in
-            let model = recipe.toDomainModel()
+        List(repository.recipes) { recipe in
             Button(action: { Task { await self.onRecipeSelected(recipe.id) } }) {
-                RecipeCardView(recipe: model, enablePreview: false)
+                RecipeCardView(recipe: recipe, enablePreview: false)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .listRowSeparator(.hidden)

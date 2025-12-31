@@ -7,7 +7,6 @@
 
 import Foundation
 import API
-import Persistence
 
 public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID

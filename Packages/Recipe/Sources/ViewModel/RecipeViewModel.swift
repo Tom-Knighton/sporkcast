@@ -9,17 +9,15 @@ import Models
 import Observation
 import FoundationModels
 import Foundation
-import SwiftData
 import SwiftUI
-import SQLiteData
-import Persistence
+import Environment
 
 @Observable
 @MainActor
 public class RecipeViewModel: @unchecked Sendable {
     
     @ObservationIgnored private var defaultRecipe: Recipe
-    @ObservationIgnored @FetchOne var dbRecipe: FullDBRecipe?
+    @ObservationIgnored private let repository: RecipeDetailRepository
     
     public var scrollOffset: CGFloat = 0
     public var showNavTitle: Bool = false
@@ -28,17 +26,12 @@ public class RecipeViewModel: @unchecked Sendable {
     public var ingredientsGenerating: Bool = false
     
     public var recipe: Recipe {
-        get {
-            self.dbRecipe?.toDomainModel() ?? defaultRecipe
-        }
+        repository.recipe ?? defaultRecipe
     }
-    
-    @ObservationIgnored
-    @Dependency(\.defaultDatabase) private var db
     
     public init(recipe: Recipe) {
         self.defaultRecipe = recipe
-        self._dbRecipe = FetchOne(DBRecipe.full.find(recipe.id))
+        self.repository = RecipeDetailRepository(recipeId: recipe.id)
     }
     
     /// Saves the new dominant colour for the recipe directly to the database and to the current view
@@ -47,9 +40,7 @@ public class RecipeViewModel: @unchecked Sendable {
         
         if let hex = colour.toHex() {
             let id = recipe.id
-            try? await db.write { db in
-                try DBRecipe.find(id).update { $0.dominantColorHex = hex }.execute(db)
-            }
+            try? await repository.updateDominantColor(recipeId: id, hex: hex)
         }
     }
     
@@ -99,13 +90,8 @@ public class RecipeViewModel: @unchecked Sendable {
             }
         }
         
-        try await db.write{ [ingredientEmojiMap] db in
-            for entry in ingredientEmojiMap {
-                try DBRecipeIngredient.find(entry.key).update { $0.emojiDescriptor = entry.value }.execute(db)
-            }
-        }
+        try await repository.updateIngredientEmojis(ingredientEmojiMap)
         
         print("Finished generating")
     }
 }
-

@@ -8,8 +8,6 @@
 import SwiftUI
 import Design
 import RecipesList
-import SQLiteData
-import Persistence
 import Models
 import Environment
 
@@ -24,7 +22,7 @@ public struct MealplanRowView: View {
     @Environment(ZoomManager.self) private var zm
     @Environment(AppRouter.self) private var router
     @Environment(\.calendar) private var calendar
-    @Dependency(\.defaultDatabase) private var db
+    @Environment(MealplanRepository.self) private var repository
     
     @State private var isRowTargeted = false
     @State private var hoveringIndex: Int? = nil
@@ -91,7 +89,7 @@ public struct MealplanRowView: View {
                     Task {
                         self.draggingId = nil
                         self.isDragging = false
-                        try await self.moveEntryToDay(entryId: items[0].id, date: day, index: 0)
+                    try await self.moveEntryToDay(entryId: items[0].id, date: day, index: 0)
                     }
                     return true
                 } isTargeted: { val in
@@ -108,9 +106,6 @@ public struct MealplanRowView: View {
                 
                 ForEach(self.entries.enumerated(), id: \.element.id) { (idx, entry) in
                     rowView(for: entry, idx)
-                        .overlay {
-                            Text(entry.homeId?.uuidString ?? "No Home")
-                        }
                 }
             }
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
@@ -213,12 +208,7 @@ public struct MealplanRowView: View {
             RecipePickerPage() { selectedId in
                 self.showAddSheet.toggle()
                 do {
-                    let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: selectedId, homeId: homes.home?.id)
-                    try await db.write { db in
-                        try DBMealplanEntry
-                            .insert { newEntry }
-                            .execute(db)
-                    }
+                    try await repository.addRecipeEntry(date: day, index: entries.count, recipeId: selectedId, homeId: homes.home?.id)
                 } catch {
                     print(error)
                 }
@@ -257,53 +247,15 @@ public struct MealplanRowView: View {
     }
     
     func insertRandomMeal() async throws {
-        let recipe = try await db.read { db in
-            try DBRecipe
-                .order { _ in #sql("RANDOM()")}
-                .fetchOne(db)
-        }
-        
-        if let recipe {
-            let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: nil, recipeId: recipe.id, homeId: homes.home?.id)
-            try await db.write { db in
-                try DBMealplanEntry
-                    .insert { newEntry }
-                    .execute(db)
-            }
-        }
+        try await repository.insertRandomMeal(date: day, index: entries.count, homeId: homes.home?.id)
     }
     
     func removeEntry(id: UUID) async throws {
-        try await db.write { db in
-            try DBMealplanEntry
-                .find(id)
-                .delete()
-                .execute(db)
-        }
+        try await repository.deleteEntry(id: id)
     }
     
     func moveEntryToDay(entryId: UUID, date: Date, index: Int) async throws {
-        try await db.write { db in
-            
-            try DBMealplanEntry
-                .find(entryId)
-                .update { entry in
-                    entry.date = date
-                    entry.index = index
-                }
-                .execute(db)
-            
-            for entry in entries {
-                if entry.id != entryId && entry.index >= index {
-                    try DBMealplanEntry
-                        .find(entry.id)
-                        .update { e in
-                            e.index = e.index + 1
-                        }
-                        .execute(db)
-                }
-            }
-        }
+        try await repository.moveEntry(entryId: entryId, to: date, index: index, existingEntries: entries)
     }
     
     func upsertNote(id: UUID?, text: String) async {
@@ -311,21 +263,9 @@ public struct MealplanRowView: View {
         
         do {
             if let id {
-                try await db.write { db in
-                    try DBMealplanEntry
-                        .find(id)
-                        .update { e in
-                            e.noteText = text
-                        }
-                        .execute(db)
-                }
+                try await repository.updateNote(id: id, text: text)
             } else {
-                let newEntry = DBMealplanEntry(id: UUID(), date: self.day, index: self.entries.count, noteText: text, recipeId: nil, homeId: homes.home?.id)
-                try await db.write { db in
-                    try DBMealplanEntry
-                        .insert { newEntry }
-                        .execute(db)
-                }
+                try await repository.addNoteEntry(date: day, index: entries.count, text: text, homeId: homes.home?.id)
             }
         } catch {
             print(error)
@@ -413,7 +353,8 @@ private struct DropGap: View {
         ),
     ]
 
-    return NavigationStack {
+    let repository = MealplanRepository()
+    NavigationStack {
         ZStack {
             Color.layer1.ignoresSafeArea()
             ScrollView {
@@ -425,6 +366,7 @@ private struct DropGap: View {
             }
             .safeAreaPadding()
         }
+        .environment(repository)
         .navigationTitle("Mealplans")
         .environment(AppRouter(initialTab: .mealplan))
         .environment(ZoomManager(zm))
