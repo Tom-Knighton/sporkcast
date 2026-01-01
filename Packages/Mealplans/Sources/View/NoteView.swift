@@ -19,9 +19,9 @@ struct NoteView: View {
         }
         .background(Color.layer1.opacity(0.3))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            ConcentricRectangle(corners: .concentric)
                 .stroke(.gray, lineWidth: 1)
         )
-        .contentShape(.rect(cornerRadius: 10))
+        .contentShape(.rect(corners: .concentric))
     }
 }

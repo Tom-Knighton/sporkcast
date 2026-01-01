@@ -107,7 +107,18 @@ public struct MealplanRowView: View {
                 }
                 
                 ForEach(self.entries.enumerated(), id: \.element.id) { (idx, entry) in
-                    rowView(for: entry, idx)
+                    VStack(spacing: 0) {
+                        if draggingId != entry.id {
+                            rowView(for: entry, idx)
+                            
+                            DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
+                                self.draggingId = nil
+                                self.isDragging = false
+                                try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
+                            }
+                            .containerShape(.rect(cornerRadius: 10))
+                        }
+                    }
                 }
             }
             .contentShape(.rect)
@@ -121,7 +132,6 @@ public struct MealplanRowView: View {
             .overlay(isInPast ? .gray.opacity(0.25) : .clear)
             .frame(maxWidth: .infinity)
             .clipShape(.rect(cornerRadius: 10))
-            
             .onChange(of: self.draggingId, { _, newValue in
                 self.isDragging = newValue != nil
             })
@@ -144,7 +154,7 @@ public struct MealplanRowView: View {
     
     @ViewBuilder
     private func rowView(for entry: MealplanEntry, _ idx: Int) -> some View {
-        if let recipe = entry.recipe, draggingId != entry.id {
+        if let recipe = entry.recipe {
             RecipeCardView(recipe: recipe, enablePreview: false)
                 .padding(4)
                 .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
@@ -155,6 +165,7 @@ public struct MealplanRowView: View {
                             self.draggingId = entry.id
                         }
                 }
+                .containerShape(.rect(cornerRadius: 10))
                 .transition(.opacity)
                 .contextMenu {
                     Button(action: {
@@ -174,14 +185,7 @@ public struct MealplanRowView: View {
                     self.draggingId = nil
                     self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
                 }
-            
-            DropGap(index: idx + 1, hoveringIndex: $hoveringIndex) { insertIndex, droppedEntry in
-                self.draggingId = nil
-                self.isDragging = false
-                try await self.moveEntryToDay(entryId: droppedEntry.id, date: day, index: insertIndex)
-            }
-            
-        } else if let note = entry.note, draggingId != entry.id {
+        } else if let note = entry.note {
             NoteView(text: note)
                 .draggable(entry) {
                     NoteView(text: note)
@@ -191,6 +195,7 @@ public struct MealplanRowView: View {
                 }
                 .transition(.opacity)
                 .padding(4)
+                .containerShape(.rect(cornerRadius: 10))
                 .contextMenu {
                     Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
                         Label("Edit", systemImage: "pencil")
@@ -283,25 +288,32 @@ private struct DropGap: View {
     var onDropAt: (_ index: Int, _ recipes: MealplanEntry) async throws -> Void
     
     @State private var isTargeted = false
+    @State private var successTrigger: Bool = false
     @Environment(\.isMealplanDragging) private var isDragging
     
     var body: some View {
         ZStack(alignment: .center) {
             if isDragging {
-                Rectangle()
-                    .frame(height: 20)
-                    .opacity(0.0001)
+                ConcentricRectangle()
+                    .stroke(.gray.opacity(0.75), style: .init(lineWidth: 1, dash: [5]))
+                    .fill(isActive ? .blue : .layer2.opacity(0.3))
+                    .padding(4)
+                    .frame(height: isActive ? 135 : 50)
                 
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(isActive ? .blue : .layer2)
-                    .frame(height: isActive ? 135 : 2)
-                    .opacity(isActive ? 0.8 : 0.01)
+                Label("Drop Here", systemImage: "plus.app")
+                    .bold(isActive)
+                    .foregroundStyle(isActive ? Color.white : Color.primary)
             }
         }
+        .fontDesign(.rounded)
         .animation(.easeInOut, value: isActive)
+        .containerShape(.rect(cornerRadius: 10))
+        .sensoryFeedback(.selection, trigger: isActive)
+        .sensoryFeedback(.success, trigger: successTrigger)
         .dropDestination(for: MealplanEntry.self) { items, _ in
             Task {
                 try? await onDropAt(index, items[0])
+                self.successTrigger.toggle()
             }
             hoveringIndex = nil
             return true
@@ -367,8 +379,9 @@ private struct DropGap: View {
                     MealplanRowView(for: calendar.date(byAdding: .day, value: 1, to: today)!, with: [], currentDate: today, isDraggingEntry: $isDraggingEntry)
                 }
             }
-            .safeAreaPadding()
+            .contentMargins(.horizontal, 16, for: .scrollContent)
         }
+        .environment(\.isMealplanDragging, isDraggingEntry)
         .environment(repository)
         .navigationTitle("Mealplans")
         .environment(AppRouter(initialTab: .mealplan))

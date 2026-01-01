@@ -137,8 +137,7 @@ public struct MealplanPage: View {
             dateModified: now,
             homeId: nil
         )
-        
-        
+
         do {
             try db.write { db in
                 try DBRecipe.insert { recipe }.execute(db)
