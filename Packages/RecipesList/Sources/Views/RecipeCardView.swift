@@ -66,7 +66,7 @@ public struct RecipeCardView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 135)
         .background(image)
-        .clipShape(.rect(cornerRadius: 10))
+        .clipShape(.rect(corners: .concentric))
         .fontDesign(.rounded)
         .contentShape(Rectangle())
     }
