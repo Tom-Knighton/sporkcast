@@ -1,5 +1,5 @@
 {
-  "originHash" : "184082692c5134c37f21c0609e97c6e0149ee6a2156a8107933b6fb8a4464538",
+  "originHash" : "2efbc9aca6aae1c8454035ea8882287eb78c0185f4e282be5fba9dd5277db50a",
   "pins" : [
     {
       "identity" : "approuter",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "18497b68fdbb3a09528d260a0a0e1e7e61c8c53d",
         "version" : "7.8.0"
+      }
+    },
+    {
+      "identity" : "nuke",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kean/Nuke",
+      "state" : {
+        "revision" : "0ead44350d2737db384908569c012fe67c421e4d",
+        "version" : "12.8.0"
       }
     },
     {
