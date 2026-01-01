@@ -21,7 +21,7 @@ public class RecipeViewModel: @unchecked Sendable {
     
     public var scrollOffset: CGFloat = 0
     public var showNavTitle: Bool = false
-    public var segment: Int = 1
+    public var segment: Int = 3
     public var dominantColour: Color = .clear
     public var ingredientsGenerating: Bool = false
     

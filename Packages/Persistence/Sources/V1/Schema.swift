@@ -175,6 +175,21 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
+@Table("RecipeRatings")
+public struct DBRecipeRating: Codable, Identifiable, Sendable, Equatable {
+    public let id: UUID
+    public let recipeId: UUID
+    public let rating: Int?
+    public let comment: String?
+    
+    public init(id: UUID, recipeId: UUID, rating: Int?, comment: String?) {
+        self.id = id
+        self.recipeId = recipeId
+        self.rating = rating
+        self.comment = comment
+    }
+}
+
 @Table("Homes")
 public struct DBHome: Codable, Identifiable, Sendable, Equatable {
     @Column(primaryKey: true)
@@ -295,6 +310,13 @@ public struct SchemaV1 {
                 e.column("temperature", .double).notNull()
                 e.column("temperatureText", .text).notNull( )
                 e.column("temperatureUnitText", .text).notNull()
+            }
+            
+            try db.create(table: "RecipeRatings") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeId", .text).references("Recipes", onDelete: .cascade)
+                e.column("rating", .integer)
+                e.column("comment", .text)
             }
             
             try db.create(table: "MealplanEntries") { e in

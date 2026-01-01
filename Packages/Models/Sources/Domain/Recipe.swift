@@ -113,9 +113,9 @@ public struct RecipeRatingInfo: Hashable, Sendable, Codable {
     public let summarisedRating: String?
     
     /// The actual text ratings parsed from the original recipe
-    public let ratings: [String]
+    public let ratings: [RecipeRating]
     
-    public init(overallRating: Double?, summarisedRating: String?, ratings: [String]) {
+    public init(overallRating: Double?, summarisedRating: String?, ratings: [RecipeRating]) {
         self.overallRating = overallRating
         self.summarisedRating = summarisedRating
         self.ratings = ratings

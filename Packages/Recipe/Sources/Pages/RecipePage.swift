@@ -105,6 +105,7 @@ public struct RecipePage: View {
                                 Text("Ingredients")
                                     .tag(1)
                                 Text("Directions").tag(2)
+                                Text("Comments").tag(3)
                             }
                             .pickerStyle(.segmented)
                             Spacer()
@@ -112,13 +113,17 @@ public struct RecipePage: View {
                         
                         Spacer().frame(height: 24)
                         
-                        if viewModel.segment == 1 {
+                        switch viewModel.segment {
+                        case 1:
                             RecipeIngredientsListView(tint: viewModel.dominantColour)
                                 .tint(viewModel.dominantColour)
-                        } else if viewModel.segment == 2 {
+                        case 2:
                             RecipeStepsView(tint: viewModel.dominantColour)
+                        case 3:
+                            RecipeCommentsView()
+                        default:
+                            EmptyView()
                         }
-                        
                     }
                     .padding(.horizontal)
                 }
@@ -201,10 +206,14 @@ public struct RecipePage: View {
         description: "Creamy pasta with crispy pancetta and pecorino.",
         author: "Preview Chef",
         sourceUrl: "https://example.com/carbonara",
-        image: .init(imageThumbnailData: nil, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBkWsRz51M9raJnOGEgsEbm0BNjhE18acBLA&s"),
+        image: .init(imageThumbnailData: nil, imageUrl: "https://www.recipetineats.com/tachyon/2023/01/Carbonara_6a.jpg"),
         timing: .init(totalTime: 30, prepTime: 10, cookTime: 20),
         serves: "4",
-        ratingInfo: .init(overallRating: 4.8, summarisedRating: "Rich and comforting", ratings: []),
+        ratingInfo: .init(overallRating: 4.8, summarisedRating: "Rich and comforting", ratings: [
+            .init(id: UUID(), rating: 5, comment: "A bit salty but overall very nice!"),
+            .init(id: UUID(), rating: 5, comment: "The perfect authentic carbonarra"),
+            .init(id: UUID(), rating: 1, comment: "Missing too many ingredients!"),
+        ]),
         dateAdded: .now,
         dateModified: .now,
         ingredientSections: [

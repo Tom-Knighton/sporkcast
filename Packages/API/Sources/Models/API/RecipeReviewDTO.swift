@@ -7,8 +7,10 @@
 
 public struct RecipeReviewDTO: Codable {
     public let text: String
+    public let rating: Int?
     
-    init(text: String) {
+    init(text: String, rating: Int? = 0) {
         self.text = text
+        self.rating = rating
     }
 }
