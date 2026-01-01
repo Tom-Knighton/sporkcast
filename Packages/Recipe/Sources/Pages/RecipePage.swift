@@ -20,9 +20,9 @@ public struct RecipePage: View {
     @Environment(\.networkClient) private var client
     
     @State private var viewModel: RecipeViewModel
-    
+    @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
+
     public init(_ recipe: Recipe) {
-        print("View init")
         self.viewModel = .init(recipe: recipe)
         self.viewModel.dominantColour = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
@@ -124,6 +124,13 @@ public struct RecipePage: View {
                 }
             }
             .fontDesign(.rounded)
+        }
+        .navigationAllowDismissalGestures(allowDismissalGesture)
+        .task {
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                allowDismissalGesture = .all
+            }
         }
         .edgesIgnoringSafeArea(.top)
         .scrollBounceBehavior(.basedOnSize)
