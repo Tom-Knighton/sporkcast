@@ -54,13 +54,13 @@ public struct MealplanPage: View {
                     .scrollTargetLayout()
                     .scrollContentBackground(.hidden)
                     .onAppear {
-                        self.scrollPosition = .init(id: now.formatted(date: .numeric, time: .omitted), anchor: .top)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            reader.scrollTo(now.formatted(date: .numeric, time: .omitted), anchor: .top)
+                        }
                     }
                 }
                 .contentMargins(.horizontal, 16, for: .scrollContent)
-                .scrollPosition($scrollPosition)
                 .environment(\.isMealplanDragging, isDraggingEntry)
-                
             }
         }
         .environment(repository)
@@ -113,6 +113,7 @@ public struct MealplanPage: View {
 }
 
 #Preview {
+    @Previewable @Namespace var zm
     let today = Calendar(identifier: .iso8601).startOfDay(for: .now)
     let recipeId = UUID()
     
@@ -163,5 +164,6 @@ public struct MealplanPage: View {
         MealplanPage()
     }
     .environment(AppRouter(initialTab: .mealplan))
-    
+    .environment(ZoomManager(zm))
+    .environment(\.homeServices, MockHouseholdService())
 }

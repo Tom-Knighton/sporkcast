@@ -370,5 +370,6 @@ private struct DropGap: View {
         .navigationTitle("Mealplans")
         .environment(AppRouter(initialTab: .mealplan))
         .environment(ZoomManager(zm))
+        .environment(\.homeServices, MockHouseholdService())
     }
 }
