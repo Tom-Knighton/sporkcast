@@ -59,28 +59,30 @@ public struct MealplanRowView: View {
                         .bold()
                     Spacer()
                     
-                    Menu {
-                        Button(action: { self.showAddSheet = true }) {
-                            Label("Add Meal", systemImage: "plus.circle")
+                    if !isInPast {
+                        Menu {
+                            Button(action: { self.showAddSheet = true }) {
+                                Label("Add Meal", systemImage: "plus.circle")
+                            }
+                            Button(action: { Task { try? await insertRandomMeal() } }) {
+                                Label("Random Meal", systemImage: "arrow.trianglehead.swap")
+                            }
+                            Divider()
+                            
+                            Button(action: { self.noteDraft = .init(id: nil, text: "")}) {
+                                Label("Add Note", systemImage: "pencil")
+                            }
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(.white, .blue)
+                                .font(.title)
+                                .frame(width: 28, height: 28)
+                                .contentShape(.rect)
+                                .fixedSize()
                         }
-                        Button(action: { Task { try? await insertRandomMeal() } }) {
-                            Label("Random Meal", systemImage: "arrow.trianglehead.swap")
-                        }
-                        Divider()
-                        
-                        Button(action: { self.noteDraft = .init(id: nil, text: "")}) {
-                            Label("Add Note", systemImage: "pencil")
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.white, .blue)
-                            .font(.title)
-                            .frame(width: 28, height: 28)
-                            .contentShape(.rect)
-                            .fixedSize()
+                        .menuStyle(.button)
+                        .buttonStyle(.plain)
                     }
-                    .menuStyle(.button)
-                    .buttonStyle(.plain)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal)
@@ -108,17 +110,18 @@ public struct MealplanRowView: View {
                     rowView(for: entry, idx)
                 }
             }
-            .overlay(isInPast ? .gray.opacity(0.25) : .clear)
+            .contentShape(.rect)
             .fontDesign(.rounded)
             .frame(minHeight: 50)
-            .frame(maxWidth: .infinity)
-            .clipShape(.rect(cornerRadius: 10))
             .background {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(style: .init(lineWidth: isInPast ? 2 : 4, dash: isInPast ? [5] : []))
                     .fill(isInPast ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
             }
-            .contentShape(.rect)
+            .overlay(isInPast ? .gray.opacity(0.25) : .clear)
+            .frame(maxWidth: .infinity)
+            .clipShape(.rect(cornerRadius: 10))
+            
             .onChange(of: self.draggingId, { _, newValue in
                 self.isDragging = newValue != nil
             })
