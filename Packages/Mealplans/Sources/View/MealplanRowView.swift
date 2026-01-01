@@ -129,7 +129,11 @@ public struct MealplanRowView: View {
                     .stroke(style: .init(lineWidth: isInPast ? 2 : 4, dash: isInPast ? [5] : []))
                     .fill(isInPast ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
             }
-            .overlay(isInPast ? .gray.opacity(0.25) : .clear)
+            .overlay {
+                if isInPast {
+                    Color.gray.opacity(0.25).allowsHitTesting(false)
+                }
+            }
             .frame(maxWidth: .infinity)
             .clipShape(.rect(cornerRadius: 10))
             .onChange(of: self.draggingId, { _, newValue in
