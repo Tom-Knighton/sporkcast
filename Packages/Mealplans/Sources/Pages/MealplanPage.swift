@@ -12,8 +12,6 @@ import Persistence
 import Models
 
 public struct MealplanPage: View {
-    
-    
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
     

@@ -32,6 +32,14 @@ public final class RecipesRepository {
             try DBRecipe.delete().execute(db)
         }
     }
+    
+    public func delete(_ id: Recipe.ID) async throws  {
+        print(id)
+        try await database.write { db in
+            try DBRecipe.find(id).delete().execute(db)
+            try DBMealplanEntry.where { $0.recipeId == id }.delete().execute(db)
+        }
+    }
 
     public func saveImportedRecipe(
         _ entities: (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature])

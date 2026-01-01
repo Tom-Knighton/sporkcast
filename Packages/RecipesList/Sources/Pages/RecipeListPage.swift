@@ -16,13 +16,24 @@ public struct RecipeListPage: View {
     
     @Environment(ZoomManager.self) private var zoomManager
     @Environment(\.homeServices) private var homes
-    @State private var showDeleteConfirm = false
     @Environment(AppRouter.self) private var router
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
     
     @State private var repository = RecipesRepository()
+    
+    @State private var showDeleteConfirmId: UUID? = nil
+    private var alertIsPresented: Binding<Bool> {
+        Binding(
+            get: { showDeleteConfirmId != nil },
+            set: { isPresented in
+                if !isPresented {
+                    showDeleteConfirmId = nil
+                }
+            }
+        )
+    }
     
     public init() {}
     
@@ -39,14 +50,23 @@ public struct RecipeListPage: View {
                             Label("Open", systemImage: "hand.point.up")
                         }
                         Divider()
+                        
                         Button(role: .destructive) {
-                            self.showDeleteConfirm = true
+                            self.showDeleteConfirmId = recipe.id
                         } label: { Label("Delete", systemImage: "trash").tint(.red) }
                     }
-                    .alert("Delete Recipe", isPresented: $showDeleteConfirm) {
+                    .confirmationDialog(
+                        "Are you sure you want to delete this recipe? This cannot be undone.",
+                        isPresented: alertIsPresented,
+                        titleVisibility: .visible,
+                        presenting: showDeleteConfirmId,
+                    ) { id in
+                        Button(role: .destructive) {
+                            Task {
+                                await deleteRecipe(id: id)
+                            }
+                        } label: { Text("Delete") }
                         Button(role: .cancel) { } label: { Text("Cancel") }
-                    } message: {
-                        Text("Are you sure you want to delete this recipe? This cannot be undone.")
                     }
             }
             .navigationLinkIndicatorVisibility(.hidden)
@@ -110,6 +130,16 @@ public struct RecipeListPage: View {
         } message: {
             Text("Enter or paste the url to the recipe from the internet")
         }
-        
+    }
+}
+
+extension RecipeListPage {
+    
+    private func deleteRecipe(id: UUID) async {
+        do {
+            try await repository.delete(id)
+        } catch {
+            print(error)
+        }
     }
 }
