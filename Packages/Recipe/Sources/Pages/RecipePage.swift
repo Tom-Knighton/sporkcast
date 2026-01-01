@@ -12,6 +12,7 @@ import SwiftData
 import API
 import SQLiteData
 import Environment
+import NukeUI
 
 public struct RecipePage: View {
     
@@ -145,12 +146,14 @@ public struct RecipePage: View {
         )
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(viewModel.recipe.title)
-                    .font(.headline)
-                    .opacity(viewModel.showNavTitle ? 1 : 0)
-                    .accessibilityHidden(!viewModel.showNavTitle)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
+            if viewModel.showNavTitle {
+                ToolbarItem(placement: .principal) {
+                    Text(viewModel.recipe.title)
+                        .font(.headline)
+                        .transition(.opacity)
+                        .accessibilityHidden(!viewModel.showNavTitle)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
+                }
             }
         }
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
@@ -165,20 +168,16 @@ public struct RecipePage: View {
     
     @ViewBuilder
     private func image() -> some View {
-        AsyncImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { img in
-            img
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .task {
-                    if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
-                        await viewModel.setDominantColour(to: dom)
-                    }
-                }
-        } placeholder: {
-            if let data = viewModel.recipe.image.imageThumbnailData, let ui = UIImage(data: data) {
-                Image(uiImage: ui)
+        LazyImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { state in
+            if let img = state.image {
+                img
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .task {
+                        if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
+                            await viewModel.setDominantColour(to: dom)
+                        }
+                    }
             } else {
                 Rectangle().opacity(0.1)
             }
@@ -218,6 +217,10 @@ public struct RecipePage: View {
                 sortIndex: 0,
                 title: "Steps",
                 steps: [
+                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
+                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
                     .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
                     .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [])
                 ]

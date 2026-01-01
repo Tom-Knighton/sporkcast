@@ -32,6 +32,8 @@ public struct MealplanRowView: View {
     @State private var showAddSheet: Bool = false
     @State private var noteDraft: NoteDraft? = nil
     
+    @State private var recipeImages: [UUID: UIImage] = [:]
+    
     public let day: Date
     public let entries: [MealplanEntry]
     public let currentDate: Date
@@ -159,36 +161,42 @@ public struct MealplanRowView: View {
     @ViewBuilder
     private func rowView(for entry: MealplanEntry, _ idx: Int) -> some View {
         if let recipe = entry.recipe {
-            RecipeCardView(recipe: recipe, enablePreview: false)
-                .padding(4)
-                .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
-                .draggable(entry) {
-                    RecipeCardView(recipe: recipe, enablePreview: false)
-                        .environment(router)
-                        .onAppear {
-                            self.draggingId = entry.id
-                        }
+            let cached = recipeImages[recipe.id]
+            
+            RecipeCardView(
+                recipe: recipe,
+                enablePreview: false,
+                preloadedImage: cached,
+                onImageLoaded: { img in
+                    recipeImages[recipe.id] = img
                 }
-                .containerShape(.rect(cornerRadius: 10))
-                .transition(.opacity)
-                .contextMenu {
-                    Button(action: {
-                        self.draggingId = nil
-                        self.router.navigateTo(.recipe(recipe: recipe))
-                    }) {
-                        Text("Open Recipe")
-                    }
-                    Divider()
-                    Button(role: .destructive, action: {
-                        Task { try? await removeEntry(id: entry.id) }
-                    }) {
-                        Label("Remove meal", systemImage: "trash")
-                    }
+            )
+            .padding(4)
+            .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
+            .containerShape(.rect(cornerRadius: 10))
+            .transition(.opacity)
+            .draggable(entry) {
+                mealPreview(for: entry)
+                    .onAppear { draggingId = entry.id }
+            }
+            .contextMenu {
+                Button {
+                    draggingId = nil
+                    router.navigateTo(.recipe(recipe: recipe))
+                } label: {
+                    Text("Open Recipe")
                 }
-                .onTapGesture {
-                    self.draggingId = nil
-                    self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
+                Divider()
+                Button(role: .destructive) { Task { try? await removeEntry(id: entry.id) } }  label: {
+                    Label("Remove meal", systemImage: "trash")
                 }
+            } preview: {
+                mealPreview(for: entry)
+            }
+            .onTapGesture {
+                self.draggingId = nil
+                self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
+            }
         } else if let note = entry.note {
             NoteView(text: note)
                 .draggable(entry) {
@@ -211,6 +219,24 @@ public struct MealplanRowView: View {
                         Label("Remove note", systemImage: "trash")
                     }
                 }
+        }
+    }
+    
+    @ViewBuilder
+    private func mealPreview(for entry: MealplanEntry) -> some View {
+        if let recipe = entry.recipe {
+            RecipeCardView(
+                recipe: recipe,
+                enablePreview: false,
+                preloadedImage: recipeImages[recipe.id]
+            )
+            .containerShape(.rect(cornerRadius: 10))
+            .frame(width: 320, height: 160)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        } else if let note = entry.note {
+            NoteView(text: note)
+                .frame(width: 320, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
     
