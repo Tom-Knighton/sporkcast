@@ -12,7 +12,7 @@ import CryptoKit
 import UIKit
 
 public extension RecipeDTO {
-    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature]) {
+    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating]) {
         
         let recipeId = UUID()
         let now = Date()
@@ -32,7 +32,7 @@ public extension RecipeDTO {
             print("Error downloading image: \(error)")
         }
                 
-        let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
+        let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, totalRatings: dto.ratings.totalRatings, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
         
         let recipeImage = DBRecipeImage(recipeId: recipe.id, imageSourceUrl: dto.imageUrl, imageData: thumbnailData)
         
@@ -48,6 +48,7 @@ public extension RecipeDTO {
         var steps: [DBRecipeStep] = []
         var stepTimings: [DBRecipeStepTiming] = []
         var stepTemps: [DBRecipeStepTemperature] = []
+        let ratings: [DBRecipeRating] = dto.ratings.reviews?.compactMap { DBRecipeRating(id: UUID(), recipeId: recipeId, rating: $0.rating, comment: $0.text)} ?? []
         
         for (index, group) in dto.stepSections.enumerated() {
             let groupId = UUID()
@@ -66,7 +67,7 @@ public extension RecipeDTO {
             stepGroups.append(dbGroup)
         }
         
-        return (recipe, recipeImage, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps)
+        return (recipe, recipeImage, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps, ratings)
     }
     
     private static func downloadImageData(from url: URL) async throws -> Data {

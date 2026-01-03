@@ -380,7 +380,7 @@ private struct DropGap: View {
                 image: .init(imageThumbnailData: nil, imageUrl: "https://www.allrecipes.com/thmb/xcOdImFBdut09lTsPnOxIjnv-2E=/0x512/filters:no_upscale():max_bytes(150000):strip_icc()/228823-quick-beef-stir-fry-DDMFS-4x3-1f79b031d3134f02ac27d79e967dfef5.jpg"),
                 timing: .init(totalTime: 25, prepTime: 10, cookTime: 15),
                 serves: "2",
-                ratingInfo: .init(overallRating: 4.5, summarisedRating: "Fresh and light", ratings: []),
+                ratingInfo: .init(overallRating: 4.5, totalRatings: 12, summarisedRating: "Fresh and light", ratings: []),
                 dateAdded: .now,
                 dateModified: .now,
                 ingredientSections: [],

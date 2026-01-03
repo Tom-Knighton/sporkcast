@@ -109,14 +109,18 @@ public struct RecipeRatingInfo: Hashable, Sendable, Codable {
     /// The overall score rating the recipe has received
     public let overallRating: Double?
     
+    /// The total number of ratings the recipe has received
+    public let totalRatings: Int?
+    
     /// An LLM summarisation of ratings received, may contain suggestions i.e. where multiple comments have rated this recipe as too thin etc.
     public let summarisedRating: String?
     
     /// The actual text ratings parsed from the original recipe
     public let ratings: [RecipeRating]
     
-    public init(overallRating: Double?, summarisedRating: String?, ratings: [RecipeRating]) {
+    public init(overallRating: Double?, totalRatings: Int, summarisedRating: String?, ratings: [RecipeRating]) {
         self.overallRating = overallRating
+        self.totalRatings = totalRatings
         self.summarisedRating = summarisedRating
         self.ratings = ratings
     }

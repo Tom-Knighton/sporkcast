@@ -16,7 +16,7 @@ public extension FullDBRecipe {
     func toDomainModel() -> Recipe {
         let image = RecipeImage(imageThumbnailData: self.imageData?.imageData, imageUrl: self.imageData?.imageSourceUrl)
         let timing = RecipeTiming(totalTime: self.recipe.totalMins, prepTime: self.recipe.minutesToPrepare, cookTime: self.recipe.minutesToCook)
-        let ratingInfo = RecipeRatingInfo(overallRating: self.recipe.overallRating, summarisedRating: self.recipe.summarisedRating, ratings: self.ratings.compactMap { RecipeRating(id: $0.id, rating: $0.rating, comment: $0.comment) })
+        let ratingInfo = RecipeRatingInfo(overallRating: self.recipe.overallRating, totalRatings: self.recipe.totalRatings, summarisedRating: self.recipe.summarisedRating, ratings: self.ratings.compactMap { RecipeRating(id: $0.id, rating: $0.rating, comment: $0.comment) })
         
         let ingredientSections = self.ingredientGroups.compactMap { grp in
             let ingredients = self.ingredients.filter { $0.ingredientGroupId == grp.id }.compactMap { ing in

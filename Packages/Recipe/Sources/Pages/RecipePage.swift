@@ -209,7 +209,7 @@ public struct RecipePage: View {
         image: .init(imageThumbnailData: nil, imageUrl: "https://www.recipetineats.com/tachyon/2023/01/Carbonara_6a.jpg"),
         timing: .init(totalTime: 30, prepTime: 10, cookTime: 20),
         serves: "4",
-        ratingInfo: .init(overallRating: 4.8, summarisedRating: "Rich and comforting", ratings: [
+        ratingInfo: .init(overallRating: 4.5, totalRatings: 3, summarisedRating: "Rich and comforting", ratings: [
             .init(id: UUID(), rating: 5, comment: "A bit salty but overall very nice!"),
             .init(id: UUID(), rating: 5, comment: "The perfect authentic carbonarra"),
             .init(id: UUID(), rating: 1, comment: "Missing too many ingredients!"),

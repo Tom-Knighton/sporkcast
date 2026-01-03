@@ -131,6 +131,7 @@ public struct MealplanPage: View {
             totalMins: 25,
             serves: "2",
             overallRating: 4.7,
+            totalRatings: 12,
             summarisedRating: "Quick comfort food",
             summarisedSuggestion: nil,
             dateAdded: now,

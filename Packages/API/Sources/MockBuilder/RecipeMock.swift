@@ -53,7 +53,7 @@ public class RecipeDTOMockBuilder {
             .init(step: "After 20 minutes, the katsu sauce should have thickened slightly so it’s ready to blend.  Slice the chicken diagonally for that wagamama look and serve up with a portion of rice, a ladle of the sauce and the optional sliced spring onion & chilli flakes.", times: [.init(timeInSeconds: 1200, timeText: "5", timeUnitText: "minute")], temperatures: [])
         ])
     ]
-    var ratings: RecipeRatingsDTO = .init(overallRating: 4.41, reviews: [
+    var ratings: RecipeRatingsDTO = .init(overallRating: 4.41, totalRatings: 6, reviews: [
         .init(text: "Curry recipe was good but turned out a bit too salty. Chicken part does not work at all it ended up making the chicken soggy so i had to fry it in a pan..."),
         .init(text: "family absolutely loved this!"),
         .init(text: "Trying this tomorrow night sounds delicious.👍"),

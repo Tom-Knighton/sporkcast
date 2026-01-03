@@ -21,6 +21,7 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let totalMins: Double?
     public let serves: String?
     public let overallRating: Double?
+    public let totalRatings: Int
     public let summarisedRating: String?
     public let summarisedSuggestion: String?
     public let dateAdded: Date
@@ -28,7 +29,7 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     
     public let homeId: UUID?
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, totalRatings: Int, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
@@ -40,6 +41,7 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
         self.totalMins = totalMins
         self.serves = serves
         self.overallRating = overallRating
+        self.totalRatings = totalRatings
         self.summarisedRating = summarisedRating
         self.summarisedSuggestion = summarisedSuggestion
         self.dateAdded = dateAdded
@@ -247,6 +249,7 @@ public struct SchemaV1 {
                 e.column("totalMins", .double)
                 e.column("serves", .text)
                 e.column("overallRating", .double)
+                e.column("totalRatings", .integer)
                 e.column("summarisedRating", .text)
                 e.column("summarisedSuggestion", .text)
                 e.column("dateAdded", .date)
