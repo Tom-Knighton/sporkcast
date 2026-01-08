@@ -2,7 +2,7 @@
 //  AppDatabase.swift
 //  Persistence
 //
-//  Created by OpenAI on 2025-02-14.
+//  Created by Tom Knighton on 2025-12-27.
 //
 
 import Dependencies

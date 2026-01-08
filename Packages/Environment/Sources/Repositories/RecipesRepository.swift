@@ -42,9 +42,9 @@ public final class RecipesRepository {
     }
 
     public func saveImportedRecipe(
-        _ entities: (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature])
+        _ entities: (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating])
     ) async throws {
-        let (recipe, image, ingredientGroups, ingredients, stepGroups, steps, timings, temperatures) = entities
+        let (recipe, image, ingredientGroups, ingredients, stepGroups, steps, timings, temperatures, ratings) = entities
         try await database.write { db in
             try DBRecipe.insert { recipe }.execute(db)
             try DBRecipeImage.insert { image }.execute(db)
@@ -54,6 +54,7 @@ public final class RecipesRepository {
             try DBRecipeStep.insert { steps }.execute(db)
             try DBRecipeStepTiming.insert { timings }.execute(db)
             try DBRecipeStepTemperature.insert { temperatures }.execute(db)
+            try DBRecipeRating.insert { ratings }.execute(db)
         }
     }
 }

@@ -17,6 +17,9 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     /// An optional brief description of the recipe
     public let description: String?
     
+    /// An Apple Intelligence generated summary of reviews/sentiment
+    public let summarisedTip: String?
+    
     /// The original creator/poster of the recipe, occasionally will be a friendly version of the site
     public let author: String?
     
@@ -54,10 +57,11 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     public var homeId: UUID?
 
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
+        self.summarisedTip = summarisedTip
         self.author = author
         self.sourceUrl = sourceUrl
         self.image = image
@@ -109,14 +113,18 @@ public struct RecipeRatingInfo: Hashable, Sendable, Codable {
     /// The overall score rating the recipe has received
     public let overallRating: Double?
     
+    /// The total number of ratings the recipe has received
+    public let totalRatings: Int?
+    
     /// An LLM summarisation of ratings received, may contain suggestions i.e. where multiple comments have rated this recipe as too thin etc.
     public let summarisedRating: String?
     
     /// The actual text ratings parsed from the original recipe
-    public let ratings: [String]
+    public let ratings: [RecipeRating]
     
-    public init(overallRating: Double?, summarisedRating: String?, ratings: [String]) {
+    public init(overallRating: Double?, totalRatings: Int, summarisedRating: String?, ratings: [RecipeRating]) {
         self.overallRating = overallRating
+        self.totalRatings = totalRatings
         self.summarisedRating = summarisedRating
         self.ratings = ratings
     }
