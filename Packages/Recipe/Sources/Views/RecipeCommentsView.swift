@@ -7,9 +7,11 @@
 
 import Models
 import SwiftUI
+import Design
 
 struct RecipeCommentsView: View {
     
+    @State private var showLLMInfo: Bool = false
     @Environment(RecipeViewModel.self) private var vm
     
     private var ratings: [RecipeRating] {
@@ -18,6 +20,37 @@ struct RecipeCommentsView: View {
  
     var body: some View {
         VStack {
+            if vm.tipsAndSummaryGenerating {
+                HStack {
+                    Text("Generating summary")
+                    Image(systemName: "ellipsis")
+                        .symbolEffect(.variableColor.cumulative.hideInactiveLayers, options: .repeat(.continuous), isActive: true)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .glassEffect(.regular.interactive(), in: .containerRelative)
+                .intelligenceBackground(in: .containerRelative)
+                .transition(.blurReplace)
+            }
+            
+            if !vm.tipsAndSummaryGenerating, let tip = vm.recipe.summarisedTip {
+                VStack {
+                    Text(tip)
+                    
+                    HStack {
+                        Spacer()
+                        Button(action: { self.showLLMInfo = true }) {
+                            Image(systemName: "info.circle")
+                        }
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+                .glassEffect(.regular, in: .rect(cornerRadius: 10))
+                .intelligenceBackground(in: .rect(cornerRadius: 10), animated: false)
+                .transition(.blurReplace)
+            }
+            
             if let overallRating = vm.recipe.ratingInfo?.overallRating {
                 VStack(spacing: 8) {
                     starView(overallRating, max: 5)
@@ -28,7 +61,7 @@ struct RecipeCommentsView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .glassEffect()
+                .glassEffect(.regular, in: .rect(corners: .concentric(minimum: 20)))
             }
             
             if !ratings.isEmpty {
@@ -41,8 +74,16 @@ struct RecipeCommentsView: View {
                     comment(rating.comment ?? "", rating: rating.rating)
                 }
             }
+            
+            Spacer().frame(height: 8)
         }
         .fontDesign(.rounded)
+        .alert("Info", isPresented: $showLLMInfo) {
+            Button(role: .confirm) {}
+        } message: {
+            Text("Sporkast uses your device's (or someone in your Sporkast home's) built-in Apple Intelligence to generate a 'summary' of user reviews for this recipe. It is not trained on any external data - and only the generated summary is stored in your iCloud storage.")
+        }
+
     }
 }
 
@@ -92,6 +133,7 @@ extension RecipeCommentsView {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .glassEffect(.regular, in: .rect(corners: .concentric(minimum: .fixed(10))))
+        .background(Material.regular)
+        .clipShape(.rect(corners: .concentric(minimum: 20)))
     }
 }

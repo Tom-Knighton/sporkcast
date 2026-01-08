@@ -375,6 +375,7 @@ private struct DropGap: View {
                 id: UUID(),
                 title: "Preview Pasta",
                 description: "A speedy weekday pasta with tomato and basil.",
+                summarisedTip: nil,
                 author: "Preview Chef",
                 sourceUrl: "https://example.com/pasta",
                 image: .init(imageThumbnailData: nil, imageUrl: "https://www.allrecipes.com/thmb/xcOdImFBdut09lTsPnOxIjnv-2E=/0x512/filters:no_upscale():max_bytes(150000):strip_icc()/228823-quick-beef-stir-fry-DDMFS-4x3-1f79b031d3134f02ac27d79e967dfef5.jpg"),

@@ -29,7 +29,7 @@ public struct RecipeTitleView: View {
                         Color.clear
                             .preference(
                                 key: TitleBottomYKey.self,
-                                value: proxy.frame(in: .named("scroll")).maxY
+                                value: proxy.frame(in: .named("recipeScroll")).maxY
                             )
                     }
                 )

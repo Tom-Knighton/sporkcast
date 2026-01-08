@@ -44,7 +44,6 @@ public struct RecipeIngredientsListView: View {
             
             Spacer().frame(height: 8)
         }
-        .safeAreaPadding(.bottom)
     }
 }
 

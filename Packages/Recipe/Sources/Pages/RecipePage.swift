@@ -18,9 +18,11 @@ public struct RecipePage: View {
     
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
-    
+    @Environment(\.displayScale) private var displayScale
+
     @State private var viewModel: RecipeViewModel
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
+    @State private var commentsSnapshot: UIImage?
 
     public init(_ recipe: Recipe) {
         self.viewModel = .init(recipe: recipe)
@@ -29,8 +31,8 @@ public struct RecipePage: View {
     
     public var body: some View {
         ZStack(alignment: .top) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
                     RecipeHeadingView {
                         image()
                             .mask(Rectangle().ignoresSafeArea(edges: .top))
@@ -105,7 +107,14 @@ public struct RecipePage: View {
                                 Text("Ingredients")
                                     .tag(1)
                                 Text("Directions").tag(2)
-                                Text("Comments").tag(3)
+                                
+                                if let commentsUIImage = commentsSnapshot {
+                                    Image(uiImage: commentsUIImage)
+                                        .tag(3)
+                                } else {
+                                    Text("Comments")
+                                        .tag(3)
+                                }
                             }
                             .pickerStyle(.segmented)
                             Spacer()
@@ -126,9 +135,19 @@ public struct RecipePage: View {
                         }
                     }
                     .padding(.horizontal)
+                    .scrollTargetLayout()
                 }
             }
+            .scrollClipDisabled(true)
             .fontDesign(.rounded)
+            .tabBarMinimizeBehavior(.onScrollDown)
+            .scrollBounceBehavior(.always, axes: .vertical)
+            .coordinateSpace(name: "recipeScroll")
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top
+            } action: { newValue, _ in
+                viewModel.scrollOffset = newValue
+            }
         }
         .navigationAllowDismissalGestures(allowDismissalGesture)
         .task {
@@ -138,13 +157,6 @@ public struct RecipePage: View {
             }
         }
         .edgesIgnoringSafeArea(.top)
-        .scrollBounceBehavior(.basedOnSize)
-        .onScrollGeometryChange(for: CGFloat.self, of: { geo in
-            return geo.contentOffset.y + geo.contentInsets.top
-        }, action: { new, old in
-            viewModel.scrollOffset = new
-        })
-        .scrollClipDisabled(true)
         .ignoresSafeArea(.all, edges: .all.subtracting(.bottom))
         .environment(viewModel)
         .colorScheme(.dark)
@@ -175,7 +187,12 @@ public struct RecipePage: View {
         }
         .task(id: "emojis") {
             try? await viewModel.generateEmojis()
+            try? await viewModel.generateTipsAndSummary()
         }
+        .task(id: viewModel.recipe.summarisedTip) {
+            generateCommentsLabel()
+        }
+        .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
     }
     
     @ViewBuilder
@@ -197,6 +214,35 @@ public struct RecipePage: View {
     }
 }
 
+extension RecipePage {
+    @ViewBuilder
+    private func buildPickerLabel(title: String, systemImage: String? = nil) -> some View {
+        Label(title, systemImage: systemImage ?? "")
+            .font(.footnote)
+            .labelIconToTitleSpacing(2)
+    }
+    
+    func generateCommentsLabel() {
+        Task {
+            let renderer = ImageRenderer(
+                content: buildPickerLabel(title: "Comments", systemImage: viewModel.recipe.summarisedTip == nil ? "" : "sparkles"), scale: self.displayScale)
+            if let image = renderer.uiImage {
+                self.commentsSnapshot = image
+            }
+        }
+    }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public extension ImageRenderer {
+    
+    @MainActor
+    convenience init(content: Content, scale: CGFloat) {
+        self.init(content: content)
+        self.scale = scale
+    }
+}
+
 #Preview {
     let _ = PreviewSupport.preparePreviewDatabase()
 
@@ -204,9 +250,10 @@ public struct RecipePage: View {
         id: UUID(),
         title: "Preview Carbonara",
         description: "Creamy pasta with crispy pancetta and pecorino.",
+        summarisedTip: "Users tend to recommend adding less salt than recommended - but comment that you may need to add spices to taste as it's a bit bland. Overall positive reviews.",
         author: "Preview Chef",
         sourceUrl: "https://example.com/carbonara",
-        image: .init(imageThumbnailData: nil, imageUrl: "https://www.recipetineats.com/tachyon/2023/01/Carbonara_6a.jpg"),
+        image: .init(imageThumbnailData: nil, imageUrl: "https://ichef.bbci.co.uk/food/ic/food_16x9_1600/recipes/sausage_and_mash_pie_94920_16x9.jpg"),
         timing: .init(totalTime: 30, prepTime: 10, cookTime: 20),
         serves: "4",
         ratingInfo: .init(overallRating: 4.5, totalRatings: 3, summarisedRating: "Rich and comforting", ratings: [

@@ -43,4 +43,10 @@ public final class RecipeDetailRepository {
             }
         }
     }
+    
+    public func updateSummarisedTip(to tip: String?, for recipeId: Recipe.ID) async throws {
+        try await database.write { db in
+            try DBRecipe.find(recipeId).update { $0.summarisedSuggestion = tip }.execute(db)
+        }
+    }
 }
