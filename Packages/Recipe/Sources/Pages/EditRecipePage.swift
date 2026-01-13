@@ -11,7 +11,6 @@ import Design
 import Models
 import Persistence
 import NukeUI
-import UIKit
 
 public struct EditRecipePage: View {
     
@@ -46,6 +45,7 @@ public struct EditRecipePage: View {
                     servesSection()
                     timingsSection()
                     ingredientsSection()
+                    stepSections()
                 }
             }
             .navigationTitle(recipe.title)
@@ -198,6 +198,20 @@ extension EditRecipePage {
     }
     
     @ViewBuilder
+    private func stepSections() -> some View {
+        Section("Steps") {
+            ForEach($editingRecipe.stepSections) { $stepSection in
+                ForEach($stepSection.steps) { $step in
+                    StepRow(step: $step)
+                }
+                .onMove { source, dest in
+                    //
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
     private func image() -> some View {
         if let url = editingRecipe.image.imageUrl {
             LazyImage(url: URL(string: url)) { state in
@@ -216,6 +230,27 @@ extension EditRecipePage {
     }
 }
 
+private struct StepRow: View {
+    @Binding var step: RecipeStep
+    
+    var body: some View {
+        HStack {
+            Text(step.instructionText)
+                .opacity(0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay {
+                    TextEditor(text: $step.instructionText)
+                        .padding(.horizontal, -4)
+                        .padding(.vertical, -10)
+                        .scrollDisabled(true)
+                }
+            
+            Image(systemName: "line.3.horizontal")
+        }
+        
+    }
+}
+
 private struct IngredientRow: View {
     @Binding var ingredient: RecipeIngredient
     @State private var attributed: AttributedString = ""
@@ -223,19 +258,7 @@ private struct IngredientRow: View {
     
     var body: some View {
         HStack {
-            ZStack {
-                Circle()
-                    .frame(width: 25, height: 25)
-                    .opacity(0.1)
-                
-                if let emoji = ingredient.emoji {
-                    Text(emoji)
-                } else {
-                    Image(systemName: "face.dashed")
-                }
-            }
-            .padding(.top, -2)
-            .font(.caption)
+            EmojiPickerButton(emoji: $ingredient.emoji)
             
             Text(attributed)
                 .opacity(0)
@@ -274,6 +297,40 @@ private struct IngredientRow: View {
         }
     }
 }
+
+struct EmojiPickerButton: View {
+    @Binding var emoji: String?
+    @State private var isPicking = false
+    
+    var body: some View {
+        Button { isPicking = true } label: {
+            if let emoji {
+                Text(emoji)
+                    .font(.system(size: 28))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.tertiary))
+            } else {
+                Image(systemName: "face.dashed")
+                    .font(.system(size: 28))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.tertiary))
+            }
+        }
+        .overlay(alignment: .topTrailing, content: {
+            ZStack {
+                Circle().fill(.blue).frame(width: 15, height: 15)
+                Image(systemName: "pencil")
+                    .font(.caption2)
+            }
+            .padding(.top, -3)
+            .padding(.trailing, -3)
+        })
+        .sheet(isPresented: $isPicking) {
+            EmojiEntrySheet(value: $emoji, isPresented: $isPicking)
+                .presentationDetents([.height(180)])
+                .presentationDragIndicator(.visible)
+        }
+    }
+}
+
 
 #Preview {
     
@@ -318,14 +375,14 @@ private struct IngredientRow: View {
                 steps: [
                     .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
                     .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
-                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
-                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
-                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
-                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [])
+                    .init(id: UUID(), sortIndex: 2, instructionText: "Do a third thing", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 3, instructionText: "And a fourth", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
+                    .init(id: UUID(), sortIndex: 4, instructionText: "And a fifth", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 5, instructionText: "And a sixth!", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [])
                 ]
             )
         ],
-        dominantColorHex: "#00000F",
+        dominantColorHex: "#FFFFFF",
         homeId: nil
     )
     

@@ -35,7 +35,7 @@ public struct RecipeStep: Identifiable, Hashable, Sendable, Codable {
     public let sortIndex: Int
     
     /// The actual text of the step i.e. 'Stir the sauce for 20 minutes'
-    public let instructionText: String
+    public var instructionText: String
     
     /// Any identified timings in the recipe step
     public let timings: [RecipeStepTiming]
