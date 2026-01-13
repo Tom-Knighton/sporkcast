@@ -32,7 +32,7 @@ public struct RecipeStep: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     
     /// Where this step should be ordered within the section
-    public let sortIndex: Int
+    public var sortIndex: Int
     
     /// The actual text of the step i.e. 'Stir the sauce for 20 minutes'
     public var instructionText: String

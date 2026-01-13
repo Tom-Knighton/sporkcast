@@ -14,7 +14,7 @@ public struct RecipeIngredientGroup: Identifiable, Hashable, Sendable, Codable {
     public let title: String
 
     /// Where the group is ordered in the list of groups
-    public let sortIndex: Int
+    public var sortIndex: Int
     
     public var ingredients: [RecipeIngredient]
     
@@ -30,7 +30,7 @@ public struct RecipeIngredient: Identifiable, Hashable, Equatable, Sendable, Cod
     public let id: UUID
     
     /// Where the ingredient is ordered within it's group
-    public let sortIndex: Int
+    public var sortIndex: Int
     
     /// The full raw ingredient string
     public var ingredientText: String

@@ -182,15 +182,24 @@ extension EditRecipePage {
     @ViewBuilder
     private func ingredientsSection() -> some View {
         Section("Ingredients") {
-            ForEach($editingRecipe.ingredientSections, id: \.id) { $section in
-                ForEach($section.ingredients, id: \.id) { $ingredient in
+            ForEach($editingRecipe.ingredientSections) { $section in
+                ForEach($section.ingredients) { $ingredient in
                     VStack {
                         IngredientRow(ingredient: $ingredient, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white)
                             .listRowSeparator(.visible)
                     }
                 }
                 .onMove { source, dest in
-                    //
+                    section.ingredients.move(fromOffsets: source, toOffset: dest)
+                    for idx in section.ingredients.indices {
+                        section.ingredients[idx].sortIndex = idx
+                    }
+                }
+                .onDelete { offsets in
+                    section.ingredients.remove(atOffsets: offsets)
+                    for idx in section.ingredients.indices {
+                        section.ingredients[idx].sortIndex = idx
+                    }
                 }
             }
         }
@@ -205,7 +214,16 @@ extension EditRecipePage {
                     StepRow(step: $step)
                 }
                 .onMove { source, dest in
-                    //
+                    stepSection.steps.move(fromOffsets: source, toOffset: dest)
+                    for idx in stepSection.steps.indices {
+                        stepSection.steps[idx].sortIndex = idx
+                    }
+                }
+                .onDelete { offsets in
+                    stepSection.steps.remove(atOffsets: offsets)
+                    for idx in stepSection.steps.indices {
+                        stepSection.steps[idx].sortIndex = idx
+                    }
                 }
             }
         }
