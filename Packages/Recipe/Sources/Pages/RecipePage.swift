@@ -16,6 +16,7 @@ import NukeUI
 
 public struct RecipePage: View {
     
+    @Environment(AppRouter.self) private var router
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
@@ -193,6 +194,11 @@ public struct RecipePage: View {
             generateCommentsLabel()
         }
         .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
+        .toolbar {
+            Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
+                Image(systemName: "pencil")
+            }
+        }
     }
     
     @ViewBuilder

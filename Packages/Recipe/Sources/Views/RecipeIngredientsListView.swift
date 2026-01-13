@@ -19,7 +19,6 @@ public struct RecipeIngredientsListView: View {
             ForEach(viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })) { ingredient in
                 HStack {
                     ZStack {
-                        
                         if viewModel.ingredientsGenerating || ingredient.emoji != nil {
                             Circle()
                                 .frame(width: 25, height: 25)

@@ -67,6 +67,10 @@ extension View {
                     .environment(alarmManager)
             }
             
+        case .recipeEdit(recipe: let recipe):
+            NavigationStack {
+                EditRecipePage(recipe: recipe)
+            }
         }
     }
 }

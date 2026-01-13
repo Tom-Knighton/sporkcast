@@ -23,7 +23,7 @@ public extension FullDBRecipe {
                 RecipeIngredient(id: ing.id, sortIndex: ing.sortIndex, ingredientText: ing.rawIngredient, ingredientPart: ing.ingredient, extraInformation: ing.extra, quantity: .init(quantity: ing.quantity, quantityText: ing.quantityText), unit: .init(unit: ing.unit, unitText: ing.unitText), emoji: ing.emojiDescriptor, owned: ing.owned)
             }
             
-            return RecipeIngredientGroup(id: grp.id, title: grp.title, sortIndex: grp.sortIndex, ingredients: ingredients)
+            return RecipeIngredientGroup(id: grp.id, title: grp.title, sortIndex: grp.sortIndex, ingredients: ingredients.sorted(by: { $0.sortIndex < $1.sortIndex }))
         }
         
         let stepSections = self.stepGroups.compactMap { grp in

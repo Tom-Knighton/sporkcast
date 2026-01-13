@@ -12,43 +12,43 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     
     /// The title of the recipe
-    public let title: String
+    public var title: String
     
     /// An optional brief description of the recipe
-    public let description: String?
+    public var description: String?
     
     /// An Apple Intelligence generated summary of reviews/sentiment
     public let summarisedTip: String?
     
     /// The original creator/poster of the recipe, occasionally will be a friendly version of the site
-    public let author: String?
+    public var author: String?
     
     /// The url the recipe was originally imported from - and where users should be directed to if they wish to view the original recipe
-    public let sourceUrl: String
+    public var sourceUrl: String
     
     /// Details of the image to display for the recipe
-    public let image: RecipeImage
+    public var image: RecipeImage
     
     /// How long the recipe takes to cook/prepare
-    public let timing: RecipeTiming
+    public var timing: RecipeTiming
     
     /// If present, what the recipe 'serves' i.e. '6' (for 6 people). Occasionally recipes will format this as '1 loaf' etc.
-    public let serves: String?
+    public var serves: String?
     
     /// Details on ratings/reviews
-    public let ratingInfo: RecipeRatingInfo?
+    public var ratingInfo: RecipeRatingInfo?
     
     /// The date the user added/imported this recipe
-    public let dateAdded: Date
+    public var dateAdded: Date
     
     /// The date the user last modified this recipe, i.e. by editing it manually, reimporting...
-    public let dateModified: Date
+    public var dateModified: Date
     
     /// Groups of ingredients in the recipe
-    public let ingredientSections: [RecipeIngredientGroup]
+    public var ingredientSections: [RecipeIngredientGroup]
     
     /// Sections of steps in the recipe
-    public let stepSections: [RecipeStepSection]
+    public var stepSections: [RecipeStepSection]
 
     /// The primary colour associated with the recipe
     public var dominantColorHex: String?

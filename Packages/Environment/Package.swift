@@ -14,7 +14,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"), .package(path: "API"), .package(path: "Models"), .package(path: "Persistence")
+        .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"), .package(path: "../API"), .package(path: "../Models"), .package(path: "../Persistence")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
