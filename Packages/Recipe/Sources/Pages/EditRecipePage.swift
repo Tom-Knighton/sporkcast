@@ -225,7 +225,7 @@ extension EditRecipePage {
         Section("Steps") {
             ForEach($editingRecipe.stepSections) { $stepSection in
                 ForEach($stepSection.steps) { $step in
-                    StepRow(step: $step, focusedStepID: $focusedStepID)
+                    StepRow(step: $step, focusedStepID: $focusedStepID, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white)
                 }
                 .onMove { source, dest in
                     stepSection.steps.move(fromOffsets: source, toOffset: dest)
@@ -276,14 +276,29 @@ extension EditRecipePage {
 private struct StepRow: View {
     @Binding var step: RecipeStep
     let focusedStepID: FocusState<UUID?>.Binding
+    let tint: Color
+
+    @State private var attributed: AttributedString = ""
     
     var body: some View {
         HStack {
-            Text(step.instructionText)
+            Text(attributed)
                 .opacity(0)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .onChange(of: attributed) { _, newValue in
+                    let v = String(newValue.characters)
+                    step.instructionText = v
+                    self.parseInstructionText(v)
+                }
+                .onChange(of: step, initial: true) { _, newValue in
+                    attributed = RecipeStepHighlighter.highlight(
+                        step: step,
+                        font: .body,
+                        tint: tint
+                    )
+                }
                 .overlay {
-                    TextEditor(text: $step.instructionText)
+                    TextEditor(text: $attributed)
                         .padding(.horizontal, -4)
                         .padding(.vertical, -10)
                         .scrollDisabled(true)
@@ -293,6 +308,18 @@ private struct StepRow: View {
             Image(systemName: "line.3.horizontal")
         }
         
+    }
+    
+    private func parseInstructionText(_ text: String) {
+        let attributed = try? parseInstruction(text, "en")
+        self.step.instructionText = text
+        if let attributed {
+            if attributed.temperature != 0 {
+                step.temperatures = [.init(id: UUID(), temperature: attributed.temperature, temperatureText: attributed.temperatureText, temperatureUnitText: attributed.temperatureUnitText)]
+            }
+            
+            step.timings = attributed.timeItems.map { RecipeStepTiming(id: UUID(), timeInSeconds: Double($0.timeInSeconds), timeText: $0.timeText, timeUnitText: $0.timeUnitText )}
+        }
     }
 }
 
@@ -421,7 +448,7 @@ struct EmojiPickerButton: View {
                 sortIndex: 0,
                 title: "Steps",
                 steps: [
-                    .init(id: UUID(), sortIndex: 0, instructionText: "Crisp the pancetta in a pan.", timings: [], temperatures: []),
+                    .init(id: UUID(), sortIndex: 0, instructionText: "Turn the oven to 180°C and pre-heat for 20 minutes", timings: [.init(id: UUID(), timeInSeconds: 1200, timeText: "20", timeUnitText: "minutes")], temperatures: [.init(id: UUID(), temperature: 180, temperatureText: "180°C", temperatureUnitText: "C")]),
                     .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
                     .init(id: UUID(), sortIndex: 2, instructionText: "Do a third thing", timings: [], temperatures: []),
                     .init(id: UUID(), sortIndex: 3, instructionText: "And a fourth", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),

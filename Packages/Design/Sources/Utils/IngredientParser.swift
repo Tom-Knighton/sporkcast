@@ -58,20 +58,36 @@ public struct IngredientResult {
     }
 }
 
-struct InstructionTime {
-    let timeInSeconds: Int
-    let timeUnitText: String
-    let timeText: String
+public struct InstructionTime {
+    public let timeInSeconds: Int
+    public let timeUnitText: String
+    public let timeText: String
+    
+    public init(timeInSeconds: Int, timeUnitText: String, timeText: String) {
+        self.timeInSeconds = timeInSeconds
+        self.timeUnitText = timeUnitText
+        self.timeText = timeText
+    }
 }
 
-struct InstructionResult {
-    let totalTimeInSeconds: Int
-    let timeItems: [InstructionTime]
-    let temperature: Double
-    let temperatureUnit: String
-    let temperatureText: String
-    let temperatureUnitText: String
-    let alternativeTemperatures: [AlternativeQuantity]
+public struct InstructionResult {
+    public let totalTimeInSeconds: Int
+    public let timeItems: [InstructionTime]
+    public let temperature: Double
+    public let temperatureUnit: String
+    public let temperatureText: String
+    public let temperatureUnitText: String
+    public let alternativeTemperatures: [AlternativeQuantity]
+    
+    public init(totalTimeInSeconds: Int, timeItems: [InstructionTime], temperature: Double, temperatureUnit: String, temperatureText: String, temperatureUnitText: String, alternativeTemperatures: [AlternativeQuantity]) {
+        self.totalTimeInSeconds = totalTimeInSeconds
+        self.timeItems = timeItems
+        self.temperature = temperature
+        self.temperatureUnit = temperatureUnit
+        self.temperatureText = temperatureText
+        self.temperatureUnitText = temperatureUnitText
+        self.alternativeTemperatures = alternativeTemperatures
+    }
 }
 
 struct UnitsConfig {
@@ -393,7 +409,7 @@ func getTemperatureConversions(_ temperature: Double, _ uom: String, _ units: Un
     }
 }
 
-func parseInstruction(_ text: String?, _ language: String?, includeAlternativeTemperatureUnit: Bool = false, fallbackLanguage: String? = nil) throws -> InstructionResult? {
+public func parseInstruction(_ text: String?, _ language: String?, includeAlternativeTemperatureUnit: Bool = false, fallbackLanguage: String? = nil) throws -> InstructionResult? {
     guard let text = text, !text.isEmpty else { return nil }
     
     let units = try getUnitsForLanguage(language, fallbackLanguage: fallbackLanguage)
