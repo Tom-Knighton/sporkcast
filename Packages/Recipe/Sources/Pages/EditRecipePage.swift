@@ -21,6 +21,9 @@ public struct EditRecipePage: View {
     @State private var cookTime: Duration = .seconds(0)
     @State private var prepTime: Duration = .seconds(0)
     
+    @FocusState private var focusedIngredientID: UUID?
+    @FocusState private var focusedStepID: UUID?
+    
     public init(recipe: Recipe) {
         self.recipe = recipe
         self._editingRecipe = State(wrappedValue: recipe)
@@ -185,7 +188,7 @@ extension EditRecipePage {
             ForEach($editingRecipe.ingredientSections) { $section in
                 ForEach($section.ingredients) { $ingredient in
                     VStack {
-                        IngredientRow(ingredient: $ingredient, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white)
+                        IngredientRow(ingredient: $ingredient, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white, focusedID: $focusedIngredientID)
                             .listRowSeparator(.visible)
                     }
                 }
@@ -201,6 +204,17 @@ extension EditRecipePage {
                         section.ingredients[idx].sortIndex = idx
                     }
                 }
+                
+                HStack {
+                    Button(action: {
+                        let newID = UUID()
+                        section.ingredients.append(.init(id: newID, sortIndex: section.ingredients.count, ingredientText: "", ingredientPart: nil, extraInformation: nil, quantity: nil, unit: nil, emoji: nil, owned: nil))
+                        DispatchQueue.main.async { self.focusedIngredientID = newID }
+                    }) {
+                        Label("Add Ingredient", systemImage: "plus.circle")
+                            .foregroundStyle(.blue)
+                    }
+                }
             }
         }
         .environment(\.editMode, .constant(.active))
@@ -211,7 +225,7 @@ extension EditRecipePage {
         Section("Steps") {
             ForEach($editingRecipe.stepSections) { $stepSection in
                 ForEach($stepSection.steps) { $step in
-                    StepRow(step: $step)
+                    StepRow(step: $step, focusedStepID: $focusedStepID)
                 }
                 .onMove { source, dest in
                     stepSection.steps.move(fromOffsets: source, toOffset: dest)
@@ -223,6 +237,17 @@ extension EditRecipePage {
                     stepSection.steps.remove(atOffsets: offsets)
                     for idx in stepSection.steps.indices {
                         stepSection.steps[idx].sortIndex = idx
+                    }
+                }
+                
+                HStack {
+                    Button(action: {
+                        let newID = UUID()
+                        stepSection.steps.append(.init(id: newID, sortIndex: stepSection.steps.count, instructionText: "", timings: [], temperatures: []))
+                        DispatchQueue.main.async { self.focusedStepID = newID }
+                    }) {
+                        Label("Add Step", systemImage: "plus.circle")
+                            .foregroundStyle(.blue)
                     }
                 }
             }
@@ -250,6 +275,7 @@ extension EditRecipePage {
 
 private struct StepRow: View {
     @Binding var step: RecipeStep
+    let focusedStepID: FocusState<UUID?>.Binding
     
     var body: some View {
         HStack {
@@ -261,6 +287,7 @@ private struct StepRow: View {
                         .padding(.horizontal, -4)
                         .padding(.vertical, -10)
                         .scrollDisabled(true)
+                        .focused(focusedStepID, equals: step.id)
                 }
             
             Image(systemName: "line.3.horizontal")
@@ -273,6 +300,7 @@ private struct IngredientRow: View {
     @Binding var ingredient: RecipeIngredient
     @State private var attributed: AttributedString = ""
     let tint: Color
+    let focusedID: FocusState<UUID?>.Binding
     
     var body: some View {
         HStack {
@@ -298,6 +326,8 @@ private struct IngredientRow: View {
                         .padding(.horizontal, -4)
                         .padding(.vertical, -10)
                         .scrollDisabled(true)
+                        .submitLabel(.done)
+                        .focused(focusedID, equals: ingredient.id)
                 }
             
             Image(systemName: "line.3.horizontal")
