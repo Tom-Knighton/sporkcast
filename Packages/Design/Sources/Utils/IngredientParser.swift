@@ -248,14 +248,23 @@ func getIngredient(_ tokens: [String], _ startIndex: Int, _ units: UnitsConfig) 
     
     let firstToken = tokens[index]
     let skipFirstToken = units.ingredientPrepositions.contains(firstToken) || units.ingredientSizes.contains(firstToken) || firstToken == "."
-    let newStartIndex = skipFirstToken ? index + 2 : index
     
     let separatorIndex = tokens.firstIndex(where: { $0 == "," }) ?? tokens.count
     let endIndex = separatorIndex > 0 ? separatorIndex : tokens.count
     var cleanTokens: [String] = []
     var withinParenthesis = false
     
-    for i in newStartIndex..<min(endIndex, tokens.count) {
+    var newStartIndex = index
+    if skipFirstToken {
+        newStartIndex = index + 1
+        if newStartIndex < tokens.count, tokens[newStartIndex] == " " {
+            newStartIndex += 1
+        }
+    }
+    let upperBound = min(endIndex, tokens.count)
+    guard newStartIndex < upperBound else { return ("", endIndex) }
+    
+    for i in newStartIndex..<upperBound {
         let item = tokens[i]
         withinParenthesis = withinParenthesis || item == "("
         if !withinParenthesis {

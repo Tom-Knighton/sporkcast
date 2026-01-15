@@ -294,7 +294,7 @@ private struct StepRow: View {
                     attributed = RecipeStepHighlighter.highlight(
                         step: step,
                         font: .body,
-                        tint: tint
+                        tint: .primary
                     )
                 }
                 .overlay {
@@ -345,7 +345,7 @@ private struct IngredientRow: View {
                     attributed = IngredientHighlighter.highlight(
                         ingredient: ingredient,
                         font: .body,
-                        tint: tint
+                        tint: .secondary
                     )
                 }
                 .overlay {
