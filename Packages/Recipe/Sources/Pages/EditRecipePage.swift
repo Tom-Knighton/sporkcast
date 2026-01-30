@@ -11,15 +11,22 @@ import Design
 import Models
 import Persistence
 import NukeUI
+import SQLiteData
 
 public struct EditRecipePage: View {
     
+    @Dependency(\.defaultDatabase) private var db
+    @Environment(\.dismiss) private var dismiss
+
     private let recipe: Recipe
     @State private var editingRecipe: Recipe
     
     @State private var totalTime: Duration = .seconds(0)
     @State private var cookTime: Duration = .seconds(0)
     @State private var prepTime: Duration = .seconds(0)
+    @State private var colour: Color
+    @State private var errorMessage: String? = nil
+    @State private var showErrorMessage: Bool = false
     
     @FocusState private var focusedIngredientID: UUID?
     @FocusState private var focusedStepID: UUID?
@@ -37,6 +44,12 @@ public struct EditRecipePage: View {
         if let rPT = recipe.timing.prepTime {
             self._prepTime = .init(wrappedValue: .seconds(60 * rPT))
         }
+        
+        if let domColour = recipe.dominantColorHex {
+            self.colour = Color(hex: domColour) ?? .clear
+        } else {
+            self.colour = .clear
+        }
     }
     
     public var body: some View {
@@ -52,9 +65,32 @@ public struct EditRecipePage: View {
                 }
             }
             .navigationTitle(recipe.title)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { self.dismiss() }) {
+                        Image(systemName: "xmark")
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: { Task { await saveRecipe() }}) {
+                        Image(systemName: "checkmark")
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+            }
         }
         .interactiveDismissDisabled()
         .fontDesign(.rounded)
+        .onChange(of: self.errorMessage) { _, newValue in
+            self.showErrorMessage = newValue != nil
+        }
+        .alert("Error", isPresented: $showErrorMessage) {
+            Button(role: .confirm) { self.errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Something went wrong")
+        }
+
     }
 }
 
@@ -89,6 +125,12 @@ extension EditRecipePage {
             }
             .overlay { Color.gray.opacity(0.5) }
             .disabled(true)
+            
+            HStack {
+                Text("Highlight Colour").bold()
+                Spacer()
+                ColorPicker("", selection: $colour, supportsOpacity: false)
+            }
         }
     }
     
@@ -273,139 +315,74 @@ extension EditRecipePage {
     }
 }
 
-private struct StepRow: View {
-    @Binding var step: RecipeStep
-    let focusedStepID: FocusState<UUID?>.Binding
-    let tint: Color
-
-    @State private var attributed: AttributedString = ""
+extension EditRecipePage {
     
-    var body: some View {
-        HStack {
-            Text(attributed)
-                .opacity(0)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: attributed) { _, newValue in
-                    let v = String(newValue.characters)
-                    step.instructionText = v
-                    self.parseInstructionText(v)
-                }
-                .onChange(of: step, initial: true) { _, newValue in
-                    attributed = RecipeStepHighlighter.highlight(
-                        step: step,
-                        font: .body,
-                        tint: .primary
-                    )
-                }
-                .overlay {
-                    TextEditor(text: $attributed)
-                        .padding(.horizontal, -4)
-                        .padding(.vertical, -10)
-                        .scrollDisabled(true)
-                        .focused(focusedStepID, equals: step.id)
-                }
-            
-            Image(systemName: "line.3.horizontal")
+    private func saveRecipe() async {
+        guard editingRecipe.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+            self.errorMessage = "Please enter a title for this recipe."
+            return
         }
         
-    }
-    
-    private func parseInstructionText(_ text: String) {
-        let attributed = try? parseInstruction(text, "en")
-        self.step.instructionText = text
-        if let attributed {
-            if attributed.temperature != 0 {
-                step.temperatures = [.init(id: UUID(), temperature: attributed.temperature, temperatureText: attributed.temperatureText, temperatureUnitText: attributed.temperatureUnitText)]
+        do {
+            let newTiming = RecipeTiming(totalTime: totalTime == .zero ? nil : Double(totalTime.components.seconds) / 60, prepTime: prepTime == .zero ? nil : Double(prepTime.components.seconds) / 60, cookTime: cookTime == .zero ? nil : Double(cookTime.components.seconds) / 60)
+            editingRecipe.timing = newTiming
+            editingRecipe.dominantColorHex = colour.toHex()
+            let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings) = await Recipe.entites(from: editingRecipe)
+
+            try await db.write { [newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings] db in
+                
+                try DBRecipe
+                    .upsert { newRecipe }
+                    .execute(db)
+                try DBRecipeImage
+                    .upsert { newImage }
+                    .execute(db)
+                
+                // Remove & Reinsert ingredients & temps
+                try DBRecipeIngredientGroup
+                    .where { $0.recipeId == newRecipe.id }
+                    .delete()
+                    .execute(db)
+                try DBRecipeIngredientGroup
+                    .insert { newIngGroups }
+                    .execute(db)
+                try DBRecipeIngredient
+                    .insert { newIngs}
+                    .execute(db)
+                try DBRecipeStepGroup
+                    .where { $0.recipeId == newRecipe.id }
+                    .delete()
+                    .execute(db)
+                try DBRecipeStepGroup
+                    .insert { newStepGroups }
+                    .execute(db)
+                try DBRecipeStep
+                    .insert { newSteps}
+                    .execute(db)
+                try DBRecipeStepTiming
+                    .insert { newStepTimings }
+                    .execute(db)
+                try DBRecipeStepTemperature
+                    .insert { newStepTemps }
+                    .execute(db)
+                
+                // Ratings
+                try DBRecipeRating
+                    .where { $0.recipeId == newRecipe.id }
+                    .delete()
+                    .execute(db)
+                try DBRecipeRating
+                    .insert { newRatings }
+                    .execute(db)
             }
             
-            step.timings = attributed.timeItems.map { RecipeStepTiming(id: UUID(), timeInSeconds: Double($0.timeInSeconds), timeText: $0.timeText, timeUnitText: $0.timeUnitText )}
+            self.dismiss()
+        } catch {
+            self.errorMessage = "Failed to save recipe."
+            return
         }
     }
 }
-
-private struct IngredientRow: View {
-    @Binding var ingredient: RecipeIngredient
-    @State private var attributed: AttributedString = ""
-    let tint: Color
-    let focusedID: FocusState<UUID?>.Binding
-    
-    var body: some View {
-        HStack {
-            EmojiPickerButton(emoji: $ingredient.emoji)
-            
-            Text(attributed)
-                .opacity(0)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: attributed) { _, newValue in
-                    let v = String(newValue.characters)
-                    ingredient.ingredientText = v
-                    self.parseIngredientText(v)
-                }
-                .onChange(of: ingredient, initial: true) { _, newValue in
-                    attributed = IngredientHighlighter.highlight(
-                        ingredient: ingredient,
-                        font: .body,
-                        tint: .secondary
-                    )
-                }
-                .overlay {
-                    TextEditor(text: $attributed)
-                        .padding(.horizontal, -4)
-                        .padding(.vertical, -10)
-                        .scrollDisabled(true)
-                        .submitLabel(.done)
-                        .focused(focusedID, equals: ingredient.id)
-                }
-            
-            Image(systemName: "line.3.horizontal")
-        }
-    }
-    
-    private func parseIngredientText(_ text: String) {
-        let attributed = try? parseIngredient(text, "en")
-        self.ingredient.ingredientText = text
-        if let attributed {
-            ingredient.quantity = .init(quantity: attributed.quantity, quantityText: attributed.quantityText)
-            ingredient.unit = .init(unit: attributed.unit, unitText: attributed.unitText)
-            ingredient.ingredientPart = attributed.ingredient
-            ingredient.extraInformation = attributed.extra
-        }
-    }
-}
-
-struct EmojiPickerButton: View {
-    @Binding var emoji: String?
-    @State private var isPicking = false
-    
-    var body: some View {
-        Button { isPicking = true } label: {
-            if let emoji {
-                Text(emoji)
-                    .font(.system(size: 28))
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.tertiary))
-            } else {
-                Image(systemName: "face.dashed")
-                    .font(.system(size: 28))
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.tertiary))
-            }
-        }
-        .overlay(alignment: .topTrailing, content: {
-            ZStack {
-                Circle().fill(.blue).frame(width: 15, height: 15)
-                Image(systemName: "pencil")
-                    .font(.caption2)
-            }
-            .padding(.top, -3)
-            .padding(.trailing, -3)
-        })
-        .sheet(isPresented: $isPicking) {
-            EmojiEntrySheet(value: $emoji, isPresented: $isPicking)
-                .presentationDetents([.height(180)])
-                .presentationDragIndicator(.visible)
-        }
-    }
-}
-
 
 #Preview {
     
@@ -457,7 +434,7 @@ struct EmojiPickerButton: View {
                 ]
             )
         ],
-        dominantColorHex: "#FFFFFF",
+        dominantColorHex: "#FF0000",
         homeId: nil
     )
     
@@ -468,6 +445,7 @@ struct EmojiPickerButton: View {
         EditRecipePage(recipe: recipe)
             .environment(AppRouter(initialTab: .recipes))
             .environment(RecipeTimerStore.shared)
+            .environment(AlertManager())
     }
 }
 

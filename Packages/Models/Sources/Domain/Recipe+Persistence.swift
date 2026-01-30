@@ -41,3 +41,23 @@ public extension FullDBRecipe {
         return Recipe(id: self.recipe.id, title: self.recipe.title, description: self.recipe.description, summarisedTip: self.recipe.summarisedSuggestion, author: self.recipe.author, sourceUrl: self.recipe.sourceUrl, image: image, timing: timing, serves: self.recipe.serves, ratingInfo: ratingInfo, dateAdded: self.recipe.dateAdded, dateModified: self.recipe.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.recipe.dominantColorHex, homeId: self.recipe.homeId)
     }
 }
+
+public extension RecipeIngredientGroup {
+    func asDatabaseObject(for recipeId: Recipe.ID) -> DBRecipeIngredientGroup {
+        return .init(id: self.id, recipeId: recipeId, title: self.title, sortIndex: self.sortIndex)
+    }
+    
+    func ingredientsAsDatabaseObjects() -> [DBRecipeIngredient] {
+        return ingredients.map { DBRecipeIngredient(id: $0.id, ingredientGroupId: self.id, sortIndex: $0.sortIndex, rawIngredient: $0.ingredientText, quantity: $0.quantity?.quantity, quantityText: $0.quantity?.quantityText, unit: $0.unit?.unit, unitText: $0.unit?.unitText, ingredient: $0.ingredientPart, extra: $0.extraInformation, emojiDescriptor: $0.emoji, owned: $0.owned ?? false) }
+    }
+}
+
+public extension RecipeStepSection {
+    func asDatabaseObject(for recipeId: Recipe.ID) -> DBRecipeStepGroup {
+        return .init(id: self.id, recipeId: recipeId, title: self.title, sortIndex: self.sortIndex)
+    }
+    
+    func stepsAsDatabaseObjects() -> [DBRecipeStep] {
+        return steps.map { DBRecipeStep(id: $0.id, groupId: self.id, sortIndex: $0.sortIndex, instruction: $0.instructionText) }
+    }
+}

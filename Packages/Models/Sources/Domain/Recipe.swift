@@ -93,13 +93,13 @@ public struct RecipeImage: Hashable, Sendable, Codable {
 public struct RecipeTiming: Hashable, Sendable, Codable {
     
     /// The total amount of minutes this recipe takes to prepare + cook
-    public let totalTime: Double?
+    public var totalTime: Double?
     
     /// The total amount of minutes this recipe takes to prepare for
-    public let prepTime: Double?
+    public var prepTime: Double?
     
     /// The total amount of minutes this reciep takes to cook
-    public let cookTime: Double?
+    public var cookTime: Double?
     
     public init(totalTime: Double?, prepTime: Double?, cookTime: Double?) {
         self.totalTime = totalTime
