@@ -12,6 +12,8 @@ import Models
 import Persistence
 import NukeUI
 import SQLiteData
+import PhotosUI
+import UIKit
 
 public struct EditRecipePage: View {
     
@@ -27,6 +29,8 @@ public struct EditRecipePage: View {
     @State private var colour: Color
     @State private var errorMessage: String? = nil
     @State private var showErrorMessage: Bool = false
+    @State private var selectedImageItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
     
     @FocusState private var focusedIngredientID: UUID?
     @FocusState private var focusedStepID: UUID?
@@ -119,12 +123,21 @@ extension EditRecipePage {
             }
             
             HStack {
-                Text("Cover Image").bold()
+                PhotosPicker("Cover Image", selection: $selectedImageItem, matching: .images)
+                    .tint(.primary)
+                    .bold()
                 Spacer()
                 image()
             }
-            .overlay { Color.gray.opacity(0.5) }
-            .disabled(true)
+            .onChange(of: self.selectedImageItem) { _, newValue in
+                if let newValue {
+                    Task {
+                        if let loaded = try? await newValue.loadTransferable(type: Data.self) {
+                            self.selectedImageData = loaded
+                        }
+                    }
+                }
+            }
             
             HStack {
                 Text("Highlight Colour").bold()
@@ -298,7 +311,13 @@ extension EditRecipePage {
     
     @ViewBuilder
     private func image() -> some View {
-        if let url = editingRecipe.image.imageUrl {
+        if let item = selectedImageData ?? self.editingRecipe.image.imageThumbnailData, let uiImage = UIImage(data: item) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 100, height: 100)
+                .clipShape(.rect(cornerRadius: 10))
+        } else if let url = editingRecipe.image.imageUrl {
             LazyImage(url: URL(string: url)) { state in
                 if let img = state.image {
                     img
@@ -327,6 +346,11 @@ extension EditRecipePage {
             let newTiming = RecipeTiming(totalTime: totalTime == .zero ? nil : Double(totalTime.components.seconds) / 60, prepTime: prepTime == .zero ? nil : Double(prepTime.components.seconds) / 60, cookTime: cookTime == .zero ? nil : Double(cookTime.components.seconds) / 60)
             editingRecipe.timing = newTiming
             editingRecipe.dominantColorHex = colour.toHex()
+            
+            if let image = selectedImageData {
+                editingRecipe.image = .init(imageThumbnailData: image, imageUrl: nil)
+            }
+            
             let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings) = await Recipe.entites(from: editingRecipe)
 
             try await db.write { [newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings] db in
