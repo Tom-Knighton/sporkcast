@@ -41,11 +41,20 @@ private final class RecipeImageLoader: ObservableObject {
         }
     }
     
+    func load(from data: Data) {
+        task?.cancel()
+        task = nil
+        image = nil
+
+        self.image = UIImage(data: data)
+    }
+    
     deinit { task?.cancel() }
 }
 
 private struct RecipeRemoteImage: View {
     let url: URL?
+    let data: Data?
     let preloaded: UIImage?
     let onLoaded: ((UIImage) -> Void)?
     
@@ -68,11 +77,21 @@ private struct RecipeRemoteImage: View {
         }
         .onAppear {
             guard preloaded == nil else { return }
-            loader.load(from: url)
+            if let url {
+                loader.load(from: url)
+            } else if let data {
+                loader.load(from: data)
+            }
         }
         .onChange(of: url) { _, newValue in
             guard preloaded == nil else { return }
             loader.load(from: newValue)
+        }
+        .onChange(of: self.data) { _, newValue in
+            guard preloaded == nil else { return }
+            if let newValue {
+                loader.load(from: newValue)
+            }
         }
     }
 }
@@ -103,7 +122,7 @@ public struct RecipeCardView: View {
     
     public var body: some View {
         ZStack {
-            RecipeRemoteImage(url: imageURL, preloaded: preloadedImage, onLoaded: onImageLoaded)
+            RecipeRemoteImage(url: imageURL, data: recipe.image.imageThumbnailData, preloaded: preloadedImage, onLoaded: onImageLoaded)
                 .clipped()
                 .frame(idealHeight: 135)
                 .fixedSize(horizontal: false, vertical: true)

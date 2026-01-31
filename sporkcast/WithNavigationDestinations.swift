@@ -13,6 +13,7 @@ import Environment
 import Models
 import RecipeTimersList
 import Settings
+import Design
 
 struct WithNavigationDestinations<Content: View>: View {
     let namespace: Namespace.ID
@@ -44,17 +45,19 @@ struct WithNavigationDestinations<Content: View>: View {
 extension View {
     func appSheet(
         _ presented: Binding<AppSheet?>,
-        alarmManager: RecipeTimerStore
+        alarmManager: RecipeTimerStore,
+        alertManager: AlertManager
     ) -> some View {
         sheet(item: presented) { sheet in
-            sheetView(for: sheet, alarmManager: alarmManager)
+            sheetView(for: sheet, alarmManager: alarmManager, alertManager: alertManager)
         }
     }
     
     @ViewBuilder
     private func sheetView(
         for sheet: AppSheet,
-        alarmManager: RecipeTimerStore
+        alarmManager: RecipeTimerStore,
+        alertManager: AlertManager
     ) -> some View {
         switch sheet {
         case .timersView:
@@ -67,6 +70,11 @@ extension View {
                     .environment(alarmManager)
             }
             
+        case .recipeEdit(recipe: let recipe):
+            NavigationStack {
+                EditRecipePage(recipe: recipe)
+                    .environment(alertManager)
+            }
         }
     }
 }

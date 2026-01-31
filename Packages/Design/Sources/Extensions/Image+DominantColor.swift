@@ -13,7 +13,11 @@ public extension Image {
     @MainActor
     func getDominantColor() async -> Color? {
         if let uiImage = ImageRenderer(content: self).uiImage {
-            return Color(uiColor: uiImage.dominantBackgroundColor() ?? .clear)
+            if let uiColour = uiImage.dominantBackgroundColor(centerBias: 20) {
+                return Color(uiColor: uiColour)
+            } else {
+                return .clear
+            }
         }
         
         return .clear

@@ -16,6 +16,7 @@ import NukeUI
 
 public struct RecipePage: View {
     
+    @Environment(AppRouter.self) private var router
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
@@ -193,22 +194,39 @@ public struct RecipePage: View {
             generateCommentsLabel()
         }
         .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
+        .toolbar {
+            Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
+                Image(systemName: "pencil")
+            }
+        }
     }
     
     @ViewBuilder
     private func image() -> some View {
-        LazyImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { state in
-            if let img = state.image {
-                img
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .task {
-                        if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
-                            await viewModel.setDominantColour(to: dom)
-                        }
+        
+        if let data = viewModel.recipe.image.imageThumbnailData, let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .task {
+                    if viewModel.recipe.dominantColorHex == nil, let dom = await Image(uiImage: uiImage).getDominantColor() {
+                        await viewModel.setDominantColour(to: dom)
                     }
-            } else {
-                Rectangle().opacity(0.1)
+                }
+        } else {
+            LazyImage(url: URL(string: viewModel.recipe.image.imageUrl ?? "")) { state in
+                if let img = state.image {
+                    img
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .task {
+                            if viewModel.recipe.dominantColorHex == nil, let dom = await img.getDominantColor() {
+                                await viewModel.setDominantColour(to: dom)
+                            }
+                        }
+                } else {
+                    Rectangle().opacity(0.1)
+                }
             }
         }
     }

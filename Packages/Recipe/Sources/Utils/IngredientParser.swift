@@ -20,7 +20,8 @@ public struct IngredientHighlighter {
         
         func apply(_ r: Range<String.Index>) {
             guard let low = AttributedString.Index(r.lowerBound, within: attr),
-                  let upp = AttributedString.Index(r.upperBound, within: attr) else { return }
+                  let upp = AttributedString.Index(r.upperBound, within: attr),
+                  low <= upp else { return }
             
             let bold = font.weight(.heavy)
             attr[low..<upp].font = bold

@@ -11,14 +11,40 @@ import Persistence
 import CryptoKit
 import UIKit
 
+public extension Recipe {
+    static func entites(from dto: Recipe) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating]) {
+        
+        let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: dto.summarisedTip, summarisedSuggestion: nil, dateAdded: dto.dateAdded, dateModified: dto.dateModified, homeId: dto.homeId)
+        
+        let recipeImage = DBRecipeImage(recipeId: dto.id, imageSourceUrl: dto.image.imageUrl, imageData: dto.image.imageThumbnailData)
+        
+        let ingredientSections = dto.ingredientSections.map { $0.asDatabaseObject(for: dto.id) }
+        let ingredients = dto.ingredientSections.flatMap { $0.ingredientsAsDatabaseObjects() }
+        
+        let stepSections = dto.stepSections.map { $0.asDatabaseObject(for: dto.id) }
+        let steps = dto.stepSections.flatMap { $0.stepsAsDatabaseObjects() }
+        
+        var timings: [DBRecipeStepTiming] = []
+        var temps: [DBRecipeStepTemperature] = []
+        
+        for step in dto.stepSections.flatMap(\.steps) {
+            timings.append(contentsOf: step.timings.compactMap { DBRecipeStepTiming(id: $0.id, recipeStepId: step.id, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)})
+            temps.append(contentsOf: step.temperatures.compactMap { DBRecipeStepTemperature(id: $0.id, recipeStepId: step.id, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) })
+        }
+        
+        let ratings = dto.ratingInfo?.ratings.compactMap { DBRecipeRating(id: $0.id, recipeId: dto.id, rating: $0.rating, comment: $0.comment)} ?? []
+        
+        return (recipeEntry, recipeImage, ingredientSections, ingredients, stepSections, steps, timings, temps, ratings)
+        
+    }
+}
+
 public extension RecipeDTO {
     static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating]) {
         
         let recipeId = UUID()
         let now = Date()
-        
-        let key = RecipeDTO.canonicalKey(from: dto.url)
-        
+                
         var thumbnailData: Data?
         
         do {

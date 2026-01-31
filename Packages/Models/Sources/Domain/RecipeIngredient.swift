@@ -14,9 +14,9 @@ public struct RecipeIngredientGroup: Identifiable, Hashable, Sendable, Codable {
     public let title: String
 
     /// Where the group is ordered in the list of groups
-    public let sortIndex: Int
+    public var sortIndex: Int
     
-    public let ingredients: [RecipeIngredient]
+    public var ingredients: [RecipeIngredient]
     
     public init(id: UUID, title: String, sortIndex: Int, ingredients: [RecipeIngredient]) {
         self.id = id
@@ -30,23 +30,23 @@ public struct RecipeIngredient: Identifiable, Hashable, Equatable, Sendable, Cod
     public let id: UUID
     
     /// Where the ingredient is ordered within it's group
-    public let sortIndex: Int
+    public var sortIndex: Int
     
     /// The full raw ingredient string
-    public let ingredientText: String
+    public var ingredientText: String
     
     /// A parsed piece of text attempting to represent the actual ingredient i.e. 'brocolli' in '2tsp brocolli'
-    public let ingredientPart: String?
+    public var ingredientPart: String?
     
     /// Any extra information that was able to be parsed i.e. 'chopped', 'diced'
-    public let extraInformation: String?
+    public var extraInformation: String?
 
     
     /// If parsed, structured details on the quantity of the ingredient
-    public let quantity: IngredientQuantity?
+    public var quantity: IngredientQuantity?
     
     /// If parsed, structured details on the unit of the ingredient
-    public let unit: IngredientUnit?
+    public var unit: IngredientUnit?
     
     /// If present, the emoji that should represent this ingredient
     public var emoji: String?

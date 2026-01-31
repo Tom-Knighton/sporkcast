@@ -57,7 +57,7 @@ struct AppContent: View {
                 }
             }
         }
-        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager)
+        .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())
         .tint(Color.primary)
         .environment(appRouter)
