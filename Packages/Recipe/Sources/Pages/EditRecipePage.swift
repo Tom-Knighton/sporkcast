@@ -330,7 +330,6 @@ extension EditRecipePage {
                 }
             }
         }
-        
     }
 }
 
