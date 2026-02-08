@@ -16,7 +16,7 @@ import Models
 public extension Recipe {
     static func entites(from dto: Recipe) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating], [DBRecipeStepLinkedIngredient]) {
         
-        let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: dto.summarisedTip, summarisedSuggestion: nil, dateAdded: dto.dateAdded, dateModified: dto.dateModified, homeId: dto.homeId)
+        let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: nil, summarisedSuggestion: dto.summarisedTip, dateAdded: dto.dateAdded, dateModified: dto.dateModified, homeId: dto.homeId)
         
         let recipeImage = DBRecipeImage(recipeId: dto.id, imageSourceUrl: dto.image.imageUrl, imageData: dto.image.imageThumbnailData)
         
