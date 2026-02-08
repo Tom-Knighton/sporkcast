@@ -56,7 +56,6 @@ public struct RecipeStepsView: View {
                                 }
                             }
                         }
-                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)

@@ -75,13 +75,23 @@ struct StepRow: View {
         }
         .onChange(of: allIngredients, initial: true) { _, ingredients in
             let ingredientMatcher = IngredientStepMatcher()
-            self.matchedIngredients = ingredientMatcher.matchIngredients(for: step.instructionText, ingredients: ingredients)
+            let autoMatched = ingredientMatcher.matchIngredients(for: step.instructionText, ingredients: ingredients)
+            
+            if !step.linkedIngredients.isEmpty {
+                self.matchedIngredients = ingredients.filter { step.linkedIngredients.contains($0.id) }
+            } else {
+                self.matchedIngredients = autoMatched
+            }
         }
         .sheet(isPresented: $showIngredientSheet) {
             EditLinkedIngredientsSheet(
                 allIngredients: allIngredients,
                 matchedIngredients: matchedIngredients,
-                instructionText: step.instructionText
+                instructionText: step.instructionText,
+                onUpdate: { updatedMatched in
+                    self.matchedIngredients = updatedMatched
+                    step.linkedIngredients = updatedMatched.map { $0.id }
+                }
             )
             .presentationDetents([.medium, .large])
         }
@@ -93,12 +103,18 @@ struct EditLinkedIngredientsSheet: View {
     @State var allIngredients: [RecipeIngredient]
     @State var matchedIngredients: [RecipeIngredient]
     let instructionText: String
+    let onUpdate: ([RecipeIngredient]) -> Void
+    @Environment(\.dismiss) private var dismiss
         
     var body: some View {
         DraggableIngredientList(
             allIngredients: $allIngredients,
             matchedIngredients: $matchedIngredients,
-            instructionText: instructionText
+            instructionText: instructionText,
+            onDismiss: {
+                onUpdate(matchedIngredients)
+                dismiss()
+            }
         )
     }
 }
@@ -107,6 +123,7 @@ struct DraggableIngredientList: UIViewControllerRepresentable {
     @Binding var allIngredients: [RecipeIngredient]
     @Binding var matchedIngredients: [RecipeIngredient]
     let instructionText: String
+    let onDismiss: () -> Void
     
     func makeUIViewController(context: Context) -> UINavigationController {
         let root = DraggableIngredientViewController(
@@ -121,6 +138,11 @@ struct DraggableIngredientList: UIViewControllerRepresentable {
         
         root.title = "Linked Ingredients"
         root.navigationItem.largeTitleDisplayMode = .automatic
+        root.navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDone)
+        )
         
         let nav = UINavigationController(rootViewController: root)
         nav.navigationBar.prefersLargeTitles = true
@@ -130,6 +152,22 @@ struct DraggableIngredientList: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
         guard let root = uiViewController.viewControllers.first as? DraggableIngredientViewController else { return }
         root.setIngredients(all: allIngredients, matched: matchedIngredients)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: onDismiss)
+    }
+    
+    class Coordinator {
+        let onDismiss: () -> Void
+        
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+        
+        @objc func handleDone() {
+            onDismiss()
+        }
     }
 }
 
