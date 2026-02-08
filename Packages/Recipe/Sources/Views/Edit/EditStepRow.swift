@@ -116,6 +116,7 @@ struct EditLinkedIngredientsSheet: View {
                 dismiss()
             }
         )
+        .ignoresSafeArea()
     }
 }
 
