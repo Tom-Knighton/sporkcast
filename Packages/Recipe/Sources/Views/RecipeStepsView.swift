@@ -72,22 +72,29 @@ public struct RecipeStepsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             if stepSections.isEmpty {
-                let sections = vm.recipe.stepSections
-                    .sorted(by: { $0.sortIndex < $1.sortIndex })
-                    .compactMap { sect in
-                        var newSect = sect
-                        if newSect.title.isEmpty {
-                            newSect.title = "Steps:"
-                        }
-                        newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
-                        return newSect
-                    }
-                self.stepSections = sections
+                updateStepSections()
             }
+        }
+        .onChange(of: vm.recipe.stepSections) { _, _ in
+            updateStepSections()
         }
 
     }
 
+    private func updateStepSections() {
+        let sections = vm.recipe.stepSections
+            .sorted(by: { $0.sortIndex < $1.sortIndex })
+            .compactMap { sect in
+                var newSect = sect
+                if newSect.title.isEmpty {
+                    newSect.title = "Steps:"
+                }
+                newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
+                return newSect
+            }
+        self.stepSections = sections
+    }
+    
     private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
         let timings = recipeStep.timings
         guard timerIndex < timings.count else { return }
