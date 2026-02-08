@@ -1,5 +1,5 @@
 //
-//  PersistentRecipe+API.swift
+//  Recipe+Entites.swift
 //  Models
 //
 //  Created by Tom Knighton on 22/10/2025.
@@ -10,9 +10,10 @@ import Foundation
 import Persistence
 import CryptoKit
 import UIKit
+import Models
 
 public extension Recipe {
-    static func entites(from dto: Recipe) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating]) {
+    static func entites(from dto: Recipe) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating], [DBRecipeStepLinkedIngredient]) {
         
         let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: dto.summarisedTip, summarisedSuggestion: nil, dateAdded: dto.dateAdded, dateModified: dto.dateModified, homeId: dto.homeId)
         
@@ -26,25 +27,27 @@ public extension Recipe {
         
         var timings: [DBRecipeStepTiming] = []
         var temps: [DBRecipeStepTemperature] = []
+        var linkedIngredients: [DBRecipeStepLinkedIngredient] = []
         
         for step in dto.stepSections.flatMap(\.steps) {
             timings.append(contentsOf: step.timings.compactMap { DBRecipeStepTiming(id: $0.id, recipeStepId: step.id, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)})
             temps.append(contentsOf: step.temperatures.compactMap { DBRecipeStepTemperature(id: $0.id, recipeStepId: step.id, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) })
+            linkedIngredients.append(contentsOf: step.linkedIngredients.compactMap { .init(id: UUID(), recipeStepId: step.id, ingredientId: $0 )})
         }
         
         let ratings = dto.ratingInfo?.ratings.compactMap { DBRecipeRating(id: $0.id, recipeId: dto.id, rating: $0.rating, comment: $0.comment)} ?? []
         
-        return (recipeEntry, recipeImage, ingredientSections, ingredients, stepSections, steps, timings, temps, ratings)
+        return (recipeEntry, recipeImage, ingredientSections, ingredients, stepSections, steps, timings, temps, ratings, linkedIngredients)
         
     }
 }
 
 public extension RecipeDTO {
-    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating]) {
+    static func entities(from dto: RecipeDTO, for homeId: UUID? = nil) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating], [DBRecipeStepLinkedIngredient]) {
         
         let recipeId = UUID()
         let now = Date()
-                
+        
         var thumbnailData: Data?
         
         do {
@@ -57,7 +60,7 @@ public extension RecipeDTO {
         } catch {
             print("Error downloading image: \(error)")
         }
-                
+        
         let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, totalRatings: dto.ratings.totalRatings, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, homeId: homeId)
         
         let recipeImage = DBRecipeImage(recipeId: recipe.id, imageSourceUrl: dto.imageUrl, imageData: thumbnailData)
@@ -75,6 +78,9 @@ public extension RecipeDTO {
         var stepTimings: [DBRecipeStepTiming] = []
         var stepTemps: [DBRecipeStepTemperature] = []
         let ratings: [DBRecipeRating] = dto.ratings.reviews?.compactMap { DBRecipeRating(id: UUID(), recipeId: recipeId, rating: $0.rating, comment: $0.text)} ?? []
+        var linkedIngredients: [DBRecipeStepLinkedIngredient] = []
+        
+        let ingredientMatcher = IngredientStepMatcher()
         
         for (index, group) in dto.stepSections.enumerated() {
             let groupId = UUID()
@@ -87,13 +93,17 @@ public extension RecipeDTO {
                 stepTimings.append(contentsOf: step.times.compactMap { DBRecipeStepTiming(id: UUID(), recipeStepId: stepId, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText) } )
                 stepTemps.append(contentsOf: step.temperatures.compactMap { DBRecipeStepTemperature(id: UUID(), recipeStepId: stepId, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) } )
                 
+                // First pass ingredient highlighter:
+                let matchedIngredients = ingredientMatcher.matchIngredients(for: step.step, ingredients: ingredients.compactMap { RecipeIngredient(id: $0.id, sortIndex: $0.sortIndex, ingredientText: $0.rawIngredient, ingredientPart: $0.ingredient, extraInformation: $0.extra, quantity: .init(quantity: $0.quantity, quantityText: $0.quantityText), unit: .init(unit: $0.unit, unitText: $0.unitText), emoji: $0.emojiDescriptor, owned: $0.owned)})
+                linkedIngredients.append(contentsOf: matchedIngredients.compactMap { DBRecipeStepLinkedIngredient(id: UUID(), recipeStepId: stepId, ingredientId: $0.id)})
+                
                 steps.append(dbStep)
             }
             
             stepGroups.append(dbGroup)
         }
         
-        return (recipe, recipeImage, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps, ratings)
+        return (recipe, recipeImage, ingredientGroups, ingredients, stepGroups, steps, stepTimings, stepTemps, ratings, linkedIngredients)
     }
     
     private static func downloadImageData(from url: URL) async throws -> Data {

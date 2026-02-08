@@ -177,6 +177,19 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
+@Table("RecipeStepLinkedIngredients")
+public struct DBRecipeStepLinkedIngredient: Codable, Identifiable, Sendable, Equatable {
+    public let id: UUID
+    public let recipeStepId: UUID
+    public let ingredientId: UUID
+    
+    public init(id: UUID, recipeStepId: UUID, ingredientId: UUID) {
+        self.id = id
+        self.recipeStepId = recipeStepId
+        self.ingredientId = ingredientId
+    }
+}
+
 @Table("RecipeRatings")
 public struct DBRecipeRating: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
@@ -313,6 +326,12 @@ public struct SchemaV1 {
                 e.column("temperature", .double).notNull()
                 e.column("temperatureText", .text).notNull( )
                 e.column("temperatureUnitText", .text).notNull()
+            }
+            
+            try db.create(table: "RecipeStepLinkedIngredients") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeStepId", .text).references("RecipeSteps", onDelete: .cascade)
+                e.column("ingredientId", .text)
             }
             
             try db.create(table: "RecipeRatings") { e in

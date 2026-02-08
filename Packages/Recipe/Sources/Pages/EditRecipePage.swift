@@ -280,7 +280,7 @@ extension EditRecipePage {
         Section("Steps") {
             ForEach($editingRecipe.stepSections) { $stepSection in
                 ForEach($stepSection.steps) { $step in
-                    StepRow(step: $step, focusedStepID: $focusedStepID, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white)
+                    StepRow(step: $step, focusedStepID: $focusedStepID, tint: Color(hex: editingRecipe.dominantColorHex ?? "#FFFFFF") ?? .white, allIngredients: self.editingRecipe.ingredientSections.flatMap(\.ingredients))
                 }
                 .onMove { source, dest in
                     stepSection.steps.move(fromOffsets: source, toOffset: dest)
@@ -298,7 +298,7 @@ extension EditRecipePage {
                 HStack {
                     Button(action: {
                         let newID = UUID()
-                        stepSection.steps.append(.init(id: newID, sortIndex: stepSection.steps.count, instructionText: "", timings: [], temperatures: []))
+                        stepSection.steps.append(.init(id: newID, sortIndex: stepSection.steps.count, instructionText: "", timings: [], temperatures: [], linkedIngredients: []))
                         DispatchQueue.main.async { self.focusedStepID = newID }
                     }) {
                         Label("Add Step", systemImage: "plus.circle")
@@ -350,7 +350,7 @@ extension EditRecipePage {
                 editingRecipe.image = .init(imageThumbnailData: image, imageUrl: nil)
             }
             
-            let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings) = await Recipe.entites(from: editingRecipe)
+            let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings, newLinkedIngredients) = await Recipe.entites(from: editingRecipe)
 
             try await db.write { [newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings] db in
                 
@@ -387,6 +387,9 @@ extension EditRecipePage {
                     .execute(db)
                 try DBRecipeStepTemperature
                     .insert { newStepTemps }
+                    .execute(db)
+                try DBRecipeStepLinkedIngredient
+                    .insert { newLinkedIngredients }
                     .execute(db)
                 
                 // Ratings
@@ -448,12 +451,12 @@ extension EditRecipePage {
                 sortIndex: 0,
                 title: "Steps",
                 steps: [
-                    .init(id: UUID(), sortIndex: 0, instructionText: "Turn the oven to 180°C and pre-heat for 20 minutes", timings: [.init(id: UUID(), timeInSeconds: 1200, timeText: "20", timeUnitText: "minutes")], temperatures: [.init(id: UUID(), temperature: 180, temperatureText: "180°C", temperatureUnitText: "C")]),
-                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
-                    .init(id: UUID(), sortIndex: 2, instructionText: "Do a third thing", timings: [], temperatures: []),
-                    .init(id: UUID(), sortIndex: 3, instructionText: "And a fourth", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: []),
-                    .init(id: UUID(), sortIndex: 4, instructionText: "And a fifth", timings: [], temperatures: []),
-                    .init(id: UUID(), sortIndex: 5, instructionText: "And a sixth!", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [])
+                    .init(id: UUID(), sortIndex: 0, instructionText: "Turn the oven to 180°C and pre-heat for 20 minutes", timings: [.init(id: UUID(), timeInSeconds: 1200, timeText: "20", timeUnitText: "minutes")], temperatures: [.init(id: UUID(), temperature: 180, temperatureText: "180°C", temperatureUnitText: "C")], linkedIngredients: []),
+                    .init(id: UUID(), sortIndex: 1, instructionText: "Toss cooked pasta with 3 large eggs and cheese off the heat.", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [], linkedIngredients: []),
+                    .init(id: UUID(), sortIndex: 2, instructionText: "Do a third thing", timings: [], temperatures: [], linkedIngredients: []),
+                    .init(id: UUID(), sortIndex: 3, instructionText: "And a fourth", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [], linkedIngredients: []),
+                    .init(id: UUID(), sortIndex: 4, instructionText: "And a fifth", timings: [], temperatures: [], linkedIngredients: []),
+                    .init(id: UUID(), sortIndex: 5, instructionText: "And a sixth!", timings: [.init(id: UUID(), timeInSeconds: 60, timeText: "1", timeUnitText: "minute")], temperatures: [], linkedIngredients: [])
                 ]
             )
         ],

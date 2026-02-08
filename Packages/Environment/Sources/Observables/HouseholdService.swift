@@ -12,7 +12,6 @@ import Dependencies
 import Models
 import CloudKit
 import Combine
-import Environment
 import Persistence
 
 public struct HomeResident: Identifiable, Hashable, Equatable {

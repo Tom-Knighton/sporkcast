@@ -93,7 +93,7 @@ public struct MealplanRowView: View {
                     Task {
                         self.draggingId = nil
                         self.isDragging = false
-                    try await self.moveEntryToDay(entryId: items[0].id, date: day, index: 0)
+                        try await self.moveEntryToDay(entryId: items[0].id, date: day, index: 0)
                     }
                     return true
                 } isTargeted: { val in

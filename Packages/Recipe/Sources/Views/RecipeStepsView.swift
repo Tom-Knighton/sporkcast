@@ -42,10 +42,10 @@ public struct RecipeStepsView: View {
                         }
                         
                         VStack {
-                            let ingredientsForStep = stepIngredientMap[step.instructionText] ?? []
+                            let ingredientsForStep = vm.recipe.ingredientSections.flatMap { $0.ingredients }.filter { step.linkedIngredients.contains($0.id) }
                             if ingredientsForStep.isEmpty == false {
                                 HorizontalScrollWithGradient {
-                                    ForEach(stepIngredientMap[step.instructionText] ?? []) { ingredient in
+                                    ForEach(ingredientsForStep) { ingredient in
                                         ingredientInStep(for: ingredient)
                                     }
                                 }
@@ -81,14 +81,7 @@ public struct RecipeStepsView: View {
                             newSect.title = "Steps:"
                         }
                         newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
-                        
-                        let ingredientMatcher = IngredientStepMatcher()
-                        newSect.steps.forEach { step in
-                            let ingredients = ingredientMatcher.matchIngredients(for: step, ingredients: vm.recipe.ingredientSections.flatMap(\.ingredients))
-                            self.stepIngredientMap[step.instructionText] = ingredients
-                        }
                         return newSect
-                        
                     }
                 self.stepSections = sections
             }

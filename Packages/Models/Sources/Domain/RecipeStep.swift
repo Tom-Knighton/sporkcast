@@ -43,12 +43,16 @@ public struct RecipeStep: Identifiable, Hashable, Sendable, Codable {
     /// Any identified temperatures in the recipe step
     public var temperatures: [RecipeStepTemperature]
     
-    public init(id: UUID, sortIndex: Int, instructionText: String, timings: [RecipeStepTiming], temperatures: [RecipeStepTemperature]) {
+    /// The ids of any linked ingredients in this step
+    public var linkedIngredients: [UUID]
+    
+    public init(id: UUID, sortIndex: Int, instructionText: String, timings: [RecipeStepTiming], temperatures: [RecipeStepTemperature], linkedIngredients: [UUID]) {
         self.id = id
         self.sortIndex = sortIndex
         self.instructionText = instructionText
         self.timings = timings
         self.temperatures = temperatures
+        self.linkedIngredients = linkedIngredients
     }
 }
 
