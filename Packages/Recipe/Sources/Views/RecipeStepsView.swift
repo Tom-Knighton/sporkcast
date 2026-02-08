@@ -42,10 +42,10 @@ public struct RecipeStepsView: View {
                         }
                         
                         VStack {
-                            let ingredientsForStep = stepIngredientMap[step.instructionText] ?? []
+                            let ingredientsForStep = vm.recipe.ingredientSections.flatMap { $0.ingredients }.filter { step.linkedIngredients.contains($0.id) }
                             if ingredientsForStep.isEmpty == false {
                                 HorizontalScrollWithGradient {
-                                    ForEach(stepIngredientMap[step.instructionText] ?? []) { ingredient in
+                                    ForEach(ingredientsForStep) { ingredient in
                                         ingredientInStep(for: ingredient)
                                     }
                                 }
@@ -56,7 +56,6 @@ public struct RecipeStepsView: View {
                                 }
                             }
                         }
-                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -73,29 +72,29 @@ public struct RecipeStepsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             if stepSections.isEmpty {
-                let sections = vm.recipe.stepSections
-                    .sorted(by: { $0.sortIndex < $1.sortIndex })
-                    .compactMap { sect in
-                        var newSect = sect
-                        if newSect.title.isEmpty {
-                            newSect.title = "Steps:"
-                        }
-                        newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
-                        
-                        let ingredientMatcher = IngredientStepMatcher()
-                        newSect.steps.forEach { step in
-                            let ingredients = ingredientMatcher.matchIngredients(for: step, ingredients: vm.recipe.ingredientSections.flatMap(\.ingredients))
-                            self.stepIngredientMap[step.instructionText] = ingredients
-                        }
-                        return newSect
-                        
-                    }
-                self.stepSections = sections
+                updateStepSections()
             }
+        }
+        .onChange(of: vm.recipe.stepSections) { _, _ in
+            updateStepSections()
         }
 
     }
 
+    private func updateStepSections() {
+        let sections = vm.recipe.stepSections
+            .sorted(by: { $0.sortIndex < $1.sortIndex })
+            .compactMap { sect in
+                var newSect = sect
+                if newSect.title.isEmpty {
+                    newSect.title = "Steps:"
+                }
+                newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
+                return newSect
+            }
+        self.stepSections = sections
+    }
+    
     private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
         let timings = recipeStep.timings
         guard timerIndex < timings.count else { return }

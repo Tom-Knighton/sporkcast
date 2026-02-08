@@ -8,6 +8,7 @@
 import SwiftUI
 import Models
 import Design
+import Environment
 
 struct IngredientRow: View {
     @Binding var ingredient: RecipeIngredient

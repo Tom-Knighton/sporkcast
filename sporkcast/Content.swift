@@ -61,7 +61,7 @@ struct AppContent: View {
         .preferredColorScheme(getColorScheme())
         .tint(Color.primary)
         .environment(appRouter)
-        .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
+        .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
         .environment(\.homeServices, HouseholdService.shared)

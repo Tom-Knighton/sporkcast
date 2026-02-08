@@ -36,6 +36,9 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
     @Column(as: [DBRecipeRating].JSONRepresentation.self)
     public let ratings: [DBRecipeRating]
     
+    @Column(as: [DBRecipeStepLinkedIngredient].JSONRepresentation.self)
+    public let stepLinkedIngredients: [DBRecipeStepLinkedIngredient]
+    
     public var id: UUID { recipe.id }
 }
 
@@ -51,7 +54,7 @@ public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
 
 public extension DBRecipe {
     
-    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?)>
+    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?, DBRecipeStepLinkedIngredient?)>
     
     static var full: FullSelect {
         
@@ -93,11 +96,17 @@ public extension DBRecipe {
             .leftJoin(DBRecipeRating.all) {
                 $0.id.eq($8.recipeId)
             }
+        
+        let withStepIngredients = withRatings
+            .leftJoin(DBRecipeStepLinkedIngredient.all) {
+                $4.id.eq($9.recipeStepId)
+            }
     
-        let query = withRatings
+        let query = withStepIngredients
             .select {
                 let igs = $1.jsonGroupArray(distinct: true)
                 let ings = $2.jsonGroupArray(distinct: true)
+                let stepLinkedIngs = $9.jsonGroupArray(distinct: true)
                 return FullDBRecipe.Columns(
                     recipe: $0,
                     imageData: $7,
@@ -108,6 +117,7 @@ public extension DBRecipe {
                     timings: $5.jsonGroupArray(distinct: true),
                     temperatures: $6.jsonGroupArray(distinct: true),
                     ratings: $8.jsonGroupArray(distinct: true),
+                    stepLinkedIngredients: stepLinkedIngs
                 )
             }
         

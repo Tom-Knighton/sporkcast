@@ -93,5 +93,5 @@ struct ShareSheet: UIViewControllerRepresentable {
     .environment(\.homeServices, HouseholdService.shared)
     .environment(\.appSettings, SettingsStore())
     .environment(\.cloudKit, MockCloudKitGate())
-    .environment(\.networkClient, APIClient(host: "https://api.dev.recipe.tomk.online/"))
+    .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
 }

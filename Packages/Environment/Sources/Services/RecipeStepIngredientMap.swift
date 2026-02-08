@@ -59,8 +59,8 @@ public struct IngredientStepMatcher {
     
     public init() {}
     
-    public func matchIngredients(for step: RecipeStep, ingredients: [RecipeIngredient], config: IngredientMatchingConfig = .shared) -> [RecipeIngredient] {
-        let norm = normalise(step)
+    public func matchIngredients(for stepText: String, ingredients: [RecipeIngredient], config: IngredientMatchingConfig = .shared) -> [RecipeIngredient] {
+        let norm = normalise(stepText)
         
         let ingredientVariants: [(ingredient: RecipeIngredient, variants: [String])] = ingredients.map { ing in
             let v = Array(generateVariants(for: ing, config: config))
@@ -102,8 +102,8 @@ public struct IngredientStepMatcher {
         s.split(whereSeparator: { !$0.isLetter }).map { String($0) }
     }
     
-    private func normalise(_ step: RecipeStep) -> NormalisedStep {
-        let lower = decodeHTML(step.instructionText.lowercased())
+    private func normalise(_ step: String) -> NormalisedStep {
+        let lower = decodeHTML(step.lowercased())
         let cleaned = lettersAndSeparatorsOnly(lower)
         let lemmas = lemmaTokens(cleaned)
         let tokenSet = Set(lemmas)
