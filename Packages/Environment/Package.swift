@@ -21,8 +21,8 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Environment",
-            dependencies: [.product(name: "AppRouter", package: "AppRouter"), "API", "Models", "Persistence"]
+            dependencies: [.product(name: "AppRouter", package: "AppRouter"), "API", "Models", "Persistence"],
         ),
-
+        .testTarget(name: "EnvironmentTests", dependencies: ["Environment", "API", "Persistence", "Models"])
     ]
 )

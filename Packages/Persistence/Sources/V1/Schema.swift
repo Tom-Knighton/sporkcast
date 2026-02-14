@@ -182,11 +182,13 @@ public struct DBRecipeStepLinkedIngredient: Codable, Identifiable, Sendable, Equ
     public let id: UUID
     public let recipeStepId: UUID
     public let ingredientId: UUID
+    public let sortIndex: Int
     
-    public init(id: UUID, recipeStepId: UUID, ingredientId: UUID) {
+    public init(id: UUID, recipeStepId: UUID, ingredientId: UUID, sortIndex: Int) {
         self.id = id
         self.recipeStepId = recipeStepId
         self.ingredientId = ingredientId
+        self.sortIndex = sortIndex
     }
 }
 
@@ -332,6 +334,7 @@ public struct SchemaV1 {
                 e.primaryKey("id", .text)
                 e.column("recipeStepId", .text).references("RecipeSteps", onDelete: .cascade)
                 e.column("ingredientId", .text)
+                e.column("sortIndex", .integer)
             }
             
             try db.create(table: "RecipeRatings") { e in

@@ -32,7 +32,7 @@ public extension Recipe {
         for step in dto.stepSections.flatMap(\.steps) {
             timings.append(contentsOf: step.timings.compactMap { DBRecipeStepTiming(id: $0.id, recipeStepId: step.id, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText)})
             temps.append(contentsOf: step.temperatures.compactMap { DBRecipeStepTemperature(id: $0.id, recipeStepId: step.id, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) })
-            linkedIngredients.append(contentsOf: step.linkedIngredients.compactMap { .init(id: UUID(), recipeStepId: step.id, ingredientId: $0 )})
+            linkedIngredients.append(contentsOf: step.linkedIngredients.compactMap { .init(id: UUID(), recipeStepId: step.id, ingredientId: $0, sortIndex: step.linkedIngredients.firstIndex(of: $0) ?? 0 )})
         }
         
         let ratings = dto.ratingInfo?.ratings.compactMap { DBRecipeRating(id: $0.id, recipeId: dto.id, rating: $0.rating, comment: $0.comment)} ?? []
@@ -93,9 +93,9 @@ public extension RecipeDTO {
                 stepTimings.append(contentsOf: step.times.compactMap { DBRecipeStepTiming(id: UUID(), recipeStepId: stepId, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText) } )
                 stepTemps.append(contentsOf: step.temperatures.compactMap { DBRecipeStepTemperature(id: UUID(), recipeStepId: stepId, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) } )
                 
-                // First pass ingredient highlighter:
-                let matchedIngredients = ingredientMatcher.matchIngredients(for: step.step, ingredients: ingredients.compactMap { RecipeIngredient(id: $0.id, sortIndex: $0.sortIndex, ingredientText: $0.rawIngredient, ingredientPart: $0.ingredient, extraInformation: $0.extra, quantity: .init(quantity: $0.quantity, quantityText: $0.quantityText), unit: .init(unit: $0.unit, unitText: $0.unitText), emoji: $0.emojiDescriptor, owned: $0.owned)})
-                linkedIngredients.append(contentsOf: matchedIngredients.compactMap { DBRecipeStepLinkedIngredient(id: UUID(), recipeStepId: stepId, ingredientId: $0.id)})
+                let matchedIngredients = ingredientMatcher.matchIngredients(for: step.step, ingredients: ingredients.compactMap { RecipeIngredient(id: $0.id, sortIndex: $0.sortIndex, ingredientText: $0.rawIngredient, ingredientPart: $0.ingredient, extraInformation: $0.extra, quantity: .init(quantity: $0.quantity, quantityText: $0.quantityText), unit: .init(unit: $0.unit, unitText: $0.unitText), emoji: $0.emojiDescriptor, owned: $0.owned)}, debug: false)
+                
+                linkedIngredients.append(contentsOf: matchedIngredients.ingredients.compactMap { DBRecipeStepLinkedIngredient(id: UUID(), recipeStepId: stepId, ingredientId: $0.id, sortIndex: matchedIngredients.ingredients.firstIndex(of: $0) ?? 0)})
                 
                 steps.append(dbStep)
             }
@@ -166,5 +166,40 @@ public extension RecipeDTO {
         }
         guard let png = thumbnail.pngData() else { throw CocoaError(.coderInvalidValue) }
         return (png, "png")
+    }
+}
+
+extension IngredientMatchDebug {
+    func consoleDescription(index: Int) -> String {
+        var lines: [String] = []
+        
+        lines.append("──────── Ingredient \(index + 1) ────────")
+        lines.append("Name: \(ingredient.ingredientText ?? ingredient.ingredientPart ?? "<unknown>")")
+        lines.append("Selected: \(selected ? "✅ YES" : "❌ NO")")
+        
+        if let matchedVariant {
+            lines.append("Matched variant: \"\(matchedVariant)\"")
+        } else {
+            lines.append("Matched variant: <none>")
+        }
+        
+        lines.append("Step index: \(index)")
+        
+        if let spanLength {
+            lines.append("Span length: \(spanLength)")
+        }
+        
+        if let kind {
+            lines.append("Match kind: \(kind.rawValue)")
+        }
+        
+        if let score {
+            lines.append("Score: \(score)")
+        }
+        
+        lines.append("Reason: \(reason)")
+        lines.append("")
+        
+        return lines.joined(separator: "\n")
     }
 }
