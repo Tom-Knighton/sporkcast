@@ -33,7 +33,10 @@ public extension FullDBRecipe {
                 let timings = self.timings.filter { $0.recipeStepId == step.id }.map { RecipeStepTiming(id: $0.id, timeInSeconds: $0.timeInSeconds, timeText: $0.timeText, timeUnitText: $0.timeUnitText) }
                 let temps = self.temperatures.filter { $0.recipeStepId == step.id }.map { RecipeStepTemperature(id: $0.id, temperature: $0.temperature, temperatureText: $0.temperatureText, temperatureUnitText: $0.temperatureUnitText) }
                 
-                let ingredientIds = self.stepLinkedIngredients.filter { $0.recipeStepId == step.id && allIngredientIds.contains($0.ingredientId) }.compactMap { $0.ingredientId }
+                let ingredientIds = self.stepLinkedIngredients
+                    .filter { $0.recipeStepId == step.id && allIngredientIds.contains($0.ingredientId) }
+                    .sorted(by: { $0.sortIndex < $1.sortIndex })
+                    .compactMap { $0.ingredientId }
                 let step = RecipeStep(id: step.id, sortIndex: step.sortIndex, instructionText: step.instruction, timings: timings, temperatures: temps, linkedIngredients: ingredientIds)
                 return step
             }

@@ -42,14 +42,7 @@ public struct RecipeStepsView: View {
                         }
                         
                         VStack {
-                            let ingredientsForStep = vm.recipe.ingredientSections.flatMap { $0.ingredients }.filter { step.linkedIngredients.contains($0.id) }
-                            if ingredientsForStep.isEmpty == false {
-                                HorizontalScrollWithGradient {
-                                    ForEach(ingredientsForStep) { ingredient in
-                                        ingredientInStep(for: ingredient)
-                                    }
-                                }
-                            }
+                            ingredientsView(for: step)
                             RecipeStepWithTimingsView(step, recipeId: vm.recipe.id, tint: tint) { index in
                                 Task {
                                     await createAlarm(for: step, timerIndex: index)
@@ -128,6 +121,24 @@ public struct RecipeStepsView: View {
         .background(Material.thin)
         .clipShape(.capsule)
         
+    }
+}
+
+extension RecipeStepsView {
+    
+    @ViewBuilder
+    private func ingredientsView(for step: RecipeStep) -> some View {
+        let allIngredients = vm.recipe.ingredientSections.flatMap { $0.ingredients }
+        let ingredientsForStep = step.linkedIngredients.compactMap { id in
+            allIngredients.first(where: { $0.id == id })
+        }
+        if ingredientsForStep.isEmpty == false {
+            HorizontalScrollWithGradient {
+                ForEach(ingredientsForStep) { ingredient in
+                    ingredientInStep(for: ingredient)
+                }
+            }
+        }
     }
 }
 
