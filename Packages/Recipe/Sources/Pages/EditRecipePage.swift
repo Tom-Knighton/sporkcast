@@ -37,7 +37,16 @@ public struct EditRecipePage: View {
     
     public init(recipe: Recipe) {
         self.recipe = recipe
-        self._editingRecipe = State(wrappedValue: recipe)
+        var sorted = recipe
+        sorted.ingredientSections.sort { $0.sortIndex < $1.sortIndex }
+        for i in sorted.ingredientSections.indices {
+            sorted.ingredientSections[i].ingredients.sort { $0.sortIndex < $1.sortIndex }
+        }
+        sorted.stepSections.sort { $0.sortIndex < $1.sortIndex }
+        for i in sorted.stepSections.indices {
+            sorted.stepSections[i].steps.sort { $0.sortIndex < $1.sortIndex }
+        }
+        self._editingRecipe = State(wrappedValue: sorted)
         
         if let rTT = recipe.timing.totalTime {
             self._totalTime = .init(wrappedValue: .seconds(60 * rTT))
