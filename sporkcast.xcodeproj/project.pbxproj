@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		E22179D92EA83B410006CE0B /* Models in Frameworks */ = {isa = PBXBuildFile; productRef = E22179D82EA83B410006CE0B /* Models */; };
 		E231FFB92E9ABCDD00ABD853 /* Settings in Frameworks */ = {isa = PBXBuildFile; productRef = E231FFB82E9ABCDD00ABD853 /* Settings */; };
+		E237994A2F427A050072EF1A /* ShoppingLists in Frameworks */ = {isa = PBXBuildFile; productRef = E23799492F427A050072EF1A /* ShoppingLists */; };
 		E23AC6A72E88A16E00A1CC8E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */; };
 		E23AC6A82E88A16E00A1CC8E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */; };
 		E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -76,6 +77,7 @@
 				RecipesList,
 				RecipeTimersList,
 				Settings,
+				ShoppingLists,
 			);
 			target = E2BBA8F82E59224700846D3E /* sporkcast */;
 		};
@@ -136,6 +138,7 @@
 				E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */,
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
+				E237994A2F427A050072EF1A /* ShoppingLists in Frameworks */,
 				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
 				E2ED82532EC8A1CF000E0318 /* Mealplans in Frameworks */,
 				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
@@ -246,6 +249,7 @@
 				E231FFB82E9ABCDD00ABD853 /* Settings */,
 				E22179D82EA83B410006CE0B /* Models */,
 				E2ED82522EC8A1CF000E0318 /* Mealplans */,
+				E23799492F427A050072EF1A /* ShoppingLists */,
 			);
 			productName = sporkcast;
 			productReference = E2BBA8F92E59224700846D3E /* sporkcast.app */;
@@ -667,6 +671,10 @@
 		E231FFB82E9ABCDD00ABD853 /* Settings */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Settings;
+		};
+		E23799492F427A050072EF1A /* ShoppingLists */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ShoppingLists;
 		};
 		E23AC6BF2E88A30B00A1CC8E /* Environment */ = {
 			isa = XCSwiftPackageProductDependency;

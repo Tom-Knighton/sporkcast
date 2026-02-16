@@ -239,6 +239,26 @@ public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("ShoppingLists")
+public struct DBShoppingList: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let homeId: UUID?
+    public let title: String
+    public let createdAt: Date
+    public let modifiedAt: Date
+    public let isArchived: Bool
+    
+    public init(id: UUID, homeId: UUID?, title: String, createdAt: Date, modifiedAt: Date, isArchived: Bool) {
+        self.id = id
+        self.homeId = homeId
+        self.title = title
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+        self.isArchived = isArchived
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -351,6 +371,15 @@ public struct SchemaV1 {
                 e.column("noteText", .text)
                 e.column("recipeId", .text)
                 e.column("homeId", .text).references("Homes", onDelete: .setNull)
+            }
+
+            try db.create(table: "ShoppingLists") { e in
+                e.primaryKey("id", .text)
+                e.column("homeId").references("Homes", onDelete: .setNull)
+                e.column("title", .text).notNull()
+                e.column("createdAt", .date).notNull()
+                e.column("modifiedAt", .date)
+                e.column("isArchived", .boolean).defaults(to: false)
             }
         }
     }

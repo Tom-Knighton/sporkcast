@@ -18,6 +18,7 @@ internal import AppRouter
 import Models
 import Settings
 import CloudKit
+import ShoppingLists
 
 struct AppContent: View {
     @Namespace private var appRouterNamespace
@@ -48,6 +49,12 @@ struct AppContent: View {
             NavigationStack(path: $appRouter[.mealplan]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
                     MealplanPage()
+                }
+            }
+        } shoppingLists: {
+            NavigationStack(path: $appRouter[.shoppingLists]) {
+                WithNavigationDestinations(namespace: appRouterNamespace) {
+                    ShoppingListsPage()
                 }
             }
         } settings: {

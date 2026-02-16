@@ -52,6 +52,18 @@ public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
     public var id: UUID { mealplanEntry.id }
 }
 
+@Selection
+public struct FullDBShoppingList: Sendable, Identifiable, Equatable {
+    
+    public let shoppingList: DBShoppingList
+    
+    public var id: UUID { shoppingList.id }
+    
+    public init(shoppingList: DBShoppingList) {
+        self.shoppingList = shoppingList
+    }
+}
+
 public extension DBRecipe {
     
     typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?, DBRecipeStepLinkedIngredient?)>
@@ -153,3 +165,20 @@ public extension DBMealplanEntry {
     }
 }
 
+public extension DBShoppingList {
+    
+    typealias FullSelect = Select<FullDBShoppingList, DBShoppingList, ()>
+    
+    static var full: FullSelect {
+        let base = DBShoppingList
+            .group(by: \.id)
+//            .orderBy(by: \.createdAt)
+        
+        let query = base
+            .select {
+                return FullDBShoppingList.Columns(shoppingList: $0)
+            }
+        
+        return query
+    }
+}

@@ -10,9 +10,10 @@ import SwiftUI
 internal import AppRouter
 import Environment
 
-struct TabScaffold<Recipes: View, Mealplans: View, Settings: View>: View {
+struct TabScaffold<Recipes: View, Mealplans: View, ShoppingLists: View, Settings: View>: View {
     let recipes: () -> Recipes
     let mealplans: () -> Mealplans
+    let shoppingLists: () -> ShoppingLists
     let settings: () -> Settings
     @Binding var selection: AppTab
 
@@ -20,10 +21,12 @@ struct TabScaffold<Recipes: View, Mealplans: View, Settings: View>: View {
         selection: Binding<AppTab>,
         @ViewBuilder recipes: @escaping () -> Recipes,
         @ViewBuilder mealplans: @escaping () -> Mealplans,
+        @ViewBuilder shoppingLists: @escaping () -> ShoppingLists,
         @ViewBuilder settings: @escaping () -> Settings,
     ) {
         self.recipes = recipes
         self.mealplans = mealplans
+        self.shoppingLists = shoppingLists
         self.settings = settings
         self._selection = selection
     }
@@ -40,6 +43,12 @@ struct TabScaffold<Recipes: View, Mealplans: View, Settings: View>: View {
                 mealplans()
             } label: {
                 Label(AppTab.mealplan.title, systemImage: AppTab.mealplan.icon)
+            }
+            
+            Tab(value: AppTab.shoppingLists) {
+                shoppingLists()
+            } label: {
+                Label(AppTab.shoppingLists.title, systemImage: AppTab.shoppingLists.icon)
             }
         
             Tab(value: AppTab.settings) {
