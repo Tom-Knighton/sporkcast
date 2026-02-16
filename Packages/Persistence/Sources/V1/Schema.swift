@@ -259,6 +259,29 @@ public struct DBShoppingList: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("ShoppingListItems")
+public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let title: String
+    public let listId: DBShoppingList.ID
+    public let isComplete: Bool
+    
+    public let categoryIdentifier: String?
+    public let categoryDisplayName: String
+    public let categorySource: String
+    
+    public init(id: UUID, title: String, listId: DBShoppingList.ID, isComplete: Bool, categoryIdentifier: String?, categoryDisplayName: String, categorySource: String) {
+        self.id = id
+        self.listId = listId
+        self.title = title
+        self.isComplete = isComplete
+        self.categoryIdentifier = categoryIdentifier
+        self.categoryDisplayName = categoryDisplayName
+        self.categorySource = categorySource
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -380,6 +403,21 @@ public struct SchemaV1 {
                 e.column("createdAt", .date).notNull()
                 e.column("modifiedAt", .date)
                 e.column("isArchived", .boolean).defaults(to: false)
+            }
+            
+            try db.create(table: "ShoppingListItems") { e in
+                e.primaryKey("id", .text)
+                e.column("listId", .text).references("ShoppingLists", onDelete: .cascade)
+                e.column("title", .text).notNull()
+                e.column("isComplete", .boolean).notNull().defaults(to: false)
+                
+                e.column("categoryIdentifier", .text)
+                    .notNull()
+                    .defaults(to: "unknown")
+                    .indexed()
+                
+                e.column("categoryDisplayName", .text).notNull().defaults(to: "Other")
+                e.column("categorySource", .text)
             }
         }
     }
