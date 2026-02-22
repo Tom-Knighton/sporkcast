@@ -15,14 +15,27 @@ public struct ShoppingList {
     public let modifiedAt: Date
     public let isArchived: Bool
     
-    public let items: [ShoppingListItem]
+    public var itemGroups: [ShoppingListItemGroup]
     
-    public init(id: UUID, title: String, createdAt: Date, modifiedAt: Date, isArchived: Bool, items: [ShoppingListItem]) {
+    public init(id: UUID, title: String, createdAt: Date, modifiedAt: Date, isArchived: Bool, itemGroups: [ShoppingListItemGroup]) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
         self.isArchived = isArchived
+        self.itemGroups = itemGroups
+    }
+}
+
+public struct ShoppingListItemGroup {
+    public let id: String
+    public var names: [String]
+    
+    public var items: [ShoppingListItem]
+    
+    public init(id: String, names: [String], items: [ShoppingListItem]) {
+        self.id = id
+        self.names = names
         self.items = items
     }
 }
@@ -45,3 +58,5 @@ extension ShoppingList: Sendable, Identifiable, Equatable, Hashable {
 extension ShoppingListItem: Sendable, Identifiable, Equatable, Hashable {
     
 }
+
+extension ShoppingListItemGroup: Sendable, Identifiable, Equatable, Hashable {}
