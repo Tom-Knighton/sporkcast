@@ -64,7 +64,7 @@ public struct ShoppingListsPage: View {
         .safeAreaBar(edge: .bottom, content: {
             HStack {
                 Spacer()
-                Button(action: { withAnimation { self.focusedRow = "addrow-other"} }) {
+                Button(action: { withAnimation { self.focusedRow = "addrow-unknown"} }) {
                     Image(systemName: "plus")
                         .bold()
                         .font(.title2)

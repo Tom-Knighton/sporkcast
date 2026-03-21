@@ -49,6 +49,15 @@ public struct ShoppingListItem {
     public var categoryId: String
     public var categoryName: String
     public var categorySource: String?
+    
+    public init(id: UUID, title: String, isComplete: Bool, categoryId: String, categoryName: String, categorySource: String? = nil) {
+        self.id = id
+        self.title = title
+        self.isComplete = isComplete
+        self.categoryId = categoryId
+        self.categoryName = categoryName
+        self.categorySource = categorySource
+    }
 }
 
 extension ShoppingList: Sendable, Identifiable, Equatable, Hashable {
