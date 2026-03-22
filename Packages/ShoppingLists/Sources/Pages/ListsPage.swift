@@ -192,11 +192,15 @@ private extension ShoppingListsPage {
     }
 
     func displayedSections(for list: ShoppingList) -> [ShoppingListItemGroup] {
-        sortedSections(for: list).filter { section in
+        let sorted = sortedSections(for: list)
+        let hasAnyVisibleItems = sorted.contains { !visibleItems(in: $0).isEmpty }
+
+        return sorted.filter { section in
             let hasVisibleItems = !visibleItems(in: section).isEmpty
             let isFocusedInputSection = focusedRow == "addrow-\(section.id)"
             let isRevealedInputSection = revealedInputSectionID == section.id
-            return hasVisibleItems || isFocusedInputSection || isRevealedInputSection
+            let isDefaultEmptySection = !hasAnyVisibleItems && ShoppingCategory(categoryIdentifier: section.id) == .unknown
+            return hasVisibleItems || isFocusedInputSection || isRevealedInputSection || isDefaultEmptySection
         }
     }
 
