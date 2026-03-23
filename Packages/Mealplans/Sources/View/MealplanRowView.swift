@@ -179,13 +179,13 @@ public struct MealplanRowView: View {
                 mealPreview(for: entry)
                     .onAppear { draggingId = entry.id }
             }
-            .contextMenu {
-                Button {
-                    draggingId = nil
-                    router.navigateTo(.recipe(recipe: recipe))
-                } label: {
-                    Text("Open Recipe")
-                }
+                .contextMenu {
+                    Button {
+                        draggingId = nil
+                        router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
+                    } label: {
+                        Text("Open Recipe")
+                    }
                 Divider()
                 Button(role: .destructive) { Task { try? await removeEntry(id: entry.id) } }  label: {
                     Label("Remove meal", systemImage: "trash")

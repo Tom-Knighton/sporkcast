@@ -66,7 +66,7 @@ struct AppContent: View {
         }
         .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())
-        .tint(Color.primary)
+//        .tint(Color.primary)
         .environment(appRouter)
         .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
         .environment(alarmManager)

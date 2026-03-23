@@ -282,6 +282,51 @@ public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("ShoppingListItemIngredientLinks")
+public struct DBShoppingListItemIngredientLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let ingredientId: UUID
+    public let sourceScale: Double?
+    public let addedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        ingredientId: UUID,
+        sourceScale: Double?,
+        addedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.ingredientId = ingredientId
+        self.sourceScale = sourceScale
+        self.addedAt = addedAt
+    }
+}
+
+@Table("ShoppingListItemMealplanLinks")
+public struct DBShoppingListItemMealplanLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let mealplanEntryId: UUID
+    public let addedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        mealplanEntryId: UUID,
+        addedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.mealplanEntryId = mealplanEntryId
+        self.addedAt = addedAt
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -418,6 +463,27 @@ public struct SchemaV1 {
                 
                 e.column("categoryDisplayName", .text).notNull().defaults(to: "Other")
                 e.column("categorySource", .text)
+            }
+        }
+
+        migrator.registerMigration("Create Shopping Item Link Tables") { db in
+            try db.create(table: "ShoppingListItemIngredientLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("ingredientId", .text).notNull()
+                e.column("sourceScale", .double)
+                e.column("addedAt", .date).notNull()
+            }
+
+            try db.create(table: "ShoppingListItemMealplanLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("mealplanEntryId", .text).notNull()
+                e.column("addedAt", .date).notNull()
             }
         }
     }

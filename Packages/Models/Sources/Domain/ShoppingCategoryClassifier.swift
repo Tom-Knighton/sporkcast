@@ -1,16 +1,17 @@
 //
 //  ShoppingCategoryClassifier.swift
-//  ShoppingLists
+//  Models
 //
 //  Created by Codex on 21/03/2026.
 //
 
 import Foundation
-import Models
 
-struct ShoppingCategoryClassifier: Sendable {
+public struct ShoppingCategoryClassifier: Sendable {
 
-    func classify(
+    public init() {}
+
+    public func classify(
         _ rawTitle: String,
         fallback: ShoppingCategory = .unknown,
         knownItems: [ShoppingListItem] = []

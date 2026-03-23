@@ -13,7 +13,7 @@ import Design
 
 public struct IngredientHighlighter {
     
-    static func highlight(ingredient: RecipeIngredient, font: Font = .body, tint: Color = .mint) -> AttributedString {
+    public static func highlight(ingredient: RecipeIngredient, font: Font = .body, tint: Color = .mint) -> AttributedString {
         
         var attr = AttributedString(ingredient.ingredientText)
         guard !ingredient.ingredientText.isEmpty, let quantityText = ingredient.quantity?.quantityText, !quantityText.isEmpty else { return attr }

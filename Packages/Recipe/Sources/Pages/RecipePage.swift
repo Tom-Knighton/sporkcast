@@ -13,6 +13,7 @@ import API
 import SQLiteData
 import Environment
 import NukeUI
+import Persistence
 
 public struct RecipePage: View {
     
@@ -20,12 +21,16 @@ public struct RecipePage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
+    @Dependency(\.defaultDatabase) private var db
 
     @State private var viewModel: RecipeViewModel
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
     @State private var commentsSnapshot: UIImage?
+    @State private var completedMealplanIngredientIDs: Set<UUID> = []
+    private let mealplanEntryId: UUID?
 
-    public init(_ recipe: Recipe) {
+    public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
+        self.mealplanEntryId = mealplanEntryId
         self.viewModel = .init(recipe: recipe)
         self.viewModel.dominantColour = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
@@ -125,10 +130,18 @@ public struct RecipePage: View {
                         
                         switch viewModel.segment {
                         case 1:
-                            RecipeIngredientsListView(tint: viewModel.dominantColour)
+                            RecipeIngredientsListView(
+                                tint: viewModel.dominantColour,
+                                completedIngredientIDs: completedMealplanIngredientIDs,
+                                showMealplanShoppingTicks: mealplanEntryId != nil
+                            )
                                 .tint(viewModel.dominantColour)
                         case 2:
-                            RecipeStepsView(tint: viewModel.dominantColour)
+                            RecipeStepsView(
+                                tint: viewModel.dominantColour,
+                                completedIngredientIDs: completedMealplanIngredientIDs,
+                                showMealplanShoppingTicks: mealplanEntryId != nil
+                            )
                         case 3:
                             RecipeCommentsView()
                         default:
@@ -171,15 +184,30 @@ public struct RecipePage: View {
         )
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
-            if viewModel.showNavTitle {
-                ToolbarItem(placement: .principal) {
-                    Text(viewModel.recipe.title)
-                        .font(.headline)
-                        .transition(.opacity)
-                        .accessibilityHidden(!viewModel.showNavTitle)
-                        .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
+            ToolbarItem(placement: .principal) {
+                Text(viewModel.recipe.title)
+                    .font(.headline)
+                    .transition(.opacity)
+                    .accessibilityHidden(!viewModel.showNavTitle)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
+                    .opacity(viewModel.showNavTitle ? 1 : 0)
+            }
+            ToolbarItem {
+                Menu {
+                    Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
+                        Label("Edit Recipe", systemImage: "pencil")
+                    }
+                    if let mealplanEntryId {
+                        Button(action: { Task { await clearMealplanIngredientStates() }}) {
+                            Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
                 }
             }
+            
+
         }
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
@@ -193,12 +221,10 @@ public struct RecipePage: View {
         .task(id: viewModel.recipe.summarisedTip) {
             generateCommentsLabel()
         }
-        .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
-        .toolbar {
-            Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
-                Image(systemName: "pencil")
-            }
+        .task(id: mealplanEntryId) {
+            await loadMealplanIngredientCompletionState()
         }
+        .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
     }
     
     @ViewBuilder
@@ -247,6 +273,72 @@ extension RecipePage {
             if let image = renderer.uiImage {
                 self.commentsSnapshot = image
             }
+        }
+    }
+
+    func loadMealplanIngredientCompletionState() async {
+        guard let mealplanEntryId else {
+            await MainActor.run { completedMealplanIngredientIDs = [] }
+            return
+        }
+
+        let recipeIngredientIDs = Set(viewModel.recipe.ingredientSections.flatMap(\.ingredients).map(\.id))
+        guard !recipeIngredientIDs.isEmpty else {
+            await MainActor.run { completedMealplanIngredientIDs = [] }
+            return
+        }
+
+        do {
+            let completedIngredientIDs = try await db.read { db in
+                let mealplanLinks = try DBShoppingListItemMealplanLink.all.fetchAll(db)
+                let itemIDsForMealplanEntry = Set(
+                    mealplanLinks
+                        .filter { $0.mealplanEntryId == mealplanEntryId }
+                        .map(\.shoppingListItemId)
+                )
+                guard !itemIDsForMealplanEntry.isEmpty else { return Set<UUID>() }
+
+                let completedItemIDs = Set(
+                    try DBShoppingListItem
+                        .all
+                        .fetchAll(db)
+                        .filter { itemIDsForMealplanEntry.contains($0.id) && $0.isComplete }
+                        .map(\.id)
+                )
+                guard !completedItemIDs.isEmpty else { return Set<UUID>() }
+
+                let ingredientLinks = try DBShoppingListItemIngredientLink.all.fetchAll(db)
+                return Set(
+                    ingredientLinks
+                        .filter { completedItemIDs.contains($0.shoppingListItemId) && recipeIngredientIDs.contains($0.ingredientId) }
+                        .map(\.ingredientId)
+                )
+            }
+
+            await MainActor.run {
+                completedMealplanIngredientIDs = completedIngredientIDs
+            }
+        } catch {
+            await MainActor.run {
+                completedMealplanIngredientIDs = []
+            }
+            print("Failed loading mealplan shopping completion state: \(error)")
+        }
+    }
+    
+    func clearMealplanIngredientStates() async {
+        do {
+            guard let mealplanEntryId else { return }
+            
+            try await db.write { db in
+                try DBShoppingListItemMealplanLink
+                    .where { $0.mealplanEntryId == mealplanEntryId }
+                    .delete()
+                    .execute(db)
+            }
+            await loadMealplanIngredientCompletionState()
+        } catch {
+            print(error)
         }
     }
 }

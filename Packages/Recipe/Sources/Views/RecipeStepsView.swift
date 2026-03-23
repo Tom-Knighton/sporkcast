@@ -19,9 +19,17 @@ public struct RecipeStepsView: View {
     @State private var stepIngredientMap: [String: [RecipeIngredient]] = [:]
     
     public let tint: Color
+    public let completedIngredientIDs: Set<UUID>
+    public let showMealplanShoppingTicks: Bool
     
-    public init(tint: Color) {
+    public init(
+        tint: Color,
+        completedIngredientIDs: Set<UUID> = [],
+        showMealplanShoppingTicks: Bool = false
+    ) {
         self.tint = tint
+        self.completedIngredientIDs = completedIngredientIDs
+        self.showMealplanShoppingTicks = showMealplanShoppingTicks
     }
     
     public var body: some View {
@@ -98,8 +106,12 @@ public struct RecipeStepsView: View {
     
     @ViewBuilder
     private func ingredientInStep(for ingredient: RecipeIngredient) -> some View {
+        // TODO: Toggle to enable in settings
+        let showCompletionTick = false && showMealplanShoppingTicks && completedIngredientIDs.contains(ingredient.id)
         HStack(spacing: 2) {
-            if let emoji = ingredient.emoji {
+            if showCompletionTick {
+                Image(systemName: "checkmark")
+            } else if let emoji = ingredient.emoji {
                 Text(emoji)
             }
             
@@ -246,4 +258,3 @@ struct RecipeStepWithTimingsView: View {
         return segments
     }
 }
-

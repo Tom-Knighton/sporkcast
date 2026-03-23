@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ShoppingCategory: String, CaseIterable, Identifiable, Sendable {
+public enum ShoppingCategory: String, CaseIterable, Identifiable, Sendable {
     case produce
     case meat
     case seafood
@@ -21,9 +21,9 @@ enum ShoppingCategory: String, CaseIterable, Identifiable, Sendable {
     case personalCare = "personal-care"
     case unknown
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .produce:
             return "Produce"
@@ -52,7 +52,7 @@ enum ShoppingCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var sortOrder: Int {
+    public var sortOrder: Int {
         switch self {
         case .produce:
             return 0
@@ -81,7 +81,7 @@ enum ShoppingCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    init(categoryIdentifier: String) {
+    public init(categoryIdentifier: String) {
         let normalized = categoryIdentifier
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
