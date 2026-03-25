@@ -67,6 +67,18 @@ public struct ShoppingListsPage: View {
         .navigationTitle(shoppingList?.title ?? "Shopping")
         .navigationBarTitleDisplayMode(.large)
         .fontDesign(.rounded)
+        .toolbar {
+            ToolbarItem {
+                Menu {
+                    Button(action: { Task { await self.clearList() }}) {
+                        Label("Remove All Items", systemImage: "cart.badge.minus.fill")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+
+            }
+        }
         .onChange(of: dbList, initial: true) { _, newValue in
             updateShoppingListState(from: newValue)
         }
@@ -611,6 +623,18 @@ private extension ShoppingListsPage {
             } catch {
                 print("Failed to undo shopping list auto move: \(error)")
             }
+        }
+    }
+}
+
+private extension ShoppingListsPage {
+    private func clearList() async {
+        do {
+            try await db.write { db in
+                try DBShoppingListItem.delete().execute(db)
+            }
+        } catch {
+            print(error.localizedDescription)
         }
     }
 }

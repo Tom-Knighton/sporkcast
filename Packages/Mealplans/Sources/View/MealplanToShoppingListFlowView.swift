@@ -2,7 +2,7 @@
 //  MealplanToShoppingListFlowView.swift
 //  Mealplans
 //
-//  Created by Codex on 22/03/2026.
+//  Created by Tom Knighton on 22/03/2026.
 //
 
 import SwiftUI
@@ -62,33 +62,10 @@ struct MealplanToShoppingListFlowView: View {
 
                 ForEach($entryDrafts) { $entry in
                     Section {
-                        Toggle("Include recipe", isOn: $entry.isSelected)
-
-                        Stepper(value: $entry.scale, in: 0.25...4.0, step: 0.25) {
-                            Text("Scale \(formatScale(entry.scale))x")
-                        }
-                        .disabled(!entry.isSelected)
-
-                        ForEach($entry.ingredients) { $ingredient in
-                            Toggle(
-                                isOn: Binding(
-                                    get: { ingredient.isSelected },
-                                    set: { newValue in
-                                        ingredient.isSelected = newValue
-                                        if newValue {
-                                            entry.isSelected = true
-                                        }
-                                    }
-                                ),
-                                label: {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(highlightedIngredientText(for: ingredient, scale: entry.scale))
-                                            .font(.body)
-                                    }
-                                }
-                            )
-                            .disabled(!entry.isSelected)
-                        }
+                        ShoppingImportEntryEditor(
+                            entry: $entry,
+                            includeToggleTitle: "Include recipe"
+                        )
                     } header: {
                         Text("\(entry.date.formatted(date: .abbreviated, time: .omitted)) · \(entry.recipeTitle)")
                     }
@@ -281,7 +258,7 @@ private extension MealplanToShoppingListFlowView {
                     }
 
                     let dbClassifierItems = try DBShoppingListItem.all.fetchAll(db)
-                    var classifierKnownItems = Self.classifierContextItems(from: dbClassifierItems)
+                    var classifierKnownItems = ShoppingListClassificationContext.classifierContextItems(from: dbClassifierItems)
 
                     for payload in selectedPayloads {
                         let itemId = UUID()
@@ -369,108 +346,13 @@ private extension MealplanToShoppingListFlowView {
                         ingredientId: ingredient.ingredientId,
                         homeId: entry.homeId,
                         scale: entry.scale,
-                        title: scaledIngredientText(for: ingredient, scale: entry.scale)
+                        title: ShoppingImportIngredientFormatter.scaledIngredientText(for: ingredient, scale: entry.scale)
                     )
                 )
             }
         }
 
         return payloads
-    }
-
-    nonisolated static func classifierContextItems(from dbItems: [DBShoppingListItem]) -> [ShoppingListItem] {
-        guard !dbItems.isEmpty else { return [] }
-
-        var bestItemsByKey: [String: DBShoppingListItem] = [:]
-        bestItemsByKey.reserveCapacity(dbItems.count)
-
-        for item in dbItems {
-            let normalizedTitle = item.title
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-            guard !normalizedTitle.isEmpty else { continue }
-
-            let categoryIdentifier = item.categoryIdentifier ?? ShoppingCategory.unknown.rawValue
-            let key = "\(categoryIdentifier)|\(normalizedTitle)"
-
-            if let existing = bestItemsByKey[key],
-               classifierSourcePriority(item.categorySource) <= classifierSourcePriority(existing.categorySource) {
-                continue
-            }
-
-            bestItemsByKey[key] = item
-        }
-
-        return bestItemsByKey.values.map { dbItem in
-            ShoppingListItem(
-                id: dbItem.id,
-                title: dbItem.title,
-                isComplete: dbItem.isComplete,
-                categoryId: dbItem.categoryIdentifier ?? ShoppingCategory.unknown.rawValue,
-                categoryName: dbItem.categoryDisplayName,
-                categorySource: dbItem.categorySource
-            )
-        }
-    }
-
-    nonisolated static func classifierSourcePriority(_ source: String) -> Int {
-        switch source.lowercased() {
-        case "manual", "suggestion":
-            return 3
-        case "classifier":
-            return 1
-        default:
-            return 2
-        }
-    }
-
-    func highlightedIngredientText(for ingredient: MealplanShoppingIngredientDraft, scale: Double) -> AttributedString {
-        let scaledText = scaledIngredientText(for: ingredient, scale: scale)
-        let scaledQuantity = ingredient.quantity.map { $0 * scale }
-        let scaledQuantityText = scaledQuantity.map(formatScale)
-
-        return IngredientHighlighter.highlight(
-            ingredient: RecipeIngredient(
-                id: ingredient.id,
-                sortIndex: 0,
-                ingredientText: scaledText,
-                ingredientPart: ingredient.ingredientPart,
-                extraInformation: nil,
-                quantity: scaledQuantity.map { IngredientQuantity(quantity: $0, quantityText: scaledQuantityText) },
-                unit: ingredient.unitText.map { IngredientUnit(unit: $0, unitText: $0) },
-                emoji: nil,
-                owned: nil
-            )
-        )
-    }
-
-    func scaledIngredientText(for ingredient: MealplanShoppingIngredientDraft, scale: Double) -> String {
-        let source = ingredient.ingredientText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard
-            !source.isEmpty,
-            let quantity = ingredient.quantity,
-            let originalQuantityText = ingredient.quantityText?.trimmingCharacters(in: .whitespacesAndNewlines),
-            !originalQuantityText.isEmpty
-        else {
-            return source
-        }
-
-        let scaledQuantityText = formatScale(quantity * scale)
-        guard let quantityRange = source.range(of: originalQuantityText) else {
-            return source
-        }
-
-        var updated = source
-        updated.replaceSubrange(quantityRange, with: scaledQuantityText)
-        return updated
-    }
-
-    func formatScale(_ value: Double) -> String {
-        if value.rounded() == value {
-            return String(Int(value))
-        }
-        return String(format: "%.2f", value)
-            .replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
     }
 }
 
@@ -505,3 +387,7 @@ private struct SelectedShoppingPayload: Hashable {
     let scale: Double
     let title: String
 }
+
+extension MealplanShoppingEntryDraft: ShoppingImportEntryRepresentable {}
+
+extension MealplanShoppingIngredientDraft: ShoppingImportIngredientRepresentable {}

@@ -2,7 +2,7 @@
 //  ShoppingListInputRowView.swift
 //  ShoppingLists
 //
-//  Created by Codex on 21/03/2026.
+//  Created by Tom Knighton on 21/03/2026.
 //
 
 import SwiftUI

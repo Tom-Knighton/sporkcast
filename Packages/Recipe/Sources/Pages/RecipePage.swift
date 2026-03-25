@@ -27,6 +27,7 @@ public struct RecipePage: View {
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
     @State private var commentsSnapshot: UIImage?
     @State private var completedMealplanIngredientIDs: Set<UUID> = []
+    @State private var showingAddToShoppingSheet = false
     private let mealplanEntryId: UUID?
 
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
@@ -197,7 +198,10 @@ public struct RecipePage: View {
                     Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
                         Label("Edit Recipe", systemImage: "pencil")
                     }
-                    if let mealplanEntryId {
+                    Button(action: { showingAddToShoppingSheet = true }) {
+                        Label("Add Ingredients To Shopping", systemImage: "cart.badge.plus")
+                    }
+                    if mealplanEntryId != nil {
                         Button(action: { Task { await clearMealplanIngredientStates() }}) {
                             Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
                         }
@@ -225,6 +229,9 @@ public struct RecipePage: View {
             await loadMealplanIngredientCompletionState()
         }
         .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
+        .sheet(isPresented: $showingAddToShoppingSheet) {
+            RecipeToShoppingListFlowView(recipe: viewModel.recipe)
+        }
     }
     
     @ViewBuilder

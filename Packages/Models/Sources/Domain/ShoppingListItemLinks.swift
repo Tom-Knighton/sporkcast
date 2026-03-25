@@ -2,7 +2,7 @@
 //  ShoppingListItemLinks.swift
 //  Models
 //
-//  Created by Codex on 22/03/2026.
+//  Created by Tom Knighton on 22/03/2026.
 //
 
 import Foundation
