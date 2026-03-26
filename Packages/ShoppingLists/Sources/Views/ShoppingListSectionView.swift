@@ -10,8 +10,8 @@ import Models
 
 struct ShoppingListSectionView: View {
     let section: ShoppingListItemGroup
+    let visibleItems: [ShoppingListItem]
     let focusedRow: FocusState<String?>.Binding
-    let pendingCompletionRemovals: Set<UUID>
     let reclassificationSuggestions: [UUID: ShoppingCategory]
     let onToggleCompletion: (ShoppingListItem) -> Void
     let onSubmitTitle: (ShoppingListItem, String) -> Void
@@ -30,30 +30,20 @@ struct ShoppingListSectionView: View {
         section.names.first ?? sectionCategory.displayName
     }
 
-    private var displayItems: [ShoppingListItem] {
-        section.items.filter { item in
-            !item.isComplete || pendingCompletionRemovals.contains(item.id)
-        }
-    }
-
     var body: some View {
-        let items = displayItems
-
         DisclosureGroup(isExpanded: $isExpanded) {
             VStack(spacing: 0) {
-                ForEach(items) { item in
+                ForEach(visibleItems) { item in
                     HStack(spacing: 8) {
-                        HStack(alignment: .top, spacing: 8) {
-                            ShoppingListItemRowView(
-                                item: item,
-                                focusedRow: focusedRow,
-                                suggestion: reclassificationSuggestions[item.id],
-                                onToggleCompletion: onToggleCompletion,
-                                onSubmitTitle: onSubmitTitle,
-                                onAcceptSuggestion: onAcceptSuggestion
-                            )
-                        }
-                        
+                        ShoppingListItemRowView(
+                            item: item,
+                            focusedRow: focusedRow,
+                            suggestion: reclassificationSuggestions[item.id],
+                            onToggleCompletion: onToggleCompletion,
+                            onSubmitTitle: onSubmitTitle,
+                            onAcceptSuggestion: onAcceptSuggestion
+                        )
+
                         Image(systemName: "line.3.horizontal")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(.tertiary)
@@ -62,12 +52,12 @@ struct ShoppingListSectionView: View {
                     .contentShape(.rect)
                     .draggable(ShoppingItemDragPayload(itemId: item.id))
 
-                    if item.id != items.last?.id {
+                    if item.id != visibleItems.last?.id {
                         Divider()
                     }
                 }
 
-                if !items.isEmpty {
+                if !visibleItems.isEmpty {
                     Divider()
                 }
 
@@ -91,8 +81,8 @@ struct ShoppingListSectionView: View {
                     .font(.title3.bold())
                     .foregroundStyle(.primary)
 
-                if !items.isEmpty {
-                    Text("\(items.count)")
+                if !visibleItems.isEmpty {
+                    Text("\(visibleItems.count)")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)

@@ -266,16 +266,27 @@ public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
     public let title: String
     public let listId: DBShoppingList.ID
     public let isComplete: Bool
+    public let modifiedAt: Date
     
     public let categoryIdentifier: String?
     public let categoryDisplayName: String
     public let categorySource: String
     
-    public init(id: UUID, title: String, listId: DBShoppingList.ID, isComplete: Bool, categoryIdentifier: String?, categoryDisplayName: String, categorySource: String) {
+    public init(
+        id: UUID,
+        title: String,
+        listId: DBShoppingList.ID,
+        isComplete: Bool,
+        modifiedAt: Date = .now,
+        categoryIdentifier: String?,
+        categoryDisplayName: String,
+        categorySource: String
+    ) {
         self.id = id
         self.listId = listId
         self.title = title
         self.isComplete = isComplete
+        self.modifiedAt = modifiedAt
         self.categoryIdentifier = categoryIdentifier
         self.categoryDisplayName = categoryDisplayName
         self.categorySource = categorySource
@@ -324,6 +335,30 @@ public struct DBShoppingListItemMealplanLink: Codable, Identifiable, Sendable, E
         self.shoppingListItemId = shoppingListItemId
         self.mealplanEntryId = mealplanEntryId
         self.addedAt = addedAt
+    }
+}
+
+@Table("ShoppingListItemReminderLinks")
+public struct DBShoppingListItemReminderLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let reminderIdentifier: String
+    public let reminderExternalIdentifier: String?
+    public let lastSyncedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        reminderIdentifier: String,
+        reminderExternalIdentifier: String?,
+        lastSyncedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.reminderIdentifier = reminderIdentifier
+        self.reminderExternalIdentifier = reminderExternalIdentifier
+        self.lastSyncedAt = lastSyncedAt
     }
 }
 
@@ -484,6 +519,24 @@ public struct SchemaV1 {
                     .references("ShoppingListItems", onDelete: .cascade)
                 e.column("mealplanEntryId", .text).notNull()
                 e.column("addedAt", .date).notNull()
+            }
+        }
+
+        migrator.registerMigration("Create Shopping Reminder Sync Tables") { db in
+            try db.alter(table: "ShoppingListItems") { e in
+                // Use a deterministic default so DEBUG schema-change detection doesn't
+                // think the schema changed on every launch and wipe local data.
+                e.add(column: "modifiedAt", .date).notNull().defaults(to: Date(timeIntervalSince1970: 0))
+            }
+
+            try db.create(table: "ShoppingListItemReminderLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("reminderIdentifier", .text).notNull().indexed()
+                e.column("reminderExternalIdentifier", .text).indexed()
+                e.column("lastSyncedAt", .date).notNull()
             }
         }
     }

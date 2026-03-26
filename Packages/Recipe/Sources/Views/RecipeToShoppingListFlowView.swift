@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-import Dependencies
 import Models
-import Persistence
+import Environment
 
 struct RecipeToShoppingListFlowView: View {
     @Environment(\.dismiss) private var dismiss
-    @Dependency(\.defaultDatabase) private var db
+    @Environment(\.shoppingListMutations) private var shoppingMutations
 
     private let recipe: Recipe
 
@@ -114,101 +113,23 @@ private extension RecipeToShoppingListFlowView {
 
         let selectedPayloads = selectedShoppingPayloads()
         guard !selectedPayloads.isEmpty else { return }
-        let classifier = ShoppingCategoryClassifier()
 
         isSaving = true
         errorMessage = nil
 
         Task {
             do {
-                try await db.write { db in
-                    let now = Date()
-                    let existingListIds = try DBShoppingList
-                        .where(\.isArchived)
-                        .not()
-                        .select(\.id)
-                        .fetchAll(db)
-
-                    var existingListId: UUID?
-                    for candidateId in existingListIds {
-                        if let _ = try DBShoppingList.find(candidateId).select(\.id).fetchOne(db) {
-                            existingListId = candidateId
-                            break
-                        }
-                    }
-
-                    let listId: UUID
-                    if let existingListId {
-                        listId = existingListId
-                    } else {
-                        let newListId = UUID()
-                        try DBShoppingList.insert {
-                            DBShoppingList(
-                                id: newListId,
-                                homeId: selectedPayloads.first?.homeId,
-                                title: "Shopping List",
-                                createdAt: now,
-                                modifiedAt: now,
-                                isArchived: false
-                            )
-                        }
-                        .execute(db)
-                        listId = newListId
-                    }
-
-                    let dbClassifierItems = try DBShoppingListItem.all.fetchAll(db)
-                    var classifierKnownItems = ShoppingListClassificationContext.classifierContextItems(from: dbClassifierItems)
-
-                    for payload in selectedPayloads {
-                        let itemId = UUID()
-                        let inferredCategory = classifier.classify(
-                            payload.title,
-                            fallback: .unknown,
-                            knownItems: classifierKnownItems
+                try await shoppingMutations.addImportedItems(
+                    selectedPayloads.map {
+                        ShoppingListImportPayload(
+                            ingredientId: $0.ingredientId,
+                            mealplanEntryId: nil,
+                            homeId: $0.homeId,
+                            scale: $0.scale,
+                            title: $0.title
                         )
-                        let categorySource = inferredCategory == .unknown ? "manual" : "classifier"
-
-                        try DBShoppingListItem.insert {
-                            DBShoppingListItem(
-                                id: itemId,
-                                title: payload.title,
-                                listId: listId,
-                                isComplete: false,
-                                categoryIdentifier: inferredCategory.rawValue,
-                                categoryDisplayName: inferredCategory.displayName,
-                                categorySource: categorySource
-                            )
-                        }
-                        .execute(db)
-
-                        classifierKnownItems.append(
-                            ShoppingListItem(
-                                id: itemId,
-                                title: payload.title,
-                                isComplete: false,
-                                categoryId: inferredCategory.rawValue,
-                                categoryName: inferredCategory.displayName,
-                                categorySource: categorySource
-                            )
-                        )
-
-                        try DBShoppingListItemIngredientLink.insert {
-                            DBShoppingListItemIngredientLink(
-                                id: UUID(),
-                                shoppingListItemId: itemId,
-                                ingredientId: payload.ingredientId,
-                                sourceScale: payload.scale,
-                                addedAt: now
-                            )
-                        }
-                        .execute(db)
                     }
-
-                    try DBShoppingList.find(listId).update {
-                        $0.modifiedAt = now
-                    }
-                    .execute(db)
-                }
+                )
 
                 await MainActor.run {
                     isSaving = false

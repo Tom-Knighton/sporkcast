@@ -22,10 +22,13 @@ private struct AutoAssignedMoveToast: Identifiable, Equatable {
 public struct ShoppingListsPage: View {
     @Environment(\.homeServices) private var homes
     @Environment(\.colorScheme) private var scheme
-    @Dependency(\.defaultDatabase) private var db
-    @FetchOne(DBShoppingList.full.where({ list, _ in !list.isArchived })) private var dbList: FullDBShoppingList?
+    @Environment(\.shoppingListMutations) private var shoppingMutations
+    @Environment(\.shoppingListRemindersSync) private var remindersSync
+    @FetchAll(DBShoppingList.full.where({ list, _ in !list.isArchived })) private var dbLists: [FullDBShoppingList]
     @FetchAll(DBShoppingListItem.all) private var dbClassifierItems: [DBShoppingListItem]
     @FocusState private var focusedRow: String?
+
+    private let classifier = ShoppingCategoryClassifier()
 
     @State private var shoppingList: ShoppingList?
     @State private var pendingCompletionRemovals: Set<UUID> = []
@@ -33,8 +36,12 @@ public struct ShoppingListsPage: View {
     @State private var reclassificationSuggestions: [UUID: ShoppingCategory] = [:]
     @State private var revealedInputSectionID: String?
     @State private var autoAssignedMoveToast: AutoAssignedMoveToast?
+    @State private var remindersSnapshot = ShoppingListRemindersSyncSnapshot()
+    @State private var showGroceriesSetupPrompt = false
 
-    private let classifier = ShoppingCategoryClassifier()
+    private var pageTitle: String {
+        shoppingList?.title ?? "Shopping"
+    }
 
     public init() {
 
@@ -48,60 +55,79 @@ public struct ShoppingListsPage: View {
                 let sections = displayedSections(for: shoppingList)
                 let showEmpty = sections.isEmpty
 
-                listSections(sections: sections, focusedField: $focusedRow)
+                ShoppingListSectionsView(
+                    sections: sections,
+                    focusedRow: $focusedRow,
+                    reclassificationSuggestions: reclassificationSuggestions,
+                    remindersSnapshot: remindersSnapshot,
+                    onSyncNow: syncRemindersNowAction,
+                    onToggleCompletion: completeItem(_:),
+                    onSubmitTitle: updateItemTitle(_:to:),
+                    onSubmitNewItem: addItem(in:title:),
+                    onAcceptSuggestion: acceptSuggestion(for:category:),
+                    onDropItem: { itemID, category in
+                        moveItem(id: itemID, to: category, source: "manual")
+                    }
+                )
                     .opacity(showEmpty ? 0 : 1)
                     .allowsHitTesting(!showEmpty)
                     .accessibilityHidden(showEmpty)
                     .overlay {
                         if showEmpty {
-                            noItems()
+                            ShoppingListNoItemsView()
                                 .transition(.opacity)
                         }
                     }
                     .animation(.easeInOut(duration: 0.3), value: showEmpty)
                     .fontDesign(.rounded)
             } else {
-                noShoppingList()
+                ShoppingListNoListView(onCreate: createShoppingList)
             }
         }
-        .navigationTitle(shoppingList?.title ?? "Shopping")
+        .navigationTitle(pageTitle)
         .navigationBarTitleDisplayMode(.large)
         .fontDesign(.rounded)
         .toolbar {
             ToolbarItem {
-                Menu {
-                    Button(action: { Task { await self.clearList() }}) {
-                        Label("Remove All Items", systemImage: "cart.badge.minus.fill")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-
+                ShoppingListToolbarMenuView(
+                    isSyncEnabled: remindersSnapshot.isEnabled,
+                    lastSyncAt: remindersSnapshot.lastSyncAt,
+                    lastError: remindersSnapshot.lastError,
+                    canClearList: shoppingList != nil,
+                    onSyncNow: syncRemindersNowAction,
+                    onConnectReminders: connectRemindersAction,
+                    onDisconnectReminders: disconnectRemindersAction,
+                    onClearList: clearListAction
+                )
             }
         }
-        .onChange(of: dbList, initial: true) { _, newValue in
-            updateShoppingListState(from: newValue)
+        .onChange(of: dbLists, initial: true) { _, newValue in
+            Task { @MainActor in
+                updateShoppingListState(from: preferredShoppingList(from: newValue))
+            }
         }
         .onDisappear {
             revealedInputSectionID = nil
             autoAssignedMoveToast = nil
         }
-        .safeAreaBar(edge: .bottom, content: {
-            HStack {
-                Spacer()
-                Button("Add Item", systemImage: "plus", action: focusUnknownInputRow)
-                    .labelStyle(.iconOnly)
-                    .accessibilityLabel("Add item")
-                    .bold()
-                    .font(.title2)
-                    .padding(6)
-                    .foregroundStyle(.foreground)
-                    .frame(width: 44, height: 44)
-                    .buttonBorderShape(.circle)
-                    .buttonStyle(.glassProminent)
-                    .tint(scheme == .dark ? .black : .white)
+        .task {
+            await remindersSync.start()
+            await remindersSync.scheduleSync(trigger: .shoppingTabAppeared)
+            await refreshRemindersSnapshot()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shoppingListRemindersSyncDidChange)) { _ in
+            Task { await refreshRemindersSnapshot() }
+        }
+        .onChange(of: remindersSnapshot.needsGroceriesSetupPrompt, initial: true) { _, needsPrompt in
+            if needsPrompt {
+                showGroceriesSetupPrompt = true
             }
-            .scenePadding()
+        }
+        .safeAreaBar(edge: .bottom, content: {
+            ShoppingListAddItemBarView(
+                scheme: scheme,
+                onAddItem: focusUnknownInputRow
+            )
         })
         .overlay(alignment: .bottom) {
             if let autoAssignedMoveToast {
@@ -114,75 +140,13 @@ public struct ShoppingListsPage: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .sheet(isPresented: $showGroceriesSetupPrompt) {
+            ShoppingListGroceriesSetupPromptView(
+                isPresented: $showGroceriesSetupPrompt,
+                onAcknowledge: acknowledgeGroceriesSetupPrompt
+            )
+        }
         .animation(.easeInOut(duration: 0.2), value: autoAssignedMoveToast)
-    }
-}
-
-private extension ShoppingListsPage {
-
-    @ViewBuilder
-    func listSections(sections: [ShoppingListItemGroup], focusedField: FocusState<String?>.Binding) -> some View {
-        ScrollView {
-            GlassEffectContainer(spacing: 16) {
-                VStack(spacing: 12) {
-                    ForEach(sections) { section in
-                        ShoppingListSectionView(
-                            section: section,
-                            focusedRow: focusedField,
-                            pendingCompletionRemovals: pendingCompletionRemovals,
-                            reclassificationSuggestions: reclassificationSuggestions,
-                            onToggleCompletion: completeItem(_:),
-                            onSubmitTitle: updateItemTitle(_:to:),
-                            onSubmitNewItem: addItem(in:title:),
-                            onAcceptSuggestion: acceptSuggestion(for:category:),
-                            onDropItem: { itemID, category in
-                                moveItem(id: itemID, to: category, source: "manual")
-                            }
-                        )
-                    }
-                }
-            }
-            .padding(.top, 8)
-            .padding(.bottom, 20)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .contentMargins(.horizontal, 20, for: .scrollContent)
-    }
-
-    @ViewBuilder
-    func noShoppingList() -> some View {
-        VStack {
-            ContentUnavailableView {
-                Label("Create a shopping list", systemImage: "cart.badge.plus")
-            } description: {
-                Text("Create a shopping list from your meals, and sync it with your reminders")
-            } actions: {
-                Button("Create", action: createShoppingList)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity)
-                    .buttonStyle(.glassProminent)
-                    .buttonSizing(.flexible)
-                    .tint(.blue)
-            }
-        }
-    }
-
-    @ViewBuilder
-    func noItems() -> some View {
-        GeometryReader { reader in
-            ScrollView {
-                VStack {
-                    ContentUnavailableView(
-                        "No Items",
-                        systemImage: "fork.knife",
-                        description: Text("Items added here will be automatically categorised into groups to help you shop.")
-                    )
-                }
-                .frame(height: reader.size.height)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-        }
     }
 }
 
@@ -203,16 +167,45 @@ private extension ShoppingListsPage {
         }
     }
 
-    func displayedSections(for list: ShoppingList) -> [ShoppingListItemGroup] {
-        let sorted = sortedSections(for: list)
-        let hasAnyVisibleItems = sorted.contains { !visibleItems(in: $0).isEmpty }
+    func preferredShoppingList(from lists: [FullDBShoppingList]) -> FullDBShoppingList? {
+        guard !lists.isEmpty else { return nil }
 
-        return sorted.filter { section in
-            let hasVisibleItems = !visibleItems(in: section).isEmpty
+        let sorted = lists.sorted { lhs, rhs in
+            let left = lhs.shoppingList
+            let right = rhs.shoppingList
+            if left.modifiedAt != right.modifiedAt {
+                return left.modifiedAt > right.modifiedAt
+            }
+            return left.createdAt > right.createdAt
+        }
+
+        if let withItems = sorted.first(where: { !$0.items.isEmpty }) {
+            return withItems
+        }
+
+        return sorted.first
+    }
+
+    func displayedSections(for list: ShoppingList) -> [ShoppingListDisplaySection] {
+        let sectionsWithVisibleItems = sortedSections(for: list).map { section in
+            (section: section, visibleItems: visibleItems(in: section))
+        }
+        let hasAnyVisibleItems = sectionsWithVisibleItems.contains { !$0.visibleItems.isEmpty }
+
+        return sectionsWithVisibleItems.compactMap { entry in
+            let section = entry.section
+            let hasVisibleItems = !entry.visibleItems.isEmpty
             let isFocusedInputSection = focusedRow == "addrow-\(section.id)"
             let isRevealedInputSection = revealedInputSectionID == section.id
             let isDefaultEmptySection = !hasAnyVisibleItems && ShoppingCategory(categoryIdentifier: section.id) == .unknown
-            return hasVisibleItems || isFocusedInputSection || isRevealedInputSection || isDefaultEmptySection
+            if hasVisibleItems || isFocusedInputSection || isRevealedInputSection || isDefaultEmptySection {
+                return ShoppingListDisplaySection(
+                    section: section,
+                    visibleItems: entry.visibleItems
+                )
+            } else {
+                return nil
+            }
         }
     }
 
@@ -222,53 +215,7 @@ private extension ShoppingListsPage {
         }
     }
 
-    func classifierContextItems() -> [ShoppingListItem] {
-        guard !dbClassifierItems.isEmpty else {
-            return shoppingList?.itemGroups.flatMap(\.items) ?? []
-        }
-
-        var bestItemsByKey: [String: DBShoppingListItem] = [:]
-        bestItemsByKey.reserveCapacity(dbClassifierItems.count)
-
-        for item in dbClassifierItems {
-            let normalizedTitle = item.title
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-            guard !normalizedTitle.isEmpty else { continue }
-
-            let categoryIdentifier = item.categoryIdentifier ?? ShoppingCategory.unknown.rawValue
-            let key = "\(categoryIdentifier)|\(normalizedTitle)"
-
-            if let existing = bestItemsByKey[key],
-               classifierSourcePriority(item.categorySource) <= classifierSourcePriority(existing.categorySource) {
-                continue
-            }
-
-            bestItemsByKey[key] = item
-        }
-
-        return bestItemsByKey.values.map { dbItem in
-            ShoppingListItem(
-                id: dbItem.id,
-                title: dbItem.title,
-                isComplete: dbItem.isComplete,
-                categoryId: dbItem.categoryIdentifier ?? ShoppingCategory.unknown.rawValue,
-                categoryName: dbItem.categoryDisplayName,
-                categorySource: dbItem.categorySource
-            )
-        }
-    }
-
-    func classifierSourcePriority(_ source: String) -> Int {
-        switch source.lowercased() {
-        case "manual", "suggestion":
-            return 3
-        case "classifier":
-            return 1
-        default:
-            return 2
-        }
-    }
+    // MARK: - View Actions
 
     func focusUnknownInputRow() {
         withAnimation {
@@ -281,29 +228,66 @@ private extension ShoppingListsPage {
         }
     }
 
+    func connectRemindersAction() {
+        Task { await connectReminders() }
+    }
+
+    func disconnectRemindersAction() {
+        Task { await disconnectReminders() }
+    }
+
+    func syncRemindersNowAction() {
+        Task { await syncRemindersNow() }
+    }
+
+    func clearListAction() {
+        Task { await clearList() }
+    }
+
+    func acknowledgeGroceriesSetupPrompt() {
+        Task {
+            await remindersSync.markGroceriesSetupPromptShown()
+            await refreshRemindersSnapshot()
+            showGroceriesSetupPrompt = false
+        }
+    }
+
+    // MARK: - Reminders Sync
+
+    @MainActor
+    func refreshRemindersSnapshot() async {
+        remindersSnapshot = await remindersSync.snapshot()
+    }
+
+    func connectReminders() async {
+        await remindersSync.connect()
+        await refreshRemindersSnapshot()
+    }
+
+    func disconnectReminders() async {
+        await remindersSync.disconnect()
+        await refreshRemindersSnapshot()
+    }
+
+    func syncRemindersNow() async {
+        await remindersSync.syncNow()
+        await refreshRemindersSnapshot()
+    }
+
+    // MARK: - Shopping List Mutations
+
     func createShoppingList() {
         let homeId = homes.home?.id
         Task {
             do {
-                try await db.write { [homeId] db in
-                    try DBShoppingList.insert {
-                        DBShoppingList(
-                            id: UUID(),
-                            homeId: homeId,
-                            title: "Shopping List",
-                            createdAt: Date(),
-                            modifiedAt: Date(),
-                            isArchived: false
-                        )
-                    }
-                    .execute(db)
-                }
+                _ = try await shoppingMutations.ensureActiveShoppingList(homeId: homeId)
             } catch {
                 print("Failed to create shopping list: \(error)")
             }
         }
     }
 
+    @MainActor
     func updateShoppingListState(from newValue: FullDBShoppingList?) {
         guard let newValue else {
             shoppingList = nil
@@ -345,34 +329,24 @@ private extension ShoppingListsPage {
         let inferredCategory = classifier.classify(
             trimmedTitle,
             fallback: fallbackCategory,
-            knownItems: classifierContextItems()
+            knownItems: ShoppingListClassifierContextBuilder.contextItems(
+                dbItems: dbClassifierItems,
+                fallbackList: shoppingList
+            )
         )
         let shouldAutoMove = fallbackCategory == .unknown && inferredCategory != .unknown
         let assignedCategory = shouldAutoMove ? inferredCategory : fallbackCategory
         let assignedSource = shouldAutoMove ? "classifier" : "manual"
-        let itemID = UUID()
 
         Task {
             do {
-                try await db.write { db in
-                    try DBShoppingListItem.insert {
-                        DBShoppingListItem(
-                            id: itemID,
-                            title: trimmedTitle,
-                            listId: listId,
-                            isComplete: false,
-                            categoryIdentifier: assignedCategory.rawValue,
-                            categoryDisplayName: assignedCategory.displayName,
-                            categorySource: assignedSource
-                        )
-                    }
-                    .execute(db)
-
-                    try DBShoppingList.find(listId).update {
-                        $0.modifiedAt = Date()
-                    }
-                    .execute(db)
-                }
+                let itemID = try await shoppingMutations.addItem(
+                    listId: listId,
+                    title: trimmedTitle,
+                    isComplete: false,
+                    category: assignedCategory,
+                    categorySource: assignedSource
+                )
 
                 if shouldAutoMove {
                     await MainActor.run {
@@ -403,7 +377,10 @@ private extension ShoppingListsPage {
         let inferredCategory = classifier.classify(
             trimmedTitle,
             fallback: .unknown,
-            knownItems: classifierContextItems()
+            knownItems: ShoppingListClassifierContextBuilder.contextItems(
+                dbItems: dbClassifierItems,
+                fallbackList: shoppingList
+            )
         )
 
         withAnimation(.easeInOut(duration: 0.2)) {
@@ -419,19 +396,11 @@ private extension ShoppingListsPage {
 
         Task {
             do {
-                try await db.write { db in
-                    try DBShoppingListItem.find(item.id).update {
-                        $0.title = trimmedTitle
-                    }
-                    .execute(db)
-
-                    if let listId {
-                        try DBShoppingList.find(listId).update {
-                            $0.modifiedAt = Date()
-                        }
-                        .execute(db)
-                    }
-                }
+                try await shoppingMutations.updateItemTitle(
+                    itemId: item.id,
+                    listId: listId,
+                    title: trimmedTitle
+                )
             } catch {
                 print("Failed to update shopping list item title: \(error)")
             }
@@ -447,19 +416,11 @@ private extension ShoppingListsPage {
 
             Task {
                 do {
-                    try await db.write { db in
-                        try DBShoppingListItem.find(itemID).update {
-                            $0.isComplete = false
-                        }
-                        .execute(db)
-
-                        if let listId {
-                            try DBShoppingList.find(listId).update {
-                                $0.modifiedAt = Date()
-                            }
-                            .execute(db)
-                        }
-                    }
+                    try await shoppingMutations.setItemCompletion(
+                        itemId: itemID,
+                        listId: listId,
+                        isComplete: false
+                    )
 
                     await MainActor.run {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -484,19 +445,11 @@ private extension ShoppingListsPage {
 
         Task {
             do {
-                try await db.write { db in
-                    try DBShoppingListItem.find(itemID).update {
-                        $0.isComplete = true
-                    }
-                    .execute(db)
-
-                    if let listId {
-                        try DBShoppingList.find(listId).update {
-                            $0.modifiedAt = Date()
-                        }
-                        .execute(db)
-                    }
-                }
+                try await shoppingMutations.setItemCompletion(
+                    itemId: itemID,
+                    listId: listId,
+                    isComplete: true
+                )
             } catch {
                 await MainActor.run {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -532,21 +485,12 @@ private extension ShoppingListsPage {
 
         Task {
             do {
-                try await db.write { db in
-                    try DBShoppingListItem.find(itemId).update {
-                        $0.categoryIdentifier = category.rawValue
-                        $0.categoryDisplayName = category.displayName
-                        $0.categorySource = source
-                    }
-                    .execute(db)
-
-                    if let listId {
-                        try DBShoppingList.find(listId).update {
-                            $0.modifiedAt = Date()
-                        }
-                        .execute(db)
-                    }
-                }
+                try await shoppingMutations.updateItemCategory(
+                    itemId: itemId,
+                    listId: listId,
+                    category: category,
+                    source: source
+                )
             } catch {
                 print("Failed to move shopping list item: \(error)")
             }
@@ -554,6 +498,8 @@ private extension ShoppingListsPage {
 
         return true
     }
+
+    // MARK: - Pending Completion Removal
 
     func schedulePendingCompletionRemoval(for itemID: UUID) {
         let token = UUID()
@@ -575,6 +521,8 @@ private extension ShoppingListsPage {
     func cancelPendingCompletionRemoval(for itemID: UUID) {
         pendingCompletionRemovalTokens[itemID] = nil
     }
+
+    // MARK: - Auto Move Toast
 
     func showAutoAssignedMoveToast(
         itemID: UUID,
@@ -605,21 +553,12 @@ private extension ShoppingListsPage {
 
         Task {
             do {
-                try await db.write { db in
-                    try DBShoppingListItem.find(toast.itemID).update {
-                        $0.categoryIdentifier = toast.fromCategory.rawValue
-                        $0.categoryDisplayName = toast.fromCategory.displayName
-                        $0.categorySource = "manual"
-                    }
-                    .execute(db)
-
-                    if let listId {
-                        try DBShoppingList.find(listId).update {
-                            $0.modifiedAt = Date()
-                        }
-                        .execute(db)
-                    }
-                }
+                try await shoppingMutations.updateItemCategory(
+                    itemId: toast.itemID,
+                    listId: listId,
+                    category: toast.fromCategory,
+                    source: "manual"
+                )
             } catch {
                 print("Failed to undo shopping list auto move: \(error)")
             }
@@ -629,10 +568,9 @@ private extension ShoppingListsPage {
 
 private extension ShoppingListsPage {
     private func clearList() async {
+        guard let listId = shoppingList?.id else { return }
         do {
-            try await db.write { db in
-                try DBShoppingListItem.delete().execute(db)
-            }
+            try await shoppingMutations.clearList(listId: listId)
         } catch {
             print(error.localizedDescription)
         }
