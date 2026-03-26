@@ -15,12 +15,13 @@ public struct MealplanPage: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
     
-    @State private var startDate = Date().lastMonday()
-    @State private var endDate = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
+    @State private var startDate = MealplanPage.currentWeekRange(containing: .now).lowerBound
+    @State private var endDate = MealplanPage.currentWeekRange(containing: .now).upperBound
     @State private var now = Date()
     @State private var scrollPosition: ScrollPosition = .init(id: 1)
     @State private var isDraggingEntry: Bool = false
     @State private var repository = MealplanRepository()
+    @State private var showingShoppingListFlow = false
     
     public init() {}
     
@@ -65,16 +66,31 @@ public struct MealplanPage: View {
         }
         .environment(repository)
         .navigationTitle("Mealplan")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Add To Shopping", systemImage: "cart.badge.plus") {
+                    showingShoppingListFlow = true
+                }
+                .accessibilityLabel("Add mealplan ingredients to shopping list")
+            }
+        }
+        .sheet(isPresented: $showingShoppingListFlow) {
+            let defaultRange = Self.currentWeekRange(containing: now, calendar: calendar)
+            MealplanToShoppingListFlowView(
+                initialStartDate: defaultRange.lowerBound,
+                initialEndDate: defaultRange.upperBound
+            )
+        }
         .task(id: [startDate, endDate]) {
             await updateQuery()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 now = Date()
-                let newStart = Date().lastMonday()
-                if newStart != startDate {
-                    startDate = newStart
-                    endDate = calendar.date(byAdding: .day, value: 7, to: .now)!
+                let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar)
+                if currentWeek.lowerBound != startDate {
+                    startDate = currentWeek.lowerBound
+                    endDate = currentWeek.upperBound
                 }
                 Task {
                     await updateQuery()
@@ -83,10 +99,10 @@ public struct MealplanPage: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
             now = Date()
-            let newStart = Date().lastMonday()
-            if newStart != startDate {
-                startDate = newStart
-                endDate = calendar.date(byAdding: .day, value: 7, to: .now)!
+            let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar)
+            if currentWeek.lowerBound != startDate {
+                startDate = currentWeek.lowerBound
+                endDate = currentWeek.upperBound
             }
             Task {
                 await updateQuery()
@@ -109,6 +125,15 @@ public struct MealplanPage: View {
         } catch {
             print(error.localizedDescription)
         }
+    }
+
+    private static func currentWeekRange(containing date: Date, calendar: Calendar = .current) -> ClosedRange<Date> {
+        let startOfDay = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: startOfDay)
+        let daysFromMonday = (weekday + 5) % 7
+        let weekStart = calendar.date(byAdding: .day, value: -daysFromMonday, to: startOfDay) ?? startOfDay
+        let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+        return weekStart...weekEnd
     }
 }
 

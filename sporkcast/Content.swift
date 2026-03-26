@@ -18,6 +18,7 @@ internal import AppRouter
 import Models
 import Settings
 import CloudKit
+import ShoppingLists
 
 struct AppContent: View {
     @Namespace private var appRouterNamespace
@@ -26,12 +27,14 @@ struct AppContent: View {
     @State private var alarmManager = RecipeTimerStore.shared
     @State private var alertManager = AlertManager.shared
     @State private var households = HouseholdService.shared
+    @State private var shoppingMutations = ShoppingListMutationRepository()
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
     
     @State private var appSettings = SettingsStore()
     @Environment(\.modelContext) private var context
+    @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
     
     public init() {
         self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
@@ -50,6 +53,12 @@ struct AppContent: View {
                     MealplanPage()
                 }
             }
+        } shoppingLists: {
+            NavigationStack(path: $appRouter[.shoppingLists]) {
+                WithNavigationDestinations(namespace: appRouterNamespace) {
+                    ShoppingListsPage()
+                }
+            }
         } settings: {
             NavigationStack(path: $appRouter[.settings]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
@@ -59,7 +68,7 @@ struct AppContent: View {
         }
         .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())
-        .tint(Color.primary)
+//        .tint(Color.primary)
         .environment(appRouter)
         .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
         .environment(alarmManager)
@@ -68,6 +77,7 @@ struct AppContent: View {
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
         .environment(\.cloudKit, CloudKitGate())
+        .environment(\.shoppingListMutations, shoppingMutations)
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
         .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }
@@ -103,6 +113,10 @@ struct AppContent: View {
         }
         .task(id: households.home?.id) {
             await households.syncEntities()
+        }
+        .task {
+            await shoppingListRemindersSync.start()
+            await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
         }
     }
     

@@ -239,6 +239,129 @@ public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("ShoppingLists")
+public struct DBShoppingList: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let homeId: UUID?
+    public let title: String
+    public let createdAt: Date
+    public let modifiedAt: Date
+    public let isArchived: Bool
+    
+    public init(id: UUID, homeId: UUID?, title: String, createdAt: Date, modifiedAt: Date, isArchived: Bool) {
+        self.id = id
+        self.homeId = homeId
+        self.title = title
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+        self.isArchived = isArchived
+    }
+}
+
+@Table("ShoppingListItems")
+public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let title: String
+    public let listId: DBShoppingList.ID
+    public let isComplete: Bool
+    public let modifiedAt: Date
+    
+    public let categoryIdentifier: String?
+    public let categoryDisplayName: String
+    public let categorySource: String
+    
+    public init(
+        id: UUID,
+        title: String,
+        listId: DBShoppingList.ID,
+        isComplete: Bool,
+        modifiedAt: Date = .now,
+        categoryIdentifier: String?,
+        categoryDisplayName: String,
+        categorySource: String
+    ) {
+        self.id = id
+        self.listId = listId
+        self.title = title
+        self.isComplete = isComplete
+        self.modifiedAt = modifiedAt
+        self.categoryIdentifier = categoryIdentifier
+        self.categoryDisplayName = categoryDisplayName
+        self.categorySource = categorySource
+    }
+}
+
+@Table("ShoppingListItemIngredientLinks")
+public struct DBShoppingListItemIngredientLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let ingredientId: UUID
+    public let sourceScale: Double?
+    public let addedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        ingredientId: UUID,
+        sourceScale: Double?,
+        addedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.ingredientId = ingredientId
+        self.sourceScale = sourceScale
+        self.addedAt = addedAt
+    }
+}
+
+@Table("ShoppingListItemMealplanLinks")
+public struct DBShoppingListItemMealplanLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let mealplanEntryId: UUID
+    public let addedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        mealplanEntryId: UUID,
+        addedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.mealplanEntryId = mealplanEntryId
+        self.addedAt = addedAt
+    }
+}
+
+@Table("ShoppingListItemReminderLinks")
+public struct DBShoppingListItemReminderLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let shoppingListItemId: DBShoppingListItem.ID
+    public let reminderIdentifier: String
+    public let reminderExternalIdentifier: String?
+    public let lastSyncedAt: Date
+
+    public init(
+        id: UUID,
+        shoppingListItemId: DBShoppingListItem.ID,
+        reminderIdentifier: String,
+        reminderExternalIdentifier: String?,
+        lastSyncedAt: Date
+    ) {
+        self.id = id
+        self.shoppingListItemId = shoppingListItemId
+        self.reminderIdentifier = reminderIdentifier
+        self.reminderExternalIdentifier = reminderExternalIdentifier
+        self.lastSyncedAt = lastSyncedAt
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -351,6 +474,69 @@ public struct SchemaV1 {
                 e.column("noteText", .text)
                 e.column("recipeId", .text)
                 e.column("homeId", .text).references("Homes", onDelete: .setNull)
+            }
+
+            try db.create(table: "ShoppingLists") { e in
+                e.primaryKey("id", .text)
+                e.column("homeId").references("Homes", onDelete: .setNull)
+                e.column("title", .text).notNull()
+                e.column("createdAt", .date).notNull()
+                e.column("modifiedAt", .date)
+                e.column("isArchived", .boolean).defaults(to: false)
+            }
+            
+            try db.create(table: "ShoppingListItems") { e in
+                e.primaryKey("id", .text)
+                e.column("listId", .text).references("ShoppingLists", onDelete: .cascade)
+                e.column("title", .text).notNull()
+                e.column("isComplete", .boolean).notNull().defaults(to: false)
+                
+                e.column("categoryIdentifier", .text)
+                    .notNull()
+                    .defaults(to: "unknown")
+                    .indexed()
+                
+                e.column("categoryDisplayName", .text).notNull().defaults(to: "Other")
+                e.column("categorySource", .text)
+            }
+        }
+
+        migrator.registerMigration("Create Shopping Item Link Tables") { db in
+            try db.create(table: "ShoppingListItemIngredientLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("ingredientId", .text).notNull()
+                e.column("sourceScale", .double)
+                e.column("addedAt", .date).notNull()
+            }
+
+            try db.create(table: "ShoppingListItemMealplanLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("mealplanEntryId", .text).notNull()
+                e.column("addedAt", .date).notNull()
+            }
+        }
+
+        migrator.registerMigration("Create Shopping Reminder Sync Tables") { db in
+            try db.alter(table: "ShoppingListItems") { e in
+                // Use a deterministic default so DEBUG schema-change detection doesn't
+                // think the schema changed on every launch and wipe local data.
+                e.add(column: "modifiedAt", .date).notNull().defaults(to: Date(timeIntervalSince1970: 0))
+            }
+
+            try db.create(table: "ShoppingListItemReminderLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("shoppingListItemId", .text)
+                    .notNull()
+                    .references("ShoppingListItems", onDelete: .cascade)
+                e.column("reminderIdentifier", .text).notNull().indexed()
+                e.column("reminderExternalIdentifier", .text).indexed()
+                e.column("lastSyncedAt", .date).notNull()
             }
         }
     }
