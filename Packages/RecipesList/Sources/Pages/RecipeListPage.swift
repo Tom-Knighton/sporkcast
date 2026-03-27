@@ -7,7 +7,6 @@
 
 import SwiftUI
 import Environment
-import UIKit
 import Design
 import API
 import Models
@@ -21,6 +20,12 @@ public struct RecipeListPage: View {
     @Environment(\.networkClient) private var client
     @State private var importFromUrl: Bool = false
     @State private var importFromUrlText: String = ""
+    @State private var importStartedAt: Date = .now
+    @State private var importFailureMessage: String?
+    @State private var isImportSheetPresented: Bool = false
+    @State private var activeImportURL: String?
+    @State private var importSuccessFeedbackToken: Int = 0
+    @State private var importFailureFeedbackToken: Int = 0
     
     @State private var repository = RecipesRepository()
     
@@ -108,36 +113,39 @@ public struct RecipeListPage: View {
                 TextField("Enter Recipe URL", text: $importFromUrlText)
                     .textContentType(.URL)
                 Button("Import") {
-                    Task {
-                        do {
-                            let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: importFromUrlText))
-                            
-                            if let recipeDTO {
-                                let entities = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
-                                try await repository.saveImportedRecipe(entities)
-                                print("saved")
-                            } else {
-                                print("Failed parsing recipe")
-                            }
-                        } catch {
-                            print(error)
-                        }
-                        
-                    }
+                    startRecipeImport()
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(importURLToParse.isEmpty)
                 Button("Cancel") {
                     
                 }
             } message: {
                 Text("Enter or paste the url to the recipe from the internet")
             }
+            .sheet(isPresented: $isImportSheetPresented, onDismiss: dismissImportSheet) {
+                RecipeImportStatusSheet(
+                    startedAt: importStartedAt,
+                    failureMessage: importFailureMessage,
+                    onRetry: retryRecipeImport,
+                    onDismiss: dismissImportSheet
+                )
+                .interactiveDismissDisabled(importFailureMessage == nil)
+                .presentationDetents(importFailureMessage == nil ? [.height(250)] : [.height(330)])
+                .presentationDragIndicator(importFailureMessage == nil ? .hidden : .visible)
+            }
+            .sensoryFeedback(.success, trigger: importSuccessFeedbackToken)
+            .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
         }
         
     }
 }
 
 extension RecipeListPage {
+
+    private var importURLToParse: String {
+        importFromUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
     
     private func deleteRecipe(id: UUID) async {
         do {
@@ -145,6 +153,74 @@ extension RecipeListPage {
         } catch {
             print(error)
         }
+    }
+
+    @MainActor
+    private func startRecipeImport() {
+        let importURL = importURLToParse
+        guard !importURL.isEmpty else { return }
+
+        activeImportURL = importURL
+        importFailureMessage = nil
+        importStartedAt = .now
+        isImportSheetPresented = true
+
+        Task {
+            await runRecipeImport(from: importURL)
+        }
+    }
+
+    @MainActor
+    private func retryRecipeImport() {
+        guard let activeImportURL else { return }
+        importFailureMessage = nil
+        importStartedAt = .now
+
+        Task {
+            await runRecipeImport(from: activeImportURL)
+        }
+    }
+
+    @MainActor
+    private func dismissImportSheet() {
+        isImportSheetPresented = false
+        importFailureMessage = nil
+    }
+
+    @MainActor
+    private func runRecipeImport(from url: String) async {
+        do {
+            let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: url))
+
+            guard let recipeDTO else {
+                importFailureMessage = "We couldn't read a recipe from that web page. Try a different link."
+                importFailureFeedbackToken += 1
+                return
+            }
+
+            let entities = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
+            try await repository.saveImportedRecipe(entities)
+
+            importFromUrlText = ""
+            activeImportURL = nil
+            isImportSheetPresented = false
+            importSuccessFeedbackToken += 1
+        } catch {
+            importFailureMessage = mapImportError(error)
+            importFailureFeedbackToken += 1
+            print(error)
+        }
+    }
+
+    private func mapImportError(_ error: Error) -> String {
+        if error is DecodingError {
+            return "The recipe data was returned in an unexpected format. Please try another page."
+        }
+        let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "We couldn't import that recipe right now. Please try again."
+        }
+        return description
     }
 }
 
