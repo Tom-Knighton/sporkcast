@@ -28,6 +28,7 @@ struct AppContent: View {
     @State private var alertManager = AlertManager.shared
     @State private var households = HouseholdService.shared
     @State private var shoppingMutations = ShoppingListMutationRepository()
+    @State private var flagKit: FlagService
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
@@ -38,6 +39,7 @@ struct AppContent: View {
     
     public init() {
         self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
+        self.flagKit = .init(mobileKey: "mob-0e75d9dd-fb2e-4080-b627-83dfaf403079", subscriptionTier: "free")
     }
     
     var body: some View {
@@ -78,6 +80,7 @@ struct AppContent: View {
         .environment(\.appSettings, appSettings)
         .environment(\.cloudKit, CloudKitGate())
         .environment(\.shoppingListMutations, shoppingMutations)
+        .environment(\.flagKit, flagKit)
         .tabBarMinimizeBehavior(.onScrollDown)
         .onOpenURL(prefersInApp: true)
         .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }
@@ -115,6 +118,7 @@ struct AppContent: View {
             await households.syncEntities()
         }
         .task {
+            flagKit.start()
             await shoppingListRemindersSync.start()
             await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
         }

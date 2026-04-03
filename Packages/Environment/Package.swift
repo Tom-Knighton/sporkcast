@@ -15,6 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"),
+        .package(url: "https://github.com/launchdarkly/ios-client-sdk.git", .upToNextMajor(from: "11.1.2")),
         .package(path: "../API"),
         .package(path: "../Models"),
         .package(path: "../Persistence")
@@ -26,6 +27,7 @@ let package = Package(
             name: "Environment",
             dependencies: [
                 .product(name: "AppRouter", package: "AppRouter"),
+                .product(name: "LaunchDarkly", package: "ios-client-sdk"),
                 "API",
                 "Models",
                 "Persistence"
