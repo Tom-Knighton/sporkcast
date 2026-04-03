@@ -16,4 +16,5 @@ public extension EnvironmentValues {
     @Entry var appSettings: SettingsStore = SettingsStore()
     @Entry var homeServices: any HouseholdServiceProtocol = HouseholdService.shared
     @Entry var cloudKit: any CloudKitGateProtocol = CloudKitGate()
+    @Entry var flagKit: any FlagServiceProtocol = FlagService(mobileKey: "")
 }

@@ -11,6 +11,15 @@ struct ImportAppSelectionSheet: View {
     let onSelect: (ImportAppSource) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.flagKit) private var flagKit
+    
+    private var appSources: [ImportAppSource] {
+        var sources = ImportAppSource.allCases
+        if !flagKit.isEnabled(.recipeImportPaprikaEnabled, default: false) {
+            sources.removeAll(where: { $0.id == "paprika" })
+        }
+        return sources
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,11 +30,7 @@ struct ImportAppSelectionSheet: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if #available(iOS 26.0, *) {
-                        GlassEffectContainer(spacing: 10) {
-                            sourceCards
-                        }
-                    } else {
+                    GlassEffectContainer(spacing: 10) {
                         sourceCards
                     }
                 }
@@ -43,7 +48,7 @@ struct ImportAppSelectionSheet: View {
 
     private var sourceCards: some View {
         VStack(spacing: 10) {
-            ForEach(ImportAppSource.allCases) { source in
+            ForEach(appSources) { source in
                 Button {
                     onSelect(source)
                     dismiss()
@@ -82,12 +87,7 @@ struct ImportAppSelectionSheet: View {
 
 private struct ImportSourceCardStyle: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-        } else {
-            content
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        }
+        content
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
     }
 }
