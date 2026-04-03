@@ -15,6 +15,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var remindersSyncEnabled: Bool = false
     public var remindersCalendarIdentifier: String?
     public var remindersNeedsGroceriesSetupPrompt: Bool = false
+    public var enableWebSelectionImport: Bool = false
+    public var enableOcrImport: Bool = false
     
     public enum Theme: String, Codable, CaseIterable, Identifiable, Sendable {
         public var id: String { String(describing: self) }
@@ -29,6 +31,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case remindersSyncEnabled
         case remindersCalendarIdentifier
         case remindersNeedsGroceriesSetupPrompt
+        case enableWebSelectionImport
+        case enableOcrImport
     }
 
     public init() {}
@@ -41,5 +45,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         remindersSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .remindersSyncEnabled) ?? false
         remindersCalendarIdentifier = try container.decodeIfPresent(String.self, forKey: .remindersCalendarIdentifier)
         remindersNeedsGroceriesSetupPrompt = try container.decodeIfPresent(Bool.self, forKey: .remindersNeedsGroceriesSetupPrompt) ?? false
+        enableWebSelectionImport = try container.decodeIfPresent(Bool.self, forKey: .enableWebSelectionImport) ?? false
+        enableOcrImport = try container.decodeIfPresent(Bool.self, forKey: .enableOcrImport) ?? false
     }
 }

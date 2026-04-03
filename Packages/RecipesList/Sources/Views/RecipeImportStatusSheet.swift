@@ -106,7 +106,7 @@ public struct RecipeImportStatusSheet: View {
         .padding(.vertical, 28)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true)
                 .fill(
                     LinearGradient(
                         colors: [

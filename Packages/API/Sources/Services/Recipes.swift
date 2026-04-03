@@ -10,11 +10,14 @@ import Foundation
 public enum Recipes: Endpoint {
     
     case uploadFromUrl(url: String)
+    case uploadFromText(text: String, sourceHint: String?)
     
     public func path() -> String {
         switch self {
         case .uploadFromUrl:
             return "Parser/Parse"
+        case .uploadFromText:
+            return "Parser/ParseText"
         }
     }
     
@@ -26,12 +29,14 @@ public enum Recipes: Endpoint {
         switch self {
         case .uploadFromUrl(let url):
             return ParseRecipeByUrlRequest(url: url)
+        case .uploadFromText(let text, let sourceHint):
+            return ParseRecipeByTextRequest(text: text, sourceHint: sourceHint)
         }
     }
     
     public func mockResponseOk() -> any Decodable {
         switch self {
-        case .uploadFromUrl(_):
+        case .uploadFromUrl(_), .uploadFromText:
             return RecipeDTOMockBuilder()
                 .build()
         }

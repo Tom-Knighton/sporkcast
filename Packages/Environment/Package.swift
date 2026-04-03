@@ -14,14 +14,22 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"), .package(path: "../API"), .package(path: "../Models"), .package(path: "../Persistence")
+        .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"),
+        .package(path: "../API"),
+        .package(path: "../Models"),
+        .package(path: "../Persistence")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Environment",
-            dependencies: [.product(name: "AppRouter", package: "AppRouter"), "API", "Models", "Persistence"],
+            dependencies: [
+                .product(name: "AppRouter", package: "AppRouter"),
+                "API",
+                "Models",
+                "Persistence"
+            ],
         ),
         .testTarget(name: "EnvironmentTests", dependencies: ["Environment", "API", "Persistence", "Models"])
     ]

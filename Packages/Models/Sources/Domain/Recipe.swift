@@ -55,6 +55,10 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     
     /// The id of the home this recipe is a part of, if any
     public var homeId: UUID?
+    
+    public var hasUsableSource: Bool {
+        !self.sourceUrl.starts(with: "sporkcast://")
+    }
 
     
     public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, homeId: UUID?) {

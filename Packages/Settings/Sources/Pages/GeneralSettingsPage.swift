@@ -28,6 +28,11 @@ struct GeneralSettingsPage: View {
                     }
                 }
             }
+
+            Section("Import Features") {
+                Toggle("Enable Web Selection Import", isOn: store.binding(\.enableWebSelectionImport))
+                Toggle("Enable OCR Import", isOn: store.binding(\.enableOcrImport))
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("General")

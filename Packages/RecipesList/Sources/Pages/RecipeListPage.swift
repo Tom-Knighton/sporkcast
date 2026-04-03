@@ -7,147 +7,216 @@
 
 import SwiftUI
 import Environment
-import Design
 import API
+import Design
 import Models
 import Persistence
+import RecipeImporting
+import UniformTypeIdentifiers
 
 public struct RecipeListPage: View {
-    
+
     @Environment(ZoomManager.self) private var zoomManager
     @Environment(\.homeServices) private var homes
     @Environment(AppRouter.self) private var router
     @Environment(\.networkClient) private var client
-    @State private var importFromUrl: Bool = false
-    @State private var importFromUrlText: String = ""
-    @State private var importStartedAt: Date = .now
-    @State private var importFailureMessage: String?
-    @State private var isImportSheetPresented: Bool = false
-    @State private var activeImportURL: String?
+    @Environment(\.appSettings) private var appSettings
+
+    @State private var importState = RecipeListImportState()
     @State private var importSuccessFeedbackToken: Int = 0
     @State private var importFailureFeedbackToken: Int = 0
-    
     @State private var repository = RecipesRepository()
-    
-    @State private var showDeleteConfirmId: UUID? = nil
-    private var alertIsPresented: Binding<Bool> {
-        Binding(
-            get: { showDeleteConfirmId != nil },
-            set: { isPresented in
-                if !isPresented {
-                    showDeleteConfirmId = nil
-                }
-            }
-        )
-    }
-    
+    @State private var showDeleteConfirmId: UUID?
+
     public init() {}
-    
+
     public var body: some View {
         ZStack {
             @Bindable var zm = zoomManager
             Color.layer1.ignoresSafeArea()
-            ScrollView {
-                LazyVStack {
-                    ForEach(repository.recipes) { recipe in
-                        NavigationLink(value: AppDestination.recipe(recipe: recipe)) {
-                            RecipeCardView(recipe: recipe)
-                                .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zm.zoomNamespace)
-                                .contentShape(.rect(cornerRadius: 20))
-                                .containerShape(.rect(cornerRadius: 20))
-                                .contextMenu {
-                                    Button(action: { router.navigateTo(.recipe(recipe: recipe)) }) {
-                                        Label("Open", systemImage: "hand.point.up")
-                                    }
-                                    Divider()
-                                    
-                                    Button(role: .destructive) {
-                                        self.showDeleteConfirmId = recipe.id
-                                    } label: { Label("Delete", systemImage: "trash").tint(.red) }
-                                }
-                                .confirmationDialog(
-                                    "Are you sure you want to delete this recipe? This cannot be undone.",
-                                    isPresented: alertIsPresented,
-                                    titleVisibility: .visible,
-                                    presenting: showDeleteConfirmId,
-                                ) { id in
-                                    Button(role: .destructive) {
-                                        Task {
-                                            await deleteRecipe(id: id)
-                                        }
-                                    } label: { Text("Delete") }
-                                    Button(role: .cancel) { } label: { Text("Cancel") }
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .navigationLinkIndicatorVisibility(.hidden)
+
+            RecipeCardsListView(
+                recipes: repository.recipes,
+                zoomNamespace: zm.zoomNamespace,
+                onOpen: { recipe in
+                    router.navigateTo(.recipe(recipe: recipe))
+                },
+                onDelete: { id in
+                    Task {
+                        await deleteRecipe(id: id)
                     }
-                }
-            }
-            .contentMargins(.horizontal, 16, for: .scrollContent)
-            .navigationTitle("Recipes")
-            .toolbar {
-                ToolbarItem {
-                    Menu {
-                        Section("Import Recipe") {
-                            Button(action: { self.importFromUrl = true }) {
-                                Label("From web", systemImage: "link")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    
-                }
-                ToolbarSpacer(.fixed)
-                ToolbarItem {
-                    Button(action: { Task {
-                        try await repository.deleteAll()
-                    }}) {
-                        Image(systemName: "xmark")
-                    }
-                    .tint(.red)
-                }
-            }
-            .alert("Import Recipe", isPresented: $importFromUrl) {
-                TextField("Enter Recipe URL", text: $importFromUrlText)
-                    .textContentType(.URL)
-                Button("Import") {
-                    startRecipeImport()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(importURLToParse.isEmpty)
-                Button("Cancel") {
-                    
-                }
-            } message: {
-                Text("Enter or paste the url to the recipe from the internet")
-            }
-            .sheet(isPresented: $isImportSheetPresented, onDismiss: dismissImportSheet) {
-                RecipeImportStatusSheet(
-                    startedAt: importStartedAt,
-                    failureMessage: importFailureMessage,
-                    onRetry: retryRecipeImport,
-                    onDismiss: dismissImportSheet
-                )
-                .interactiveDismissDisabled(importFailureMessage == nil)
-                .presentationDetents(importFailureMessage == nil ? [.height(250)] : [.height(330)])
-                .presentationDragIndicator(importFailureMessage == nil ? .hidden : .visible)
-            }
-            .sensoryFeedback(.success, trigger: importSuccessFeedbackToken)
-            .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
+                },
+                showDeleteConfirmId: $showDeleteConfirmId
+            )
         }
-        
+        .navigationTitle("Recipes")
+        .toolbar { toolbarContent }
+        .sheet(isPresented: $importState.isAddRecipeSheetPresented) {
+            AddRecipeSheet(options: addRecipeOptions) { action in
+                handleAddAction(action)
+            }
+            .presentationDetents([.height(390)])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $importState.isURLAddSheetPresented) {
+            AddRecipeURLSheet(urlText: $importState.webURLInput) {
+                startWebURLImport()
+            }
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $importState.isImportAppSelectionPresented) {
+            ImportAppSelectionSheet { source in
+                importState.beginFileImport(for: source)
+            }
+            .presentationDetents([.height(340)])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $importState.isImportStatusSheetPresented, onDismiss: dismissImportSheet) {
+            RecipeImportStatusSheet(
+                startedAt: importState.importStartedAt,
+                failureMessage: importState.importFailureMessage,
+                onRetry: retryRecipeImport,
+                onDismiss: dismissImportSheet
+            )
+            .interactiveDismissDisabled(importState.importFailureMessage == nil)
+            .presentationDetents(importState.importFailureMessage == nil ? [.height(250)] : [.height(330)])
+            .presentationDragIndicator(importState.importFailureMessage == nil ? .hidden : .visible)
+        }
+        .sheet(isPresented: $importState.isMarkdownImportPresented) {
+            MarkdownImportSheet(text: $importState.markdownInput) {
+                startImport(from: .markdownText(importState.markdownInput))
+            }
+        }
+        .sheet(isPresented: $importState.isWebSelectionImportPresented) {
+            TextRecipeImportSheet(
+                title: "Import Web Selection",
+                description: "Paste the highlighted recipe text from the website.",
+                actionTitle: "Import",
+                text: $importState.webSelectionInput,
+                onSubmit: {
+                    startImport(from: .webSelection(text: importState.webSelectionInput, sourceURL: nil))
+                }
+            )
+        }
+        .sheet(isPresented: $importState.isOCRImportPresented) {
+            OCRImportSheet { extractedText in
+                startImport(from: .ocrText(extractedText))
+            }
+        }
+        .sheet(isPresented: $importState.isSelectionSheetPresented) {
+            RecipeImportSelectionSheet(
+                candidates: importState.preparedCandidates,
+                selectedIDs: $importState.selectedCandidateIDs,
+                onImportSelected: {
+                    let candidates = importState.preparedCandidates.filter { importState.selectedCandidateIDs.contains($0.id) }
+                    Task {
+                        await processCandidates(candidates)
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $importState.isDuplicateResolutionPresented) {
+            RecipeDuplicateResolutionSheet(
+                candidates: importState.preparedCandidates,
+                duplicates: importState.duplicateMatches,
+                onConfirm: { decisions in
+                    Task {
+                        await persistCandidates(importState.preparedCandidates, decisions: decisions)
+                    }
+                }
+            )
+        }
+        .fileImporter(
+            isPresented: $importState.isFileImporterPresented,
+            allowedContentTypes: importState.fileImporterContentTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let first = urls.first else {
+                    importState.clearSelectedImportAppSource()
+                    return
+                }
+                let hasAccess = first.startAccessingSecurityScopedResource()
+                defer {
+                    if hasAccess {
+                        first.stopAccessingSecurityScopedResource()
+                    }
+                }
+                startImport(from: .fileURL(first, vendorHint: importState.selectedFileVendorHint))
+                importState.clearSelectedImportAppSource()
+            case .failure(let error):
+                importState.clearSelectedImportAppSource()
+                importState.presentFailure(mapImportError(error))
+                importFailureFeedbackToken += 1
+            }
+        }
+        .sensoryFeedback(.success, trigger: importSuccessFeedbackToken)
+        .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
     }
 }
 
-extension RecipeListPage {
+private extension RecipeListPage {
 
-    private var importURLToParse: String {
-        importFromUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+    @ToolbarContentBuilder
+    var toolbarContent: some ToolbarContent {
+        ToolbarItem {
+            Button {
+                importState.isAddRecipeSheetPresented = true
+            } label: {
+                Label("Add Recipe", systemImage: "plus")
+            }
+        }
+
+        ToolbarSpacer(.fixed)
+
+        ToolbarItem {
+            Button {
+                Task {
+                    try await repository.deleteAll()
+                }
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .tint(.red)
+        }
     }
-    
-    private func deleteRecipe(id: UUID) async {
+
+    var addRecipeOptions: [AddRecipeAction] {
+        var options: [AddRecipeAction] = [.webURL, .fileArchive, .markdown]
+
+        if appSettings.settings.enableWebSelectionImport {
+            options.append(.webSelection)
+        }
+
+        if appSettings.settings.enableOcrImport {
+            options.append(.photoOCR)
+        }
+
+        return options
+    }
+
+    var importURLToParse: String {
+        importState.webURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func handleAddAction(_ action: AddRecipeAction) {
+        switch action {
+        case .webURL:
+            importState.isURLAddSheetPresented = true
+        case .fileArchive:
+            importState.isImportAppSelectionPresented = true
+        case .markdown:
+            importState.isMarkdownImportPresented = true
+        case .webSelection:
+            importState.isWebSelectionImportPresented = true
+        case .photoOCR:
+            importState.isOCRImportPresented = true
+        }
+    }
+
+    func deleteRecipe(id: UUID) async {
         do {
             try await repository.delete(id)
         } catch {
@@ -156,66 +225,109 @@ extension RecipeListPage {
     }
 
     @MainActor
-    private func startRecipeImport() {
-        let importURL = importURLToParse
-        guard !importURL.isEmpty else { return }
+    func startWebURLImport() -> Bool {
+        guard let url = URL(string: importURLToParse) else {
+            importState.presentFailure("That URL doesn't look valid.")
+            importFailureFeedbackToken += 1
+            return false
+        }
 
-        activeImportURL = importURL
-        importFailureMessage = nil
-        importStartedAt = .now
-        isImportSheetPresented = true
+        startImport(from: .webURL(url))
+        return true
+    }
+
+    @MainActor
+    func startImport(from source: RecipeImportSource) {
+        importState.beginImport(from: source)
 
         Task {
-            await runRecipeImport(from: importURL)
+            await runImportPreparation(from: source)
         }
     }
 
     @MainActor
-    private func retryRecipeImport() {
-        guard let activeImportURL else { return }
-        importFailureMessage = nil
-        importStartedAt = .now
+    func retryRecipeImport() {
+        guard let activeImportSource = importState.activeImportSource else { return }
+        importState.clearFailure()
+        importState.importStartedAt = .now
 
         Task {
-            await runRecipeImport(from: activeImportURL)
+            await runImportPreparation(from: activeImportSource)
         }
     }
 
     @MainActor
-    private func dismissImportSheet() {
-        isImportSheetPresented = false
-        importFailureMessage = nil
+    func dismissImportSheet() {
+        importState.closeImportStatus()
     }
 
     @MainActor
-    private func runRecipeImport(from url: String) async {
+    func runImportPreparation(from source: RecipeImportSource) async {
         do {
-            let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromUrl(url: url))
+            let coordinator = RecipeImportCoordinator(client: client)
+            let result = try await coordinator.prepareImport(from: source, homeId: homes.home?.id)
 
-            guard let recipeDTO else {
-                importFailureMessage = "We couldn't read a recipe from that web page. Try a different link."
-                importFailureFeedbackToken += 1
-                return
+            importState.isImportStatusSheetPresented = false
+            let candidates = result.candidates
+
+            if candidates.count > 1 {
+                importState.prepareSelection(with: candidates)
+            } else {
+                await processCandidates(candidates)
             }
-
-            let entities = await RecipeDTO.entities(from: recipeDTO, for: homes.home?.id)
-            try await repository.saveImportedRecipe(entities)
-
-            importFromUrlText = ""
-            activeImportURL = nil
-            isImportSheetPresented = false
-            importSuccessFeedbackToken += 1
         } catch {
-            importFailureMessage = mapImportError(error)
+            importState.presentFailure(mapImportError(error))
             importFailureFeedbackToken += 1
             print(error)
         }
     }
 
-    private func mapImportError(_ error: Error) -> String {
+    @MainActor
+    func processCandidates(_ candidates: [RecipeImportCandidate]) async {
+        guard !candidates.isEmpty else {
+            importState.presentFailure("No recipes were detected from this import source.")
+            importFailureFeedbackToken += 1
+            return
+        }
+
+        let coordinator = RecipeImportCoordinator(client: client)
+        let duplicates = coordinator.detectDuplicates(for: candidates, existing: repository.recipes)
+
+        if duplicates.isEmpty {
+            await persistCandidates(candidates, decisions: [:])
+        } else {
+            importState.prepareDuplicateResolution(candidates: candidates, duplicates: duplicates)
+        }
+    }
+
+    @MainActor
+    func persistCandidates(
+        _ candidates: [RecipeImportCandidate],
+        decisions: [UUID: DuplicateResolutionDecision]
+    ) async {
+        do {
+            let coordinator = RecipeImportCoordinator(client: client)
+            try await coordinator.persist(candidates: candidates, decisions: decisions, repository: repository)
+
+            importState.clearImportArtifactsAfterSuccess()
+            importSuccessFeedbackToken += 1
+        } catch {
+            importState.presentFailure(mapImportError(error))
+            importFailureFeedbackToken += 1
+            print(error)
+        }
+    }
+
+    func mapImportError(_ error: Error) -> String {
         if error is DecodingError {
             return "The recipe data was returned in an unexpected format. Please try another page."
         }
+
+        if let importError = error as? RecipeImportError,
+           let message = importError.errorDescription {
+            return message
+        }
+
         let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "We couldn't import that recipe right now. Please try again."
@@ -226,9 +338,8 @@ extension RecipeListPage {
 
 #Preview {
     @Previewable @Namespace var zm
-    let today = Calendar(identifier: .iso8601).startOfDay(for: .now)
     let recipeId = UUID()
-    
+
     let _ = PreviewSupport.preparePreviewDatabase(seed: { db in
         let now = Date()
         let recipe = DBRecipe(
@@ -250,7 +361,7 @@ extension RecipeListPage {
             dateModified: now,
             homeId: nil
         )
-        
+
         do {
             try db.write { db in
                 try DBRecipe.insert { recipe }.execute(db)
@@ -260,7 +371,7 @@ extension RecipeListPage {
             print("Preview DB setup failed: \(error)")
         }
     })
-    
+
     NavigationStack {
         RecipeListPage()
     }

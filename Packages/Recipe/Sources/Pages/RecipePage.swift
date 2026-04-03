@@ -104,9 +104,11 @@ public struct RecipePage: View {
                         
                         Spacer().frame(height: 20)
                         
-                        RecipeSourceButton(with: viewModel.dominantColour) {
-                            image()
-                        }
+                        if viewModel.recipe.hasUsableSource {
+                            RecipeSourceButton(with: viewModel.dominantColour) {
+                                image()
+                            }
+                        } 
                         
                         Spacer().frame(height: 20)
                         HStack {
