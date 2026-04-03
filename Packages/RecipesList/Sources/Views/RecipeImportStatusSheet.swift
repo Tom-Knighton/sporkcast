@@ -104,9 +104,9 @@ public struct RecipeImportStatusSheet: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 28)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true)
+            Rectangle()
                 .fill(
                     LinearGradient(
                         colors: [
@@ -118,8 +118,9 @@ public struct RecipeImportStatusSheet: View {
                         endPoint: .bottomTrailing
                     )
                 )
+                .ignoresSafeArea()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         )
-        .padding(.horizontal, 10)
     }
 }
 
@@ -194,5 +195,21 @@ private extension RecipeImportStatusSheet {
                 .green
             }
         }
+    }
+}
+
+#Preview {
+    VStack {
+        
+    }
+    .sheet(isPresented: .constant(true)) {
+        RecipeImportStatusSheet(startedAt: Date(), failureMessage: "") {
+            
+        } onDismiss: {
+            
+        }
+        .interactiveDismissDisabled(true)
+        .presentationDetents([.height(250)])
+        .presentationDragIndicator(.hidden)
     }
 }

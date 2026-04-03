@@ -36,7 +36,7 @@ enum AddRecipeAction: String, Identifiable, CaseIterable {
         case .webURL:
             return "Add directly from a recipe link."
         case .fileArchive:
-            return "Choose Pestle, Crouton, or Paprika imports."
+            return "Import from other apps like Pestle and Crouton."
         case .markdown:
             return "Import recipe text written in markdown."
         case .webSelection:
@@ -76,6 +76,7 @@ struct AddRecipeSheet: View {
     let onSelect: (AddRecipeAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.flagKit) private var flagKit
 
     private var addOptions: [AddRecipeAction] {
         options.filter { !$0.isImportAction }
@@ -122,11 +123,7 @@ struct AddRecipeSheet: View {
 
     @ViewBuilder
     private func optionStack(_ items: [AddRecipeAction]) -> some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 10) {
-                optionCards(items)
-            }
-        } else {
+        GlassEffectContainer(spacing: 10) {
             optionCards(items)
         }
     }
@@ -173,12 +170,7 @@ struct AddRecipeSheet: View {
 
 private struct InteractiveGlassCard: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-        } else {
-            content
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        }
+        content
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
     }
 }

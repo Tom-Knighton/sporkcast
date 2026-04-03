@@ -63,12 +63,7 @@ private struct InteractiveGlassCard: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
-        }
+        content
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
     }
 }
