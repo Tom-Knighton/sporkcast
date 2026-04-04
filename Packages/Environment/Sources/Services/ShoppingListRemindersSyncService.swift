@@ -557,7 +557,7 @@ private extension ShoppingListRemindersSyncService {
                     $0.title = update.title
                     $0.isComplete = update.isComplete
                     $0.modifiedAt = update.modifiedAt
-                    $0.categoryIdentifier = update.categoryIdentifier
+                    $0.categoryIdentifier = #bind(update.categoryIdentifier)
                     $0.categoryDisplayName = update.categoryDisplayName
                     $0.categorySource = update.categorySource
                 }
@@ -623,7 +623,7 @@ private extension ShoppingListRemindersSyncService {
             guard let list = lists.first else { return nil }
 
             let items = try DBShoppingListItem
-                .where { $0.listId == list.id }
+                .where { $0.listId.eq(list.id) }
                 .fetchAll(db)
 
             let itemIDs = Set(items.map(\.id))

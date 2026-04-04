@@ -48,7 +48,7 @@ public final class MealplanRepository {
 
     public func updateNote(id: UUID, text: String) async throws {
         try await database.write { db in
-            try DBMealplanEntry.find(id).update { $0.noteText = text }.execute(db)
+            try DBMealplanEntry.find(id).update { $0.noteText = #bind(text) }.execute(db)
         }
     }
 

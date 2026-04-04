@@ -175,7 +175,7 @@ public final class ShoppingListMutationRepository {
     ) async throws {
         try await database.write { db in
             try DBShoppingListItem.find(itemId).update {
-                $0.categoryIdentifier = category.rawValue
+                $0.categoryIdentifier = #bind(category.rawValue)
                 $0.categoryDisplayName = category.displayName
                 $0.categorySource = source
                 $0.modifiedAt = modifiedAt
@@ -197,7 +197,7 @@ public final class ShoppingListMutationRepository {
     public func clearList(listId: UUID) async throws {
         let itemIDs = try await database.read { db in
             try DBShoppingListItem
-                .where { $0.listId == listId }
+                .where { $0.listId.eq(listId) }
                 .select(\.id)
                 .fetchAll(db)
         }
@@ -206,7 +206,7 @@ public final class ShoppingListMutationRepository {
 
         try await database.write { db in
             try DBShoppingListItem
-                .where { $0.listId == listId }
+                .where { $0.listId.eq(listId) }
                 .delete()
                 .execute(db)
 

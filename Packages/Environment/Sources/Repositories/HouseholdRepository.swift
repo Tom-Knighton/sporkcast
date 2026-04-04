@@ -85,15 +85,17 @@ public final class HouseholdRepository {
         
         try? await database.write { db in
             try DBRecipe
-                .where { $0.id != _dbHome.id }
-                .update { $0.homeId = _dbHome.id }
+                .where { $0.id.neq(_dbHome.id) }
+                .update(set: { r in
+                    r.homeId = #bind(_dbHome.id)
+                })
                 .execute(db)
         }
 
         try? await database.write { db in
             try DBMealplanEntry
-                .where { $0.id != _dbHome.id }
-                .update { $0.homeId = _dbHome.id }
+                .where { $0.id.neq(_dbHome.id) }
+                .update { $0.homeId = #bind(_dbHome.id) }
                 .execute(db)
         }
     }
