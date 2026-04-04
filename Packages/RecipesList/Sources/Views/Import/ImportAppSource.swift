@@ -2,13 +2,14 @@
 //  ImportAppSource.swift
 //  RecipesList
 //
-//  Created by Codex on 01/04/2026.
+//  Created by Tom Knighton on 01/04/2026.
 //
 
 import RecipeImporting
 import UniformTypeIdentifiers
 
 enum ImportAppSource: String, CaseIterable, Identifiable {
+    case sporkcast
     case pestle
     case crouton
     case paprika
@@ -17,6 +18,8 @@ enum ImportAppSource: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .sporkcast:
+            return "Sporkast"
         case .pestle:
             return "Pestle"
         case .crouton:
@@ -28,6 +31,8 @@ enum ImportAppSource: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
+        case .sporkcast:
+            return "Accepts .zip exports (containing .sporkast recipe files)"
         case .pestle:
             return "Accepts .pestle export files"
         case .crouton:
@@ -39,6 +44,8 @@ enum ImportAppSource: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .sporkcast:
+            return "sparkles.rectangle.stack"
         case .pestle:
             return "fork.knife.circle"
         case .crouton:
@@ -50,6 +57,8 @@ enum ImportAppSource: String, CaseIterable, Identifiable {
 
     var vendorHint: RecipeImportVendor {
         switch self {
+        case .sporkcast:
+            return .sporkcast
         case .pestle:
             return .pestle
         case .crouton:
@@ -61,6 +70,8 @@ enum ImportAppSource: String, CaseIterable, Identifiable {
 
     var allowedContentTypes: [UTType] {
         switch self {
+        case .sporkcast:
+            return [.zip, .sporkcastExport]
         case .pestle:
             return [.pestleExport]
         case .crouton:
@@ -82,5 +93,9 @@ private extension UTType {
 
     static var croutonCrumb: UTType {
         UTType(filenameExtension: "crumb") ?? .json
+    }
+
+    static var sporkcastExport: UTType {
+        UTType(filenameExtension: "sporkast") ?? .json
     }
 }

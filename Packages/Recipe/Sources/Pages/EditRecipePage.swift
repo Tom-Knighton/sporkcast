@@ -372,7 +372,7 @@ extension EditRecipePage {
                 
                 // Remove & Reinsert ingredients & temps
                 try DBRecipeIngredientGroup
-                    .where { $0.recipeId == newRecipe.id }
+                    .where { $0.recipeId.eq(newRecipe.id) }
                     .delete()
                     .execute(db)
                 try DBRecipeIngredientGroup
@@ -382,7 +382,7 @@ extension EditRecipePage {
                     .insert { newIngs}
                     .execute(db)
                 try DBRecipeStepGroup
-                    .where { $0.recipeId == newRecipe.id }
+                    .where { $0.recipeId.eq(newRecipe.id) }
                     .delete()
                     .execute(db)
                 try DBRecipeStepGroup
@@ -403,7 +403,7 @@ extension EditRecipePage {
                 
                 // Ratings
                 try DBRecipeRating
-                    .where { $0.recipeId == newRecipe.id }
+                    .where { $0.recipeId.eq(newRecipe.id) }
                     .delete()
                     .execute(db)
                 try DBRecipeRating

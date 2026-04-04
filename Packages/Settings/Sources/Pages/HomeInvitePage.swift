@@ -11,6 +11,7 @@ import Design
 import CloudKit
 import Dependencies
 import Persistence
+import SQLiteData
 
 public struct HomeInvitePage: View {
     
@@ -200,7 +201,7 @@ public struct HomeInvitePage: View {
                 try await db.write { db in
                     try DBRecipe
                         .update { recipe in
-                            recipe.homeId = id
+                            recipe.homeId = #bind(id)
                         }
                         .execute(db)
                 }

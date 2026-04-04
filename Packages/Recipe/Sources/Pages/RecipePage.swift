@@ -341,7 +341,7 @@ extension RecipePage {
             
             try await db.write { db in
                 try DBShoppingListItemMealplanLink
-                    .where { $0.mealplanEntryId == mealplanEntryId }
+                    .where { $0.mealplanEntryId.eq(mealplanEntryId) }
                     .delete()
                     .execute(db)
             }

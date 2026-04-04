@@ -38,7 +38,7 @@ public final class RecipesRepository {
         print(id)
         try await database.write { db in
             try DBRecipe.find(id).delete().execute(db)
-            try DBMealplanEntry.where { $0.recipeId == id }.delete().execute(db)
+            try DBMealplanEntry.where { $0.recipeId.eq(id) }.delete().execute(db)
         }
     }
 
@@ -81,7 +81,7 @@ public final class RecipesRepository {
                 .execute(db)
 
             let existingIngredientGroups = try DBRecipeIngredientGroup
-                .where { $0.recipeId == existingRecipeId }
+                .where { $0.recipeId.eq(existingRecipeId) }
                 .fetchAll(db)
                 .map(\.id)
 
@@ -93,12 +93,12 @@ public final class RecipesRepository {
             }
 
             try DBRecipeIngredientGroup
-                .where { $0.recipeId == existingRecipeId }
+                .where { $0.recipeId.eq(existingRecipeId) }
                 .delete()
                 .execute(db)
 
             let existingStepGroups = try DBRecipeStepGroup
-                .where { $0.recipeId == existingRecipeId }
+                .where { $0.recipeId.eq(existingRecipeId) }
                 .fetchAll(db)
                 .map(\.id)
 
@@ -130,12 +130,12 @@ public final class RecipesRepository {
             }
 
             try DBRecipeStepGroup
-                .where { $0.recipeId == existingRecipeId }
+                .where { $0.recipeId.eq(existingRecipeId) }
                 .delete()
                 .execute(db)
 
             try DBRecipeRating
-                .where { $0.recipeId == existingRecipeId }
+                .where { $0.recipeId.eq(existingRecipeId) }
                 .delete()
                 .execute(db)
 

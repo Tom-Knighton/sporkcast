@@ -2,7 +2,7 @@
 //  RecipeImportNormalizer.swift
 //  Environment
 //
-//  Created by Codex on 27/03/2026.
+//  Created by Tom Knighton on 27/03/2026.
 //
 
 import Environment
@@ -44,6 +44,8 @@ struct RecipeImportNormalizer {
             )
         }
 
+        let ratingInfo = normalizeRatingInfo(record)
+
         return Recipe(
             id: recipeID,
             title: record.title,
@@ -54,7 +56,7 @@ struct RecipeImportNormalizer {
             image: RecipeImage(imageThumbnailData: record.imageData, imageUrl: record.imageURL),
             timing: RecipeTiming(totalTime: record.totalMinutes, prepTime: record.prepMinutes, cookTime: record.cookMinutes),
             serves: record.serves,
-            ratingInfo: nil,
+            ratingInfo: ratingInfo,
             dateAdded: now,
             dateModified: now,
             ingredientSections: ingredientSections,
@@ -134,5 +136,40 @@ struct RecipeImportNormalizer {
                 steps: steps
             )
         }
+    }
+
+    private func normalizeRatingInfo(_ record: ImportedRecipeRecord) -> RecipeRatingInfo? {
+        let ratings = record.ratings.compactMap { rating -> RecipeRating? in
+            let trimmedComment = rating.comment?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hasComment = !(trimmedComment?.isEmpty ?? true)
+            guard rating.rating != nil || hasComment else {
+                return nil
+            }
+
+            return RecipeRating(
+                id: rating.id ?? UUID(),
+                rating: rating.rating,
+                comment: hasComment ? trimmedComment : nil
+            )
+        }
+
+        let trimmedSummary = record.summarisedRating?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let summarisedRating = (trimmedSummary?.isEmpty ?? true) ? nil : trimmedSummary
+
+        let hasAggregateRatingData = record.overallRating != nil
+            || record.totalRatings != nil
+            || summarisedRating != nil
+
+        guard hasAggregateRatingData || !ratings.isEmpty else {
+            return nil
+        }
+
+        let resolvedTotalRatings = max(record.totalRatings ?? ratings.count, ratings.count)
+        return RecipeRatingInfo(
+            overallRating: record.overallRating,
+            totalRatings: resolvedTotalRatings,
+            summarisedRating: summarisedRating,
+            ratings: ratings
+        )
     }
 }

@@ -32,7 +32,7 @@ public final class RecipeDetailRepository {
 
     public func updateDominantColor(recipeId: UUID, hex: String) async throws {
         try await database.write { db in
-            try DBRecipe.find(recipeId).update { $0.dominantColorHex = hex }.execute(db)
+            try DBRecipe.find(recipeId).update { $0.dominantColorHex = #bind(hex) }.execute(db)
         }
     }
 

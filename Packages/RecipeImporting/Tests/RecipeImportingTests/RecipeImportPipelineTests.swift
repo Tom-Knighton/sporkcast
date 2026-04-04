@@ -73,6 +73,23 @@ import Models
     #expect(paths.contains("Parser/ParseText"))
 }
 
+@Test func webURLImportPreservesRatingsAndComments() async throws {
+    let client = RecordingClient()
+    let coordinator = RecipeImportCoordinator(client: client)
+
+    let sourceURL = try #require(URL(string: "https://example.com/chicken-katsu-curry"))
+    let result = try await coordinator.prepareImport(from: .webURL(sourceURL), homeId: nil)
+
+    #expect(result.candidates.count == 1)
+
+    let ratingInfo = result.candidates[0].recipe.ratingInfo
+    #expect(ratingInfo != nil)
+    #expect(ratingInfo?.overallRating != nil)
+    #expect((ratingInfo?.totalRatings ?? 0) > 0)
+    #expect((ratingInfo?.ratings.count ?? 0) > 0)
+    #expect(ratingInfo?.ratings.contains(where: { ($0.comment?.isEmpty == false) }) == true)
+}
+
 @Test func pestleExtensionParsesWithPestleVendor() throws {
     let tempDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -216,6 +233,124 @@ import Models
     #expect(parsed[0].record.stepSections.flatMap(\.steps).count == 2)
 }
 
+@Test func sporkcastZipWithSporkastEntriesParsesRecipes() throws {
+    let tempDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tempDirectory) }
+
+    let zipURL = tempDirectory.appendingPathComponent("Sporkast Export.zip")
+    let payload = """
+    {
+      "schemaVersion": 1,
+      "exportFormat": "sporkast",
+      "exportedAt": "2026-04-04T09:00:00Z",
+      "recipe": {
+        "id": "bfb145f8-f4df-45d8-8f2f-b2c7ea7b4e33",
+        "title": "Garlic Mushrooms",
+        "description": "Quick side dish",
+        "author": "Spork Tester",
+        "sourceUrl": "https://example.com/garlic-mushrooms",
+        "minutesToPrepare": 5,
+        "minutesToCook": 10,
+        "totalMins": 15,
+        "serves": "2",
+        "overallRating": 4.8,
+        "totalRatings": 2,
+        "summarisedRating": "Loved by most cooks"
+      },
+      "image": {
+        "recipeId": "bfb145f8-f4df-45d8-8f2f-b2c7ea7b4e33",
+        "imageSourceUrl": "https://example.com/mushrooms.jpg",
+        "imageData": null
+      },
+      "ingredientGroups": [
+        {
+          "id": "5038ec2f-208a-4f6b-a872-e35534c22df8",
+          "recipeId": "bfb145f8-f4df-45d8-8f2f-b2c7ea7b4e33",
+          "title": "Ingredients",
+          "sortIndex": 0
+        }
+      ],
+      "ingredients": [
+        {
+          "id": "349c3750-c7ab-4ca9-899f-e32d95ea5a5d",
+          "ingredientGroupId": "5038ec2f-208a-4f6b-a872-e35534c22df8",
+          "sortIndex": 0,
+          "rawIngredient": "300g mushrooms"
+        },
+        {
+          "id": "2f988c12-6547-4228-90b8-0d0b92f7ee55",
+          "ingredientGroupId": "5038ec2f-208a-4f6b-a872-e35534c22df8",
+          "sortIndex": 1,
+          "rawIngredient": "2 cloves garlic"
+        }
+      ],
+      "stepGroups": [
+        {
+          "id": "5ec3ad8f-8cd6-46d6-9666-c495dc4c8ef9",
+          "recipeId": "bfb145f8-f4df-45d8-8f2f-b2c7ea7b4e33",
+          "title": "Method",
+          "sortIndex": 0
+        }
+      ],
+      "steps": [
+        {
+          "id": "a8de03cb-c7ca-4be6-9687-22ea590d997f",
+          "groupId": "5ec3ad8f-8cd6-46d6-9666-c495dc4c8ef9",
+          "sortIndex": 0,
+          "instruction": "Saute mushrooms."
+        },
+        {
+          "id": "da39ea53-4d63-4949-ad4c-16f30f2ce93e",
+          "groupId": "5ec3ad8f-8cd6-46d6-9666-c495dc4c8ef9",
+          "sortIndex": 1,
+          "instruction": "Add garlic and finish."
+        }
+      ],
+      "stepTimings": [],
+      "stepTemperatures": [],
+      "ratings": [
+        {
+          "id": "f2f53baf-4f48-4b57-9678-48194ec9f862",
+          "recipeId": "bfb145f8-f4df-45d8-8f2f-b2c7ea7b4e33",
+          "rating": 5,
+          "comment": "Great weeknight side"
+        }
+      ],
+      "stepLinkedIngredients": []
+    }
+    """
+
+    try createArchive(
+        at: zipURL,
+        entries: [
+            ("001-garlic-mushrooms-bfb145f8.sporkast", payload)
+        ]
+    )
+
+    let parser = RecipeImportFileParser()
+    let parsed = try parser.parse(fileURL: zipURL, vendorHint: .sporkcast)
+
+    #expect(parsed.count == 1)
+    #expect(parsed[0].provenance.vendor == .sporkcast)
+    #expect(parsed[0].record.title == "Garlic Mushrooms")
+    #expect(parsed[0].record.author == "Spork Tester")
+    #expect(parsed[0].record.sourceURL == "https://example.com/garlic-mushrooms")
+    #expect(parsed[0].record.serves == "2")
+    #expect(parsed[0].record.prepMinutes == 5)
+    #expect(parsed[0].record.cookMinutes == 10)
+    #expect(parsed[0].record.totalMinutes == 15)
+    #expect(parsed[0].record.overallRating == 4.8)
+    #expect(parsed[0].record.totalRatings == 2)
+    #expect(parsed[0].record.summarisedRating == "Loved by most cooks")
+    #expect(parsed[0].record.ratings.count == 1)
+    #expect(parsed[0].record.ratings[0].rating == 5)
+    #expect(parsed[0].record.ratings[0].comment == "Great weeknight side")
+    #expect(parsed[0].record.ingredientSections.flatMap(\.ingredients) == ["300g mushrooms", "2 cloves garlic"])
+    #expect(parsed[0].record.stepSections.flatMap(\.steps) == ["Saute mushrooms.", "Add garlic and finish."])
+}
+
 @Test func pestleSchemaMapsIngredientsStepsImageAndAuthor() throws {
     let tempDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -295,7 +430,7 @@ import Models
     #expect(record.totalMinutes == 210)
 }
 
-private actor RecordingClient: NetworkClient {
+private final class RecordingClient: NetworkClient, @unchecked Sendable {
     private var postedPaths: [String] = []
 
     func get<Entity: Decodable>(_ endpoint: any Endpoint) async throws -> Entity {

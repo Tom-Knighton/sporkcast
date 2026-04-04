@@ -2,7 +2,7 @@
 //  RecipeImportSource.swift
 //  Environment
 //
-//  Created by Codex on 27/03/2026.
+//  Created by Tom Knighton on 27/03/2026.
 //
 
 import Foundation
@@ -50,6 +50,7 @@ public enum RecipeImportMode: String, Sendable, Codable, Hashable {
 
 public enum RecipeImportVendor: String, Sendable, Codable, Hashable {
     case web
+    case sporkcast
     case pestle
     case crouton
     case paprika

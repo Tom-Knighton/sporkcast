@@ -2,7 +2,7 @@
 //  ImportedRecipeRecord.swift
 //  Environment
 //
-//  Created by Codex on 27/03/2026.
+//  Created by Tom Knighton on 27/03/2026.
 //
 
 import Foundation
@@ -18,8 +18,18 @@ struct ImportedRecipeRecord: Sendable {
     var prepMinutes: Double?
     var cookMinutes: Double?
     var totalMinutes: Double?
+    var overallRating: Double?
+    var totalRatings: Int?
+    var summarisedRating: String?
+    var ratings: [ImportedRecipeRating] = []
     var ingredientSections: [ImportedIngredientSection]
     var stepSections: [ImportedStepSection]
+}
+
+struct ImportedRecipeRating: Sendable {
+    var id: UUID?
+    var rating: Int?
+    var comment: String?
 }
 
 struct ImportedIngredientSection: Sendable {

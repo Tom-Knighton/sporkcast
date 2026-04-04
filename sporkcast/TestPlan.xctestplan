@@ -1,0 +1,59 @@
+{
+  "configurations" : [
+    {
+      "id" : "01A30EB1-93D0-4F02-9E94-50898F475D14",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/Models",
+        "identifier" : "ModelsTests",
+        "name" : "ModelsTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/Design",
+        "identifier" : "DesignTests",
+        "name" : "DesignTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/Recipe",
+        "identifier" : "RecipeTests",
+        "name" : "RecipeTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/Environment",
+        "identifier" : "EnvironmentTests",
+        "name" : "EnvironmentTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/RecipeImporting",
+        "identifier" : "RecipeImportingTests",
+        "name" : "RecipeImportingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/Persistence",
+        "identifier" : "PersistenceTests",
+        "name" : "PersistenceTests"
+      }
+    }
+  ],
+  "version" : 1
+}

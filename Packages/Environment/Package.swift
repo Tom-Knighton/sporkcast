@@ -16,6 +16,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"),
         .package(url: "https://github.com/launchdarkly/ios-client-sdk.git", .upToNextMajor(from: "11.1.2")),
+        .package(url: "https://github.com/weichsel/ZIPFoundation", from: "0.9.20"),
         .package(path: "../API"),
         .package(path: "../Models"),
         .package(path: "../Persistence")
@@ -28,6 +29,7 @@ let package = Package(
             dependencies: [
                 .product(name: "AppRouter", package: "AppRouter"),
                 .product(name: "LaunchDarkly", package: "ios-client-sdk"),
+                .product(name: "ZIPFoundation", package: "ZIPFoundation"),
                 "API",
                 "Models",
                 "Persistence"

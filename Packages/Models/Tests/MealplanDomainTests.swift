@@ -1,5 +1,6 @@
 import Persistence
 import Testing
+import Foundation
 @testable import Models
 
 @Test func mealplanEntryDomainMappingIncludesRecipe() throws {
@@ -8,7 +9,7 @@ import Testing
     let now = Date()
 
     let full = FullDBMealplanEntry(
-        mealplanEntry: DBMealplanEntry(id: entryId, date: now, index: 2, noteText: "Bring dessert", recipeId: recipeId),
+        mealplanEntry: DBMealplanEntry(id: entryId, date: now, index: 2, noteText: "Bring dessert", recipeId: recipeId, homeId: nil),
         recipe: DBRecipe(
             id: recipeId,
             title: "Curry", description: "", author: "Test", sourceUrl: "https://example.com",
@@ -17,7 +18,7 @@ import Testing
             minutesToCook: 20,
             totalMins: 30,
             serves: "4",
-            overallRating: 4.0,
+            overallRating: 4.0, totalRatings: 5,
             summarisedRating: nil,
             summarisedSuggestion: nil,
             dateAdded: now,

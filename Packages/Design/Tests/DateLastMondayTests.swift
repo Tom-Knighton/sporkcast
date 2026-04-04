@@ -11,8 +11,8 @@ import Testing
     let monday = reference.lastMonday(calendar: calendar)
     #expect(calendar.isDate(monday, inSameDayAs: calendar.date(from: DateComponents(year: 2025, month: 11, day: 10))!))
 
-    // Tuesday should return same Monday
+    // Tuesday should return the most recent Monday before Tuesday
     let tuesday = calendar.date(byAdding: .day, value: 1, to: reference)!
     let tuesdayMonday = tuesday.lastMonday(calendar: calendar)
-    #expect(calendar.isDate(tuesdayMonday, inSameDayAs: monday))
+    #expect(calendar.isDate(tuesdayMonday, inSameDayAs: reference))
 }

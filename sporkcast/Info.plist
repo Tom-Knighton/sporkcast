@@ -51,6 +51,28 @@
 			<key>UTTypeTagSpecification</key>
 			<dict/>
 		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Sporkast Recipe Export</string>
+			<key>UTTypeIconFiles</key>
+			<array/>
+			<key>UTTypeIdentifier</key>
+			<string>online.tomk.sporkcast.recipe-export</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sporkast</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/json</string>
+			</dict>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -2,7 +2,7 @@
 //  RecipeImportFileParser.swift
 //  RecipeImporting
 //
-//  Created by Codex on 27/03/2026.
+//  Created by Tom Knighton on 27/03/2026.
 //
 
 import Foundation
@@ -48,6 +48,18 @@ struct RecipeImportFileParser {
                 mode: .file,
                 sourceHint: fileURL.lastPathComponent
             )
+        case "sporkast":
+            let data = try Data(contentsOf: fileURL)
+            return try parseJSONData(
+                data,
+                vendor: resolveVendor(
+                    fileName: fileURL.lastPathComponent,
+                    vendorHint: vendorHint,
+                    fallbackFileName: "sporkcast"
+                ),
+                mode: .file,
+                sourceHint: fileURL.lastPathComponent
+            )
         case "zip", "paprikarecipes":
             let defaultHint: RecipeImportVendor? = ext == "paprikarecipes" ? .paprika : vendorHint
             return try parseZip(fileURL: fileURL, vendorHint: defaultHint)
@@ -65,6 +77,7 @@ struct RecipeImportFileParser {
         }
 
         var parsed: [ParsedImportRecord] = []
+        let shouldParseMarkdownEntries = vendorHint == nil || vendorHint == .unknown
 
         for entry in archive {
             guard entry.type == .file else { continue }
@@ -77,7 +90,7 @@ struct RecipeImportFileParser {
 
             let pathExt = URL(fileURLWithPath: entry.path).pathExtension.lowercased()
 
-            if pathExt == "json" || pathExt == "pestle" || pathExt == "crumb" {
+            if pathExt == "json" || pathExt == "pestle" || pathExt == "crumb" || pathExt == "sporkast" {
                 let vendor = resolveVendor(
                     fileName: entry.path,
                     vendorHint: vendorHint,
@@ -86,7 +99,7 @@ struct RecipeImportFileParser {
 
                 let records = try parseJSONData(data, vendor: vendor, mode: .archive, sourceHint: entry.path)
                 parsed.append(contentsOf: records)
-            } else if pathExt == "md" || pathExt == "markdown" || pathExt == "txt" {
+            } else if shouldParseMarkdownEntries && (pathExt == "md" || pathExt == "markdown" || pathExt == "txt") {
                 let markdownRecords = try parseMarkdownData(data, mode: .archive, sourceHint: entry.path)
                 parsed.append(contentsOf: markdownRecords)
             }
@@ -189,6 +202,10 @@ struct RecipeImportFileParser {
 
         if lowered.hasSuffix(".paprikarecipes") || lowered.contains("paprika") {
             return .paprika
+        }
+
+        if lowered.hasSuffix(".sporkast") || lowered.contains("sporkcast") {
+            return .sporkcast
         }
 
         return .unknown
