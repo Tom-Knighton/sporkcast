@@ -170,6 +170,11 @@ private extension SettingsRepository {
             } catch {
                 throw RecipeExportError.failedToEncodeRecipe(recipeId: recipe.id)
             }
+        case .markdown:
+            guard let data = RecipeMarkdownDocument(recipe: recipe).content.data(using: .utf8) else {
+                throw RecipeExportError.failedToEncodeRecipe(recipeId: recipe.id)
+            }
+            return data
         }
     }
 

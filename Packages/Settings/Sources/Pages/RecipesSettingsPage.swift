@@ -19,11 +19,12 @@ struct RecipesSettingsPage: View {
     @State private var isShareSheetPresented = false
     @State private var exportErrorMessage: String?
     @State private var isExportErrorPresented = false
+    @State private var isExportFormatDialogPresented = false
 
     var body: some View {
         List {
             SwiftUI.Section {
-                Button(action: startExport) {
+                Button(action: presentExportOptions) {
                     HStack(spacing: 12) {
                         Label("Export All Recipes", systemImage: "square.and.arrow.up")
 
@@ -46,6 +47,24 @@ struct RecipesSettingsPage: View {
         .navigationTitle("Recipes")
         .scrollContentBackground(.hidden)
         .background(Color.layer1)
+        .confirmationDialog(
+            "Choose Export Type",
+            isPresented: $isExportFormatDialogPresented,
+            titleVisibility: .visible
+        ) {
+            ForEach(RecipeExportFormat.allCases) { format in
+                Button(format.title) {
+                    startExport(as: format)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This will generate a ZIP file containing all of your exported recipes.\n\n"
+                + "Sporkast Backup: Best for importing back into Sporkast.\n"
+                + "Markdown: Exports each recipe as a RecipeMD markdown file."
+            )
+        }
         .sheet(isPresented: $isShareSheetPresented, onDismiss: cleanupSharedArtifacts) {
             ExportShareSheet(items: shareItems)
         }
@@ -56,7 +75,12 @@ struct RecipesSettingsPage: View {
         })
     }
 
-    private func startExport() {
+    private func presentExportOptions() {
+        guard !isExporting else { return }
+        isExportFormatDialogPresented = true
+    }
+
+    private func startExport(as format: RecipeExportFormat) {
         guard !isExporting else { return }
         isExporting = true
 
@@ -64,7 +88,7 @@ struct RecipesSettingsPage: View {
             defer { isExporting = false }
 
             do {
-                let exportPackage = try await repository.exportRecipes(as: .sporkast)
+                let exportPackage = try await repository.exportRecipes(as: format)
                 shareItems = [exportPackage.archiveURL]
                 cleanupURLs = exportPackage.cleanupURLs
                 isShareSheetPresented = true

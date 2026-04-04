@@ -9,20 +9,25 @@ import Foundation
 
 public enum RecipeExportFormat: String, CaseIterable, Sendable, Identifiable {
     case sporkast
+    case markdown
 
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
         case .sporkast:
-            return "Sporkast JSON"
+            return "Sporkast Backup"
+        case .markdown:
+            return "Markdown"
         }
     }
 
     public var subtitle: String {
         switch self {
         case .sporkast:
-            return "Exports each recipe as an individual .sporkast file."
+            return "Best for importing back into Sporkast."
+        case .markdown:
+            return "Exports each recipe as a RecipeMD markdown file."
         }
     }
 
@@ -30,6 +35,8 @@ public enum RecipeExportFormat: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .sporkast:
             return "sporkast"
+        case .markdown:
+            return "md"
         }
     }
 
@@ -37,12 +44,16 @@ public enum RecipeExportFormat: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .sporkast:
             return "sporkcast-recipe-export"
+        case .markdown:
+            return "sporkcast-recipe-markdown-export"
         }
     }
 
     public var schemaVersion: Int {
         switch self {
         case .sporkast:
+            return 1
+        case .markdown:
             return 1
         }
     }
