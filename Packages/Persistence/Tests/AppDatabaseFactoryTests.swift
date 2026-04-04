@@ -1,5 +1,6 @@
 import Testing
 @testable import Persistence
+import Foundation
 
 @Test func makeAppDatabaseSupportsMigrations() async throws {
     let database = try AppDatabaseFactory.makeAppDatabase()
@@ -9,7 +10,7 @@ import Testing
         date: .now,
         index: 0,
         noteText: "Preview entry",
-        recipeId: nil
+        recipeId: nil, homeId: nil
     )
 
     try await database.write { db in
@@ -17,7 +18,7 @@ import Testing
     }
 
     let fetched = try await database.read { db in
-        try DBMealplanEntry.select().fetchAll(db)
+        try DBMealplanEntry.fetchAll(db)
     }
 
     #expect(!fetched.isEmpty)

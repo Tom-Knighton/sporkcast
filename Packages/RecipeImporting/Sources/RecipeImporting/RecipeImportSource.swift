@@ -50,6 +50,7 @@ public enum RecipeImportMode: String, Sendable, Codable, Hashable {
 
 public enum RecipeImportVendor: String, Sendable, Codable, Hashable {
     case web
+    case sporkcast
     case pestle
     case crouton
     case paprika

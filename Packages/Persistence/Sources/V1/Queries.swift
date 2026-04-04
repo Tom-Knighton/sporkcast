@@ -50,6 +50,12 @@ public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
     public let image: DBRecipeImage?
     
     public var id: UUID { mealplanEntry.id }
+    
+    public init(mealplanEntry: DBMealplanEntry, recipe: DBRecipe?, image: DBRecipeImage?) {
+        self.mealplanEntry = mealplanEntry
+        self.recipe = recipe
+        self.image = image
+    }
 }
 
 @Selection

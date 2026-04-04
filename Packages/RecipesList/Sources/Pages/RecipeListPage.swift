@@ -69,7 +69,7 @@ public struct RecipeListPage: View {
             ImportAppSelectionSheet { source in
                 importState.beginFileImport(for: source)
             }
-            .presentationDetents([.height(340)])
+            .presentationDetents([.height(390)])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $importState.isImportStatusSheetPresented, onDismiss: dismissImportSheet) {

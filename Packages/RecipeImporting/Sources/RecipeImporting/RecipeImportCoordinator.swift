@@ -159,6 +159,12 @@ public actor RecipeImportCoordinator: RecipeImporting {
             prepMinutes: recipe.timing.prepTime,
             cookMinutes: recipe.timing.cookTime,
             totalMinutes: recipe.timing.totalTime,
+            overallRating: recipe.ratingInfo?.overallRating,
+            totalRatings: recipe.ratingInfo?.totalRatings,
+            summarisedRating: recipe.ratingInfo?.summarisedRating,
+            ratings: recipe.ratingInfo?.ratings.map {
+                ImportedRecipeRating(id: $0.id, rating: $0.rating, comment: $0.comment)
+            } ?? [],
             ingredientSections: recipe.ingredientSections.map {
                 ImportedIngredientSection(title: $0.title, ingredients: $0.ingredients.map(\.ingredientText))
             },

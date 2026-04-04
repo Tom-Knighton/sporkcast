@@ -14,12 +14,15 @@ protocol RecipeImportJSONAdapting {
 
 enum RecipeImportJSONAdapterRegistry {
     static func orderedAdapters(preferredVendor: RecipeImportVendor) -> [any RecipeImportJSONAdapting] {
+        let sporkcast = SporkastJSONImportAdapter()
         let pestle = PestleJSONImportAdapter()
         let crouton = CroutonJSONImportAdapter()
         let paprika = PaprikaJSONImportAdapter()
         let generic = GenericJSONImportAdapter()
 
         switch preferredVendor {
+        case .sporkcast:
+            return [sporkcast, generic]
         case .pestle:
             return [pestle, generic]
         case .crouton:
@@ -27,8 +30,184 @@ enum RecipeImportJSONAdapterRegistry {
         case .paprika:
             return [paprika, generic]
         default:
-            return [pestle, crouton, paprika, generic]
+            return [sporkcast, pestle, crouton, paprika, generic]
         }
+    }
+}
+
+private struct SporkastJSONImportAdapter: RecipeImportJSONAdapting {
+    let vendor: RecipeImportVendor = .sporkcast
+
+    func parse(jsonObject: Any) -> [ImportedRecipeRecord] {
+        let payloads: [[String: Any]]
+        if let payloadArray = jsonObject as? [[String: Any]] {
+            payloads = payloadArray
+        } else if let payload = jsonObject as? [String: Any] {
+            payloads = [payload]
+        } else {
+            return []
+        }
+
+        return payloads.compactMap(parsePayload)
+    }
+
+    private func parsePayload(_ payload: [String: Any]) -> ImportedRecipeRecord? {
+        guard let recipe = payload["recipe"] as? [String: Any] else {
+            return nil
+        }
+
+        let title = RecipeImportJSONSupport
+            .stringValue(for: ["title", "name"], in: recipe)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let title, !title.isEmpty else {
+            return nil
+        }
+
+        let ingredientGroups = (payload["ingredientGroups"] as? [[String: Any]] ?? [])
+            .sorted(by: groupSortOrder)
+        let ingredients = (payload["ingredients"] as? [[String: Any]] ?? [])
+            .sorted(by: lineSortOrder)
+        let stepGroups = (payload["stepGroups"] as? [[String: Any]] ?? [])
+            .sorted(by: groupSortOrder)
+        let steps = (payload["steps"] as? [[String: Any]] ?? [])
+            .sorted(by: lineSortOrder)
+
+        let ingredientSections = makeIngredientSections(groups: ingredientGroups, ingredients: ingredients)
+        let stepSections = makeStepSections(groups: stepGroups, steps: steps)
+        let image = parseImage(from: payload["image"])
+        let ratings = parseRatings(from: payload["ratings"])
+
+        return ImportedRecipeRecord(
+            title: title,
+            description: RecipeImportJSONSupport.stringValue(for: ["description"], in: recipe),
+            author: RecipeImportJSONSupport.stringValue(for: ["author"], in: recipe),
+            sourceURL: RecipeImportJSONSupport.stringValue(for: ["sourceUrl", "source_url", "url"], in: recipe),
+            imageURL: image.url,
+            imageData: image.data,
+            serves: RecipeImportJSONSupport.stringValue(for: ["serves"], in: recipe),
+            prepMinutes: RecipeImportJSONSupport.numericValue(for: ["minutesToPrepare"], in: recipe),
+            cookMinutes: RecipeImportJSONSupport.numericValue(for: ["minutesToCook"], in: recipe),
+            totalMinutes: RecipeImportJSONSupport.numericValue(for: ["totalMins"], in: recipe),
+            overallRating: RecipeImportJSONSupport.numericValue(for: ["overallRating"], in: recipe),
+            totalRatings: RecipeImportJSONSupport.intValue(for: ["totalRatings"], in: recipe),
+            summarisedRating: RecipeImportJSONSupport.stringValue(for: ["summarisedRating"], in: recipe),
+            ratings: ratings,
+            ingredientSections: ingredientSections,
+            stepSections: stepSections
+        )
+    }
+
+    private func makeIngredientSections(
+        groups: [[String: Any]],
+        ingredients: [[String: Any]]
+    ) -> [ImportedIngredientSection] {
+        guard !groups.isEmpty else {
+            let lines = ingredients.compactMap { RecipeImportJSONSupport.stringValue(for: ["rawIngredient"], in: $0) }
+            return lines.isEmpty ? [] : [ImportedIngredientSection(title: "Ingredients", ingredients: lines)]
+        }
+
+        let ingredientsByGroup = Dictionary(grouping: ingredients) { RecipeImportJSONSupport.idString(for: ["ingredientGroupId"], in: $0) ?? "" }
+        return groups.compactMap { group in
+            guard let groupID = RecipeImportJSONSupport.idString(for: ["id"], in: group) else {
+                return nil
+            }
+
+            let lines = (ingredientsByGroup[groupID] ?? [])
+                .sorted(by: lineSortOrder)
+                .compactMap { RecipeImportJSONSupport.stringValue(for: ["rawIngredient"], in: $0) }
+            return ImportedIngredientSection(
+                title: RecipeImportJSONSupport.stringValue(for: ["title"], in: group) ?? "Ingredients",
+                ingredients: lines
+            )
+        }
+    }
+
+    private func makeStepSections(
+        groups: [[String: Any]],
+        steps: [[String: Any]]
+    ) -> [ImportedStepSection] {
+        guard !groups.isEmpty else {
+            let lines = steps.compactMap { RecipeImportJSONSupport.stringValue(for: ["instruction"], in: $0) }
+            return lines.isEmpty ? [] : [ImportedStepSection(title: "Method", steps: lines)]
+        }
+
+        let stepsByGroup = Dictionary(grouping: steps) { RecipeImportJSONSupport.idString(for: ["groupId"], in: $0) ?? "" }
+        return groups.compactMap { group in
+            guard let groupID = RecipeImportJSONSupport.idString(for: ["id"], in: group) else {
+                return nil
+            }
+
+            let lines = (stepsByGroup[groupID] ?? [])
+                .sorted(by: lineSortOrder)
+                .compactMap { RecipeImportJSONSupport.stringValue(for: ["instruction"], in: $0) }
+            return ImportedStepSection(
+                title: RecipeImportJSONSupport.stringValue(for: ["title"], in: group) ?? "Method",
+                steps: lines
+            )
+        }
+    }
+
+    private func parseImage(from rawImage: Any?) -> (url: String?, data: Data?) {
+        guard let imageDict = rawImage as? [String: Any] else {
+            return (nil, nil)
+        }
+
+        let imageURL = RecipeImportJSONSupport.stringValue(for: ["imageSourceUrl", "image_url", "url"], in: imageDict)
+        let imageData = RecipeImportJSONSupport.dataValue(for: ["imageData"], in: imageDict)
+        return (imageURL, imageData)
+    }
+
+    private func parseRatings(from rawRatings: Any?) -> [ImportedRecipeRating] {
+        guard let ratings = rawRatings as? [[String: Any]] else {
+            return []
+        }
+
+        return ratings.compactMap { rating in
+            let parsedRating = RecipeImportJSONSupport.intValue(for: ["rating"], in: rating)
+            let parsedComment = RecipeImportJSONSupport.stringValue(for: ["comment"], in: rating)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let ratingID: UUID?
+            if let idString = RecipeImportJSONSupport.idString(for: ["id"], in: rating) {
+                ratingID = UUID(uuidString: idString)
+            } else {
+                ratingID = nil
+            }
+
+            let hasComment = !(parsedComment?.isEmpty ?? true)
+            guard parsedRating != nil || hasComment else {
+                return nil
+            }
+
+            return ImportedRecipeRating(
+                id: ratingID,
+                rating: parsedRating,
+                comment: hasComment ? parsedComment : nil
+            )
+        }
+    }
+
+    private func groupSortOrder(lhs: [String: Any], rhs: [String: Any]) -> Bool {
+        let lhsSort = RecipeImportJSONSupport.intValue(for: ["sortIndex"], in: lhs) ?? .max
+        let rhsSort = RecipeImportJSONSupport.intValue(for: ["sortIndex"], in: rhs) ?? .max
+        if lhsSort != rhsSort {
+            return lhsSort < rhsSort
+        }
+
+        let lhsID = RecipeImportJSONSupport.idString(for: ["id"], in: lhs) ?? ""
+        let rhsID = RecipeImportJSONSupport.idString(for: ["id"], in: rhs) ?? ""
+        return lhsID < rhsID
+    }
+
+    private func lineSortOrder(lhs: [String: Any], rhs: [String: Any]) -> Bool {
+        let lhsSort = RecipeImportJSONSupport.intValue(for: ["sortIndex"], in: lhs) ?? .max
+        let rhsSort = RecipeImportJSONSupport.intValue(for: ["sortIndex"], in: rhs) ?? .max
+        if lhsSort != rhsSort {
+            return lhsSort < rhsSort
+        }
+
+        let lhsID = RecipeImportJSONSupport.idString(for: ["id"], in: lhs) ?? ""
+        let rhsID = RecipeImportJSONSupport.idString(for: ["id"], in: rhs) ?? ""
+        return lhsID < rhsID
     }
 }
 
@@ -246,6 +425,45 @@ private enum RecipeImportJSONSupport {
     static func stringValue(for keys: [String], in dict: [String: Any]) -> String? {
         guard let value = dictionaryValue(for: keys, in: dict) else { return nil }
         return stringValue(from: value)
+    }
+
+    static func idString(for keys: [String], in dict: [String: Any]) -> String? {
+        guard let value = dictionaryValue(for: keys, in: dict) else { return nil }
+        if let string = value as? String {
+            return string
+        }
+        if let uuid = value as? UUID {
+            return uuid.uuidString
+        }
+        if let number = value as? NSNumber {
+            return number.stringValue
+        }
+        return nil
+    }
+
+    static func intValue(for keys: [String], in dict: [String: Any]) -> Int? {
+        guard let value = dictionaryValue(for: keys, in: dict) else { return nil }
+        if let int = value as? Int {
+            return int
+        }
+        if let number = value as? NSNumber {
+            return number.intValue
+        }
+        if let string = value as? String {
+            return Int(string)
+        }
+        return nil
+    }
+
+    static func dataValue(for keys: [String], in dict: [String: Any]) -> Data? {
+        guard let value = dictionaryValue(for: keys, in: dict) else { return nil }
+        if let data = value as? Data {
+            return data
+        }
+        if let base64 = value as? String {
+            return Data(base64Encoded: base64, options: [.ignoreUnknownCharacters])
+        }
+        return nil
     }
 
     private static func stringValue(from value: Any) -> String? {

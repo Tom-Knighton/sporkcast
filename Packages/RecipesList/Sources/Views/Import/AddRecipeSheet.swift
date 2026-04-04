@@ -36,7 +36,7 @@ enum AddRecipeAction: String, Identifiable, CaseIterable {
         case .webURL:
             return "Add directly from a recipe link."
         case .fileArchive:
-            return "Import from other apps like Pestle and Crouton."
+            return "Import from a previous Sporkast export, or other apps like Pestle and Crouton."
         case .markdown:
             return "Import recipe text written in markdown."
         case .webSelection:
