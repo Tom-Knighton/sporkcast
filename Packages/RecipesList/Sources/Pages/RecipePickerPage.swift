@@ -22,11 +22,14 @@ public struct RecipePickerPage: View {
         List(repository.recipes) { recipe in
             Button(action: { Task { await self.onRecipeSelected(recipe.id) } }) {
                 RecipeCardView(recipe: recipe, enablePreview: false)
+                    .contentShape(.rect(cornerRadius: 20))
+                    .containerShape(.rect(cornerRadius: 20))
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
+
             }
             .buttonStyle(.plain)
             .listRowSeparator(.hidden)
