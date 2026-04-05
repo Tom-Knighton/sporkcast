@@ -27,6 +27,26 @@ public struct RecipeListPage: View {
     @State private var importFailureFeedbackToken: Int = 0
     @State private var repository = RecipesRepository()
     @State private var showDeleteConfirmId: UUID?
+    @State private var searchText: String = ""
+    @State private var isFilterSheetPresented = false
+    @State private var filters = RecipeFilters()
+
+    private var searchTokens: [String] {
+        searchText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .localizedLowercase
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+    }
+
+    private var filteredRecipes: [Recipe] {
+        let tokens = searchTokens
+        let filtered = repository.recipes
+            .filter { recipe in
+                matchesSearchText(recipe, searchTokens: tokens) && matchesFilters(recipe)
+            }
+        return sortedRecipes(filtered)
+    }
 
     public init() {}
 
@@ -36,7 +56,7 @@ public struct RecipeListPage: View {
             Color.layer1.ignoresSafeArea()
 
             RecipeCardsListView(
-                recipes: repository.recipes,
+                recipes: filteredRecipes,
                 zoomNamespace: zm.zoomNamespace,
                 onOpen: { recipe in
                     router.navigateTo(.recipe(recipe: recipe))
@@ -51,6 +71,7 @@ public struct RecipeListPage: View {
         }
         .navigationTitle("Recipes")
         .toolbar { toolbarContent }
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search recipes, ingredients..."))
         .sheet(isPresented: $importState.isAddRecipeSheetPresented) {
             AddRecipeSheet(options: addRecipeOptions) { action in
                 handleAddAction(action)
@@ -148,6 +169,9 @@ public struct RecipeListPage: View {
         }
         .sensoryFeedback(.success, trigger: importSuccessFeedbackToken)
         .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
+        .sheet(isPresented: $isFilterSheetPresented) {
+            RecipeFiltersSheet(filters: $filters)
+        }
     }
 }
 
@@ -163,17 +187,12 @@ private extension RecipeListPage {
             }
         }
 
-        ToolbarSpacer(.fixed)
+         ToolbarSpacer(.fixed)
 
         ToolbarItem {
-            Button {
-                Task {
-                    try await repository.deleteAll()
-                }
-            } label: {
-                Image(systemName: "xmark")
+            Button(action: presentFilters) {
+                Image(systemName: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
             }
-            .tint(.red)
         }
     }
 
@@ -215,6 +234,62 @@ private extension RecipeListPage {
             try await repository.delete(id)
         } catch {
             print(error)
+        }
+    }
+
+    func presentFilters() {
+        isFilterSheetPresented = true
+    }
+
+    func matchesSearchText(_ recipe: Recipe, searchTokens: [String]) -> Bool {
+        guard !searchTokens.isEmpty else { return true }
+        let searchableText = recipe.searchableText
+        return searchTokens.allSatisfy { searchableText.contains($0) }
+    }
+
+    func matchesFilters(_ recipe: Recipe) -> Bool {
+        if filters.minimumRating > 0 {
+            guard let rating = recipe.filterRating, rating >= filters.minimumRating else { return false }
+        }
+
+        if filters.minimumComments > 0, recipe.filterCommentCount < filters.minimumComments {
+            return false
+        }
+
+        if filters.maximumTimeMinutes > 0 {
+            guard let time = recipe.filterTimeMinutes, time <= Double(filters.maximumTimeMinutes) else { return false }
+        }
+
+        return true
+    }
+
+    func sortedRecipes(_ recipes: [Recipe]) -> [Recipe] {
+        switch filters.sort {
+        case .nameAZ:
+            return recipes.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
+        case .nameZA:
+            return recipes.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedDescending
+            }
+        case .dateAdded:
+            return recipes.sorted { $0.dateAdded > $1.dateAdded }
+        case .dateModified:
+            return recipes.sorted { $0.dateModified > $1.dateModified }
+        case .time:
+            return recipes.sorted { lhs, rhs in
+                switch (lhs.filterTimeMinutes, rhs.filterTimeMinutes) {
+                case let (left?, right?):
+                    return left < right
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+            }
         }
     }
 
