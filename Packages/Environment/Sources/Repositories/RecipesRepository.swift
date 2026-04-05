@@ -16,6 +16,21 @@ import Foundation
 @MainActor
 public final class RecipesRepository {
 
+    public typealias ImportedRecipeEntities = (
+        DBRecipe,
+        DBRecipeImage,
+        [DBRecipeIngredientGroup],
+        [DBRecipeIngredient],
+        [DBRecipeStepGroup],
+        [DBRecipeStep],
+        [DBRecipeStepTiming],
+        [DBRecipeStepTemperature],
+        [DBRecipeRating],
+        [DBRecipeStepLinkedIngredient]
+    )
+
+    private static let importWriteBatchSize = 25
+
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
 
@@ -42,27 +57,101 @@ public final class RecipesRepository {
         }
     }
 
-    public func saveImportedRecipe(
-        _ entities: (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating], [DBRecipeStepLinkedIngredient])
-    ) async throws {
-        let (recipe, image, ingredientGroups, ingredients, stepGroups, steps, timings, temperatures, ratings, linkedIngredients) = entities
-        try await database.write { db in
-            try DBRecipe.insert { recipe }.execute(db)
-            try DBRecipeImage.insert { image }.execute(db)
-            try DBRecipeIngredientGroup.insert { ingredientGroups }.execute(db)
-            try DBRecipeIngredient.insert { ingredients }.execute(db)
-            try DBRecipeStepGroup.insert { stepGroups }.execute(db)
-            try DBRecipeStep.insert { steps }.execute(db)
-            try DBRecipeStepTiming.insert { timings }.execute(db)
-            try DBRecipeStepTemperature.insert { temperatures }.execute(db)
-            try DBRecipeRating.insert { ratings }.execute(db)
-            try DBRecipeStepLinkedIngredient.insert { linkedIngredients }.execute(db)
-        }
+    public func saveImportedRecipe(_ entities: ImportedRecipeEntities) async throws {
+        try await saveImportedRecipes([entities])
     }
 
     public func saveImportedRecipe(_ recipe: Recipe) async throws {
         let entities = await Recipe.entites(from: recipe)
         try await saveImportedRecipe(entities)
+    }
+
+    public func saveImportedRecipes(_ recipes: [Recipe]) async throws {
+        guard !recipes.isEmpty else { return }
+
+        var startIndex = 0
+        while startIndex < recipes.count {
+            let endIndex = min(startIndex + Self.importWriteBatchSize, recipes.count)
+
+            var entityBatch: [ImportedRecipeEntities] = []
+            entityBatch.reserveCapacity(endIndex - startIndex)
+
+            for recipe in recipes[startIndex..<endIndex] {
+                let entities = await Recipe.entites(from: recipe)
+                entityBatch.append(entities)
+            }
+
+            try await saveImportedRecipes(entityBatch)
+            startIndex = endIndex
+        }
+    }
+
+    public func saveImportedRecipes(_ entityBatch: [ImportedRecipeEntities]) async throws {
+        guard !entityBatch.isEmpty else { return }
+
+        var startIndex = 0
+        while startIndex < entityBatch.count {
+            let endIndex = min(startIndex + Self.importWriteBatchSize, entityBatch.count)
+            let chunk = entityBatch[startIndex..<endIndex]
+            try await insertImportedEntityBatch(chunk)
+            startIndex = endIndex
+        }
+    }
+
+    private func insertImportedEntityBatch(_ entityBatch: ArraySlice<ImportedRecipeEntities>) async throws {
+        guard !entityBatch.isEmpty else { return }
+
+        var recipes: [DBRecipe] = []
+        var images: [DBRecipeImage] = []
+        var ingredientGroups: [DBRecipeIngredientGroup] = []
+        var ingredients: [DBRecipeIngredient] = []
+        var stepGroups: [DBRecipeStepGroup] = []
+        var steps: [DBRecipeStep] = []
+        var timings: [DBRecipeStepTiming] = []
+        var temperatures: [DBRecipeStepTemperature] = []
+        var ratings: [DBRecipeRating] = []
+        var linkedIngredients: [DBRecipeStepLinkedIngredient] = []
+
+        recipes.reserveCapacity(entityBatch.count)
+        images.reserveCapacity(entityBatch.count)
+
+        for entities in entityBatch {
+            let (recipe, image, recipeIngredientGroups, recipeIngredients, recipeStepGroups, recipeSteps, recipeTimings, recipeTemperatures, recipeRatings, recipeLinkedIngredients) = entities
+            recipes.append(recipe)
+            images.append(image)
+            ingredientGroups.append(contentsOf: recipeIngredientGroups)
+            ingredients.append(contentsOf: recipeIngredients)
+            stepGroups.append(contentsOf: recipeStepGroups)
+            steps.append(contentsOf: recipeSteps)
+            timings.append(contentsOf: recipeTimings)
+            temperatures.append(contentsOf: recipeTemperatures)
+            ratings.append(contentsOf: recipeRatings)
+            linkedIngredients.append(contentsOf: recipeLinkedIngredients)
+        }
+
+        let recipesBatch = recipes
+        let imagesBatch = images
+        let ingredientGroupsBatch = ingredientGroups
+        let ingredientsBatch = ingredients
+        let stepGroupsBatch = stepGroups
+        let stepsBatch = steps
+        let timingsBatch = timings
+        let temperaturesBatch = temperatures
+        let ratingsBatch = ratings
+        let linkedIngredientsBatch = linkedIngredients
+
+        try await database.write { db in
+            try DBRecipe.insert { recipesBatch }.execute(db)
+            try DBRecipeImage.insert { imagesBatch }.execute(db)
+            try DBRecipeIngredientGroup.insert { ingredientGroupsBatch }.execute(db)
+            try DBRecipeIngredient.insert { ingredientsBatch }.execute(db)
+            try DBRecipeStepGroup.insert { stepGroupsBatch }.execute(db)
+            try DBRecipeStep.insert { stepsBatch }.execute(db)
+            try DBRecipeStepTiming.insert { timingsBatch }.execute(db)
+            try DBRecipeStepTemperature.insert { temperaturesBatch }.execute(db)
+            try DBRecipeRating.insert { ratingsBatch }.execute(db)
+            try DBRecipeStepLinkedIngredient.insert { linkedIngredientsBatch }.execute(db)
+        }
     }
 
     public func replaceImportedRecipe(existingRecipeId: UUID, with importedRecipe: Recipe) async throws {

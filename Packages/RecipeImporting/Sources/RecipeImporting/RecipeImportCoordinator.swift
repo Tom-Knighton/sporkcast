@@ -119,21 +119,32 @@ public actor RecipeImportCoordinator: RecipeImporting {
         decisions: [UUID: DuplicateResolutionDecision],
         repository: RecipesRepository
     ) async throws {
+        var recipesToInsert: [Recipe] = []
+        var replacements: [(existingRecipeId: UUID, recipe: Recipe)] = []
+
         for candidate in candidates {
             let decision = decisions[candidate.id]
 
             switch decision?.resolution ?? .keepBoth {
             case .keepBoth:
-                try await repository.saveImportedRecipe(candidate.recipe)
+                recipesToInsert.append(candidate.recipe)
             case .skip:
                 continue
             case .replace:
                 if let existingId = decision?.existingRecipeID {
-                    try await repository.replaceImportedRecipe(existingRecipeId: existingId, with: candidate.recipe)
+                    replacements.append((existingRecipeId: existingId, recipe: candidate.recipe))
                 } else {
-                    try await repository.saveImportedRecipe(candidate.recipe)
+                    recipesToInsert.append(candidate.recipe)
                 }
             }
+        }
+
+        if !recipesToInsert.isEmpty {
+            try await repository.saveImportedRecipes(recipesToInsert)
+        }
+
+        for replacement in replacements {
+            try await repository.replaceImportedRecipe(existingRecipeId: replacement.existingRecipeId, with: replacement.recipe)
         }
     }
 

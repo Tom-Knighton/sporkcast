@@ -138,12 +138,6 @@ public struct RecipeListPage: View {
                     importState.clearSelectedImportAppSource()
                     return
                 }
-                let hasAccess = first.startAccessingSecurityScopedResource()
-                defer {
-                    if hasAccess {
-                        first.stopAccessingSecurityScopedResource()
-                    }
-                }
                 startImport(from: .fileURL(first, vendorHint: importState.selectedFileVendorHint))
                 importState.clearSelectedImportAppSource()
             case .failure(let error):

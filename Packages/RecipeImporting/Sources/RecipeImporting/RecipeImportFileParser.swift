@@ -11,6 +11,13 @@ import ZIPFoundation
 struct RecipeImportFileParser {
 
     func parse(fileURL: URL, vendorHint: RecipeImportVendor? = nil) throws -> [ParsedImportRecord] {
+        let hasSecurityScopedAccess = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if hasSecurityScopedAccess {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
         let ext = fileURL.pathExtension.lowercased()
 
         switch ext {
