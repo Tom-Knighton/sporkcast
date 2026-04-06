@@ -9,6 +9,9 @@ import Foundation
 import SwiftUI
 
 struct TitleBottomYKey: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: CGFloat = .zero
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+    nonisolated(unsafe) static var defaultValue: CGFloat?
+
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+        value = nextValue() ?? value
+    }
 }

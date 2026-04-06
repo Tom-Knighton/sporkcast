@@ -29,18 +29,17 @@ public struct RecipeTitleView: View {
                         Color.clear
                             .preference(
                                 key: TitleBottomYKey.self,
-                                value: proxy.frame(in: .named("recipeScroll")).maxY
+                                value: Optional(proxy.frame(in: .named("recipeScroll")).maxY)
                             )
                     }
                 )
             Spacer()
         }
         .onPreferenceChange(TitleBottomYKey.self) { bottom in
+            guard let bottom, bottom.isFinite else { return }
             let collapsed = max(0, bottom) < 75
             if collapsed != showNavTitle {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showNavTitle = collapsed
-                }
+                showNavTitle = collapsed
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
