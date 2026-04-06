@@ -96,6 +96,8 @@ public struct RecipeListPage: View {
         .sheet(isPresented: $importState.isImportStatusSheetPresented, onDismiss: dismissImportSheet) {
             RecipeImportStatusSheet(
                 startedAt: importState.importStartedAt,
+                statusTitle: importState.importStatusTitle,
+                statusSubtitle: importState.importStatusSubtitle,
                 failureMessage: importState.importFailureMessage,
                 onRetry: retryRecipeImport,
                 onDismiss: dismissImportSheet
@@ -132,6 +134,7 @@ public struct RecipeListPage: View {
                 onImportSelected: {
                     let candidates = importState.preparedCandidates.filter { importState.selectedCandidateIDs.contains($0.id) }
                     Task {
+                        await Task.yield()
                         await processCandidates(candidates)
                     }
                 }
@@ -143,6 +146,7 @@ public struct RecipeListPage: View {
                 duplicates: importState.duplicateMatches,
                 onConfirm: { decisions in
                     Task {
+                        await Task.yield()
                         await persistCandidates(importState.preparedCandidates, decisions: decisions)
                     }
                 }
@@ -307,9 +311,9 @@ private extension RecipeListPage {
 
     @MainActor
     func startImport(from source: RecipeImportSource) {
-        importState.beginImport(from: source)
-
         Task {
+            await Task.yield()
+            importState.beginImport(from: source)
             await runImportPreparation(from: source)
         }
     }
@@ -336,7 +340,7 @@ private extension RecipeListPage {
             let coordinator = RecipeImportCoordinator(client: client)
             let result = try await coordinator.prepareImport(from: source, homeId: homes.home?.id)
 
-            importState.isImportStatusSheetPresented = false
+            importState.closeImportStatus()
             let candidates = result.candidates
 
             if candidates.count > 1 {
@@ -375,9 +379,12 @@ private extension RecipeListPage {
         decisions: [UUID: DuplicateResolutionDecision]
     ) async {
         do {
+            importState.beginPersisting(recipesCount: candidates.count)
+
             let coordinator = RecipeImportCoordinator(client: client)
             try await coordinator.persist(candidates: candidates, decisions: decisions, repository: repository)
 
+            importState.closeImportStatus()
             importState.clearImportArtifactsAfterSuccess()
             importSuccessFeedbackToken += 1
         } catch {

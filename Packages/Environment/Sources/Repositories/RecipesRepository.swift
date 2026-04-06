@@ -62,8 +62,7 @@ public final class RecipesRepository {
     }
 
     public func saveImportedRecipe(_ recipe: Recipe) async throws {
-        let entities = await Recipe.entites(from: recipe)
-        try await saveImportedRecipe(entities)
+        try await saveImportedRecipes([recipe])
     }
 
     public func saveImportedRecipes(_ recipes: [Recipe]) async throws {
@@ -84,6 +83,8 @@ public final class RecipesRepository {
             try await saveImportedRecipes(entityBatch)
             startIndex = endIndex
         }
+
+        scheduleImportedImageHydration(for: recipes)
     }
 
     public func saveImportedRecipes(_ entityBatch: [ImportedRecipeEntities]) async throws {
@@ -259,6 +260,87 @@ public final class RecipesRepository {
             try DBRecipeRating
                 .insert { newRatings }
                 .execute(db)
+        }
+
+        scheduleImportedImageHydration(for: [recipe])
+    }
+
+    private struct PendingImportedImageHydration: Sendable {
+        let recipeId: UUID
+        let imageURL: String?
+        let sourceURL: String
+    }
+
+    private func scheduleImportedImageHydration(for recipes: [Recipe]) {
+        let pending = recipes.compactMap { recipe -> PendingImportedImageHydration? in
+            guard recipe.image.imageThumbnailData == nil else { return nil }
+
+            return PendingImportedImageHydration(
+                recipeId: recipe.id,
+                imageURL: recipe.image.imageUrl,
+                sourceURL: recipe.sourceUrl
+            )
+        }
+
+        guard !pending.isEmpty else { return }
+
+        Task(priority: .utility) { [weak self, pending] in
+            await self?.hydrateImportedImages(pending)
+        }
+    }
+
+    private func hydrateImportedImages(_ pending: [PendingImportedImageHydration]) async {
+        let maxConcurrentFetches = 4
+        var startIndex = 0
+
+        while startIndex < pending.count {
+            let endIndex = min(startIndex + maxConcurrentFetches, pending.count)
+            let chunk = Array(pending[startIndex..<endIndex])
+            var hydrated: [DBRecipeImage] = []
+            hydrated.reserveCapacity(chunk.count)
+
+            await withTaskGroup(of: (UUID, String?, Data)?.self) { group in
+                for item in chunk {
+                    group.addTask {
+                        guard let data = await RecipeImagePersistenceSupport.resolveThumbnailData(
+                            imageURL: item.imageURL,
+                            sourceURL: item.sourceURL
+                        ) else {
+                            return nil
+                        }
+
+                        return (item.recipeId, item.imageURL, data)
+                    }
+                }
+
+                for await result in group {
+                    guard let result else { continue }
+                    hydrated.append(
+                        DBRecipeImage(
+                            recipeId: result.0,
+                            imageSourceUrl: result.1,
+                            imageData: result.2
+                        )
+                    )
+                }
+            }
+
+            if !hydrated.isEmpty {
+                let hydratedBatch = hydrated
+                do {
+                    try await database.write { db in
+                        for image in hydratedBatch {
+                            try DBRecipeImage
+                                .upsert { image }
+                                .execute(db)
+                        }
+                    }
+                } catch {
+                    print("Error hydrating imported images: \(error)")
+                }
+            }
+
+            startIndex = endIndex
         }
     }
 }
