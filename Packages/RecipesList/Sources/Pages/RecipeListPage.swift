@@ -364,7 +364,8 @@ private extension RecipeListPage {
         }
 
         let coordinator = RecipeImportCoordinator(client: client)
-        let duplicates = coordinator.detectDuplicates(for: candidates, existing: repository.recipes)
+        let existingRecipes = await repository.recipesForDuplicateMatching()
+        let duplicates = coordinator.detectDuplicates(for: candidates, existing: existingRecipes)
 
         if duplicates.isEmpty {
             await persistCandidates(candidates, decisions: [:])

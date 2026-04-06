@@ -217,9 +217,8 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
 
         let links = try await database.read { db in
             try DBShoppingListItemReminderLink
-                .all
+                .where { itemIDs.contains($0.shoppingListItemId) }
                 .fetchAll(db)
-                .filter { itemIDs.contains($0.shoppingListItemId) }
         }
 
         guard !links.isEmpty else { return }
@@ -630,9 +629,8 @@ private extension ShoppingListRemindersSyncService {
 
             let itemIDs = Set(items.map(\.id))
             let links = try DBShoppingListItemReminderLink
-                .all
+                .where { itemIDs.contains($0.shoppingListItemId) }
                 .fetchAll(db)
-                .filter { itemIDs.contains($0.shoppingListItemId) }
 
             return LocalState(list: list, items: items, links: links)
         }

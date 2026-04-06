@@ -37,10 +37,21 @@ public final class RecipesRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchAll(DBRecipe.full) private var dbRecipes: [FullDBRecipe]
+    @FetchAll(DBRecipe.list) private var dbRecipes: [ListDBRecipe]
 
     public var recipes: [Recipe] {
         dbRecipes.compactMap { $0.toDomainModel() }
+    }
+
+    public func recipesForDuplicateMatching() async -> [Recipe] {
+        do {
+            let fullRecipes = try await database.read { db in
+                try DBRecipe.full.fetchAll(db)
+            }
+            return fullRecipes.map { $0.toDomainModel() }
+        } catch {
+            return recipes
+        }
     }
 
     public init() {}

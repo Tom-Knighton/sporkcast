@@ -313,28 +313,32 @@ extension RecipePage {
 
         do {
             let completedIngredientIDs = try await db.read { db in
-                let mealplanLinks = try DBShoppingListItemMealplanLink.all.fetchAll(db)
                 let itemIDsForMealplanEntry = Set(
-                    mealplanLinks
-                        .filter { $0.mealplanEntryId == mealplanEntryId }
-                        .map(\.shoppingListItemId)
+                    try DBShoppingListItemMealplanLink
+                        .where { $0.mealplanEntryId.eq(mealplanEntryId) }
+                        .select(\.shoppingListItemId)
+                        .fetchAll(db)
                 )
                 guard !itemIDsForMealplanEntry.isEmpty else { return Set<UUID>() }
 
                 let completedItemIDs = Set(
                     try DBShoppingListItem
-                        .all
+                        .where {
+                            itemIDsForMealplanEntry.contains($0.id) && $0.isComplete
+                        }
+                        .select(\.id)
                         .fetchAll(db)
-                        .filter { itemIDsForMealplanEntry.contains($0.id) && $0.isComplete }
-                        .map(\.id)
                 )
                 guard !completedItemIDs.isEmpty else { return Set<UUID>() }
 
-                let ingredientLinks = try DBShoppingListItemIngredientLink.all.fetchAll(db)
                 return Set(
-                    ingredientLinks
-                        .filter { completedItemIDs.contains($0.shoppingListItemId) && recipeIngredientIDs.contains($0.ingredientId) }
-                        .map(\.ingredientId)
+                    try DBShoppingListItemIngredientLink
+                        .where {
+                            completedItemIDs.contains($0.shoppingListItemId)
+                                && recipeIngredientIDs.contains($0.ingredientId)
+                        }
+                        .select(\.ingredientId)
+                        .fetchAll(db)
                 )
             }
 

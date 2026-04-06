@@ -43,6 +43,15 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
 }
 
 @Selection
+public struct ListDBRecipe: Sendable, Identifiable, Equatable {
+
+    public let recipe: DBRecipe
+    public let imageData: DBRecipeImage?
+
+    public var id: UUID { recipe.id }
+}
+
+@Selection
 public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
     
     public let mealplanEntry: DBMealplanEntry
@@ -77,6 +86,7 @@ public struct FullDBShoppingList: Sendable, Identifiable, Equatable {
 public extension DBRecipe {
     
     typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?, DBRecipeStepLinkedIngredient?)>
+    typealias ListSelect = Select<ListDBRecipe, DBRecipe, (DBRecipeImage?)>
     
     static var full: FullSelect {
         
@@ -145,6 +155,27 @@ public extension DBRecipe {
         
         
        return query
+    }
+
+    static var list: ListSelect {
+        let base = DBRecipe
+            .group(by: \.id)
+            .order(by: \.dateModified)
+
+        let withImage = base
+            .leftJoin(DBRecipeImage.all) {
+                $0.id.eq($1.recipeId)
+            }
+
+        let query = withImage
+            .select {
+                ListDBRecipe.Columns(
+                    recipe: $0,
+                    imageData: $1
+                )
+            }
+
+        return query
     }
 }
 

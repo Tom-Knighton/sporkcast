@@ -48,6 +48,45 @@ public extension FullDBRecipe {
     }
 }
 
+public extension ListDBRecipe {
+    func toDomainModel() -> Recipe {
+        let image = RecipeImage(
+            imageThumbnailData: imageData?.imageData,
+            imageUrl: imageData?.imageSourceUrl
+        )
+        let timing = RecipeTiming(
+            totalTime: recipe.totalMins,
+            prepTime: recipe.minutesToPrepare,
+            cookTime: recipe.minutesToCook
+        )
+        let ratingInfo = RecipeRatingInfo(
+            overallRating: recipe.overallRating,
+            totalRatings: recipe.totalRatings,
+            summarisedRating: recipe.summarisedRating,
+            ratings: []
+        )
+
+        return Recipe(
+            id: recipe.id,
+            title: recipe.title,
+            description: recipe.description,
+            summarisedTip: recipe.summarisedSuggestion,
+            author: recipe.author,
+            sourceUrl: recipe.sourceUrl,
+            image: image,
+            timing: timing,
+            serves: recipe.serves,
+            ratingInfo: ratingInfo,
+            dateAdded: recipe.dateAdded,
+            dateModified: recipe.dateModified,
+            ingredientSections: [],
+            stepSections: [],
+            dominantColorHex: recipe.dominantColorHex,
+            homeId: recipe.homeId
+        )
+    }
+}
+
 public extension RecipeIngredientGroup {
     func asDatabaseObject(for recipeId: Recipe.ID) -> DBRecipeIngredientGroup {
         return .init(id: self.id, recipeId: recipeId, title: self.title, sortIndex: self.sortIndex)

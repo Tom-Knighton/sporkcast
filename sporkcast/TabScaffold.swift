@@ -16,6 +16,7 @@ struct TabScaffold<Recipes: View, Mealplans: View, ShoppingLists: View, Settings
     let shoppingLists: () -> ShoppingLists
     let settings: () -> Settings
     @Binding var selection: AppTab
+    
 
     init(
         selection: Binding<AppTab>,
