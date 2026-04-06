@@ -30,6 +30,8 @@ public final class RecipesRepository {
     )
 
     private static let importWriteBatchSize = 25
+    private static let importImageHydrationFetchConcurrency = 8
+    private static let importImageHydrationWriteBatchSize = 24
 
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
@@ -274,6 +276,10 @@ public final class RecipesRepository {
     private func scheduleImportedImageHydration(for recipes: [Recipe]) {
         let pending = recipes.compactMap { recipe -> PendingImportedImageHydration? in
             guard recipe.image.imageThumbnailData == nil else { return nil }
+            guard RecipeImagePersistenceSupport.shouldHydrateImportedImage(
+                imageURL: recipe.image.imageUrl,
+                sourceURL: recipe.sourceUrl
+            ) else { return nil }
 
             return PendingImportedImageHydration(
                 recipeId: recipe.id,
@@ -290,8 +296,10 @@ public final class RecipesRepository {
     }
 
     private func hydrateImportedImages(_ pending: [PendingImportedImageHydration]) async {
-        let maxConcurrentFetches = 4
+        let maxConcurrentFetches = Self.importImageHydrationFetchConcurrency
         var startIndex = 0
+        var hydratedBuffer: [DBRecipeImage] = []
+        hydratedBuffer.reserveCapacity(Self.importImageHydrationWriteBatchSize)
 
         while startIndex < pending.count {
             let endIndex = min(startIndex + maxConcurrentFetches, pending.count)
@@ -326,21 +334,37 @@ public final class RecipesRepository {
             }
 
             if !hydrated.isEmpty {
-                let hydratedBatch = hydrated
-                do {
-                    try await database.write { db in
-                        for image in hydratedBatch {
-                            try DBRecipeImage
-                                .upsert { image }
-                                .execute(db)
-                        }
-                    }
-                } catch {
-                    print("Error hydrating imported images: \(error)")
-                }
+                hydratedBuffer.append(contentsOf: hydrated)
+            }
+
+            if hydratedBuffer.count >= Self.importImageHydrationWriteBatchSize {
+                let bufferedBatch = hydratedBuffer
+                hydratedBuffer.removeAll(keepingCapacity: true)
+                await persistHydratedImageBatch(bufferedBatch)
             }
 
             startIndex = endIndex
+        }
+
+        if !hydratedBuffer.isEmpty {
+            let bufferedBatch = hydratedBuffer
+            await persistHydratedImageBatch(bufferedBatch)
+        }
+    }
+
+    private func persistHydratedImageBatch(_ batch: [DBRecipeImage]) async {
+        guard !batch.isEmpty else { return }
+
+        do {
+            try await database.write { db in
+                for image in batch {
+                    try DBRecipeImage
+                        .upsert { image }
+                        .execute(db)
+                }
+            }
+        } catch {
+            print("Error hydrating imported images: \(error)")
         }
     }
 }

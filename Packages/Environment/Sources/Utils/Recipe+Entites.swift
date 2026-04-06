@@ -101,18 +101,41 @@ public extension RecipeDTO {
 enum RecipeImagePersistenceSupport {
     private static let maxImageBytes = 15_000_000
     private static let maxHTMLBytes = 2_500_000
-    private static let requestTimeout: TimeInterval = 20
+    private static let imageRequestTimeout: TimeInterval = 12
+    private static let socialImageRequestTimeout: TimeInterval = 6
+    private static let htmlRequestTimeout: TimeInterval = 12
     private static let browserUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
 
     static func resolveThumbnailData(imageURL: String?, sourceURL: String?) async -> Data? {
-        if let imageURL,
-           let url = URL(string: imageURL),
-           let thumbnail = try? await downloadAndThumbnail(from: url) {
+        if shouldPrioritizeSourceFetch(imageURL: imageURL, sourceURL: sourceURL),
+           let thumbnail = await resolveThumbnailDataFromSource(sourceURL: sourceURL) {
             return thumbnail
         }
 
-        guard shouldAttemptSourceFallback(imageURL: imageURL, sourceURL: sourceURL),
-              let sourceURL,
+        if let thumbnail = await resolveThumbnailDataFromImageURL(imageURL) {
+            return thumbnail
+        }
+
+        guard shouldAttemptSourceFallback(imageURL: imageURL, sourceURL: sourceURL) else { return nil }
+        return await resolveThumbnailDataFromSource(sourceURL: sourceURL)
+    }
+
+    static func shouldHydrateImportedImage(imageURL: String?, sourceURL: String?) -> Bool {
+        isSocialSourceURL(sourceURL) || isSocialImageURL(imageURL)
+    }
+
+    private static func resolveThumbnailDataFromImageURL(_ imageURL: String?) async -> Data? {
+        guard let imageURL,
+              let url = URL(string: imageURL),
+              let thumbnail = try? await downloadAndThumbnail(from: url) else {
+            return nil
+        }
+
+        return thumbnail
+    }
+
+    private static func resolveThumbnailDataFromSource(sourceURL: String?) async -> Data? {
+        guard let sourceURL,
               let source = URL(string: sourceURL),
               let previewImageURL = await fetchPreviewImageURL(from: source),
               let thumbnail = try? await downloadAndThumbnail(from: previewImageURL) else {
@@ -122,21 +145,51 @@ enum RecipeImagePersistenceSupport {
         return thumbnail
     }
 
+    private static func shouldPrioritizeSourceFetch(imageURL: String?, sourceURL: String?) -> Bool {
+        isSocialSourceURL(sourceURL) || isSocialImageURL(imageURL)
+    }
+
     private static func shouldAttemptSourceFallback(imageURL: String?, sourceURL: String?) -> Bool {
-        if let sourceHost = URL(string: sourceURL ?? "")?.host?.lowercased(),
-           sourceHost.contains("instagram.com") || sourceHost.contains("tiktok.com") {
+        if isSocialSourceURL(sourceURL) {
             return true
         }
 
-        guard let imageHost = URL(string: imageURL ?? "")?.host?.lowercased() else {
-            return false
+        guard let imageHost = host(for: imageURL) else { return false }
+
+        return isSocialHost(imageHost)
+    }
+
+    private static func isSocialSourceURL(_ sourceURL: String?) -> Bool {
+        guard let sourceHost = host(for: sourceURL) else { return false }
+        return sourceHost.contains("instagram.com")
+            || sourceHost.contains("tiktok.com")
+    }
+
+    private static func isSocialImageURL(_ imageURL: String?) -> Bool {
+        guard let imageHost = host(for: imageURL) else { return false }
+        return isSocialHost(imageHost)
+    }
+
+    private static func isSocialHost(_ host: String) -> Bool {
+        host.contains("cdninstagram.com")
+            || host.contains("instagram.com")
+            || host.contains("fbcdn.net")
+            || host.contains("tiktokcdn.com")
+            || host.contains("ttwstatic.com")
+            || host.contains("muscdn.com")
+    }
+
+    private static func host(for urlString: String?) -> String? {
+        guard let urlString = urlString?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !urlString.isEmpty else {
+            return nil
         }
 
-        return imageHost.contains("cdninstagram.com")
-            || imageHost.contains("instagram.com")
-            || imageHost.contains("fbcdn.net")
-            || imageHost.contains("tiktokcdn.com")
-            || imageHost.contains("ttwstatic.com")
+        if let host = URL(string: urlString)?.host?.lowercased() {
+            return host
+        }
+
+        return URL(string: "https://\(urlString)")?.host?.lowercased()
     }
 
     private static func downloadAndThumbnail(from url: URL) async throws -> Data {
@@ -146,7 +199,9 @@ enum RecipeImagePersistenceSupport {
 
     private static func downloadImageData(from url: URL) async throws -> Data {
         var request = URLRequest(url: url)
-        request.timeoutInterval = requestTimeout
+        request.timeoutInterval = isSocialHost(url.host?.lowercased() ?? "")
+            ? socialImageRequestTimeout
+            : imageRequestTimeout
         request.setValue(browserUserAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("image/avif,image/webp,image/apng,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
 
@@ -163,7 +218,7 @@ enum RecipeImagePersistenceSupport {
 
     private static func fetchPreviewImageURL(from sourceURL: URL) async -> URL? {
         var request = URLRequest(url: sourceURL)
-        request.timeoutInterval = requestTimeout
+        request.timeoutInterval = htmlRequestTimeout
         request.setValue(browserUserAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
         request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
