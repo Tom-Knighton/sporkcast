@@ -79,7 +79,7 @@ public class RecipeViewModel: @unchecked Sendable {
         
         defer { self.ingredientsGenerating = false }
        
-        for ingredient in ingredients {
+        for ingredient in ingredientsWithoutEmoji {
             do {
                 let response = try await session.respond(to: Prompt(ingredient.ingredientText), generating: EmojiResponse.self, includeSchemaInPrompt: false, options: .init(temperature: 0.5))
                 

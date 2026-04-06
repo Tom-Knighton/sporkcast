@@ -34,7 +34,8 @@ struct AppContent: View {
     @State private var showAlert = false
     
     @State private var appSettings = SettingsStore()
-    @Environment(\.modelContext) private var context
+    @State private var apiClient = APIClient(host: "https://api.dev.sporkast.tomk.online/")
+    @State private var cloudKitGate = CloudKitGate()
     @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
     
     public init() {
@@ -72,13 +73,13 @@ struct AppContent: View {
         .preferredColorScheme(getColorScheme())
 //        .tint(Color.primary)
         .environment(appRouter)
-        .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
+        .environment(\.networkClient, apiClient)
         .environment(alarmManager)
         .environment(ZoomManager(appRouterNamespace))
         .environment(\.homeServices, HouseholdService.shared)
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
-        .environment(\.cloudKit, CloudKitGate())
+        .environment(\.cloudKit, cloudKitGate)
         .environment(\.shoppingListMutations, shoppingMutations)
         .environment(\.flagKit, flagKit)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -120,7 +121,10 @@ struct AppContent: View {
         .task {
             flagKit.start()
             await shoppingListRemindersSync.start()
-            await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
+            let syncSnapshot = await shoppingListRemindersSync.snapshot()
+            if syncSnapshot.isEnabled {
+                await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
+            }
         }
     }
     

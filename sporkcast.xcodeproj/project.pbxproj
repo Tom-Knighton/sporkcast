@@ -566,12 +566,16 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -607,12 +611,16 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

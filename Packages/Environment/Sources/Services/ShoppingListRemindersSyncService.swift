@@ -181,6 +181,8 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
     }
 
     public func scheduleSync(trigger: ShoppingListRemindersSyncTrigger) async {
+        guard loadSettings().remindersSyncEnabled else { return }
+
         if trigger == .localMutation {
             localMutationDebounceTask?.cancel()
             localMutationDebounceTask = Task {

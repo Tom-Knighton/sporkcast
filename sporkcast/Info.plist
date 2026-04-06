@@ -6,14 +6,6 @@
 	<true/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Set timers for recipe steps</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Import recipe photos to scan text.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Import recipe photos to scan text.</string>
-	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>Sync your shopping list with Apple Reminders.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>Sync your shopping list with Apple Reminders.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

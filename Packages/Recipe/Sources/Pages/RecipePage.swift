@@ -15,9 +15,17 @@ import Environment
 import NukeUI
 import Persistence
 
+private struct RecipePageAIGenerationTaskID: Equatable {
+    let scenePhase: ScenePhase
+    let segment: Int
+    let recipeID: UUID
+    let summary: String?
+}
+
 public struct RecipePage: View {
     
     @Environment(AppRouter.self) private var router
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
@@ -220,7 +228,13 @@ public struct RecipePage: View {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear
             }
         }
-        .task(id: "emojis") {
+        .task(id: RecipePageAIGenerationTaskID(
+            scenePhase: scenePhase,
+            segment: viewModel.segment,
+            recipeID: viewModel.recipe.id,
+            summary: viewModel.recipe.summarisedTip
+        )) {
+            guard scenePhase == .active else { return }
             try? await viewModel.generateEmojis()
             try? await viewModel.generateTipsAndSummary()
         }

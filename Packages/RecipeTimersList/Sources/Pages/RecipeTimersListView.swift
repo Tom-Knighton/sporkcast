@@ -115,7 +115,7 @@ struct CountdownProgressCircleView: View {
     var body: some View {
         switch alarm.presentation.mode {
         case .countdown(let total, let previouslyElapsed, let startDate):
-            TimelineView(.animation(minimumInterval: 1.0/30.0)) { context in
+            TimelineView(.animation(minimumInterval: 1.0)) { context in
                 let elapsed = max(0, min(total, previouslyElapsed + context.date.timeIntervalSince(startDate)))
                 let progress = total > 0 ? elapsed / total : 1
                 Gauge(value: 1 - progress) { EmptyView() } currentValueLabel: {
