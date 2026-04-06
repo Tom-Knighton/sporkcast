@@ -77,20 +77,22 @@ private struct RecipeRemoteImage: View {
         }
         .onAppear {
             guard preloaded == nil else { return }
-            if let url {
-                loader.load(from: url)
-            } else if let data {
+            if let data {
                 loader.load(from: data)
+            } else if let url {
+                loader.load(from: url)
             }
         }
         .onChange(of: url) { _, newValue in
-            guard preloaded == nil else { return }
+            guard preloaded == nil, data == nil else { return }
             loader.load(from: newValue)
         }
         .onChange(of: self.data) { _, newValue in
             guard preloaded == nil else { return }
             if let newValue {
                 loader.load(from: newValue)
+            } else {
+                loader.load(from: url)
             }
         }
     }

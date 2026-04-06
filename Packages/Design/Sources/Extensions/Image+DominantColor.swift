@@ -13,7 +13,11 @@ public extension Image {
     @MainActor
     func getDominantColor() async -> Color? {
         if let uiImage = ImageRenderer(content: self).uiImage {
-            if let uiColour = uiImage.dominantBackgroundColor(centerBias: 20) {
+            if let uiColour = uiImage.dominantBackgroundColor(
+                centerBias: 20,
+                minimumSaturation: 0.22,
+                preferredBrightnessRange: 0.28...0.74
+            ) {
                 return Color(uiColor: uiColour)
             } else {
                 return .clear
@@ -31,11 +35,15 @@ public extension UIImage {
     ///   - maxDimension: Longest side to downscale to (performance knob).
     ///   - alphaThreshold: Skip pixels below this alpha.
     ///   - quantizationBits: Per-channel bits for histogram buckets (e.g. 5 -> 32 levels).
+    ///   - minimumSaturation: Lower values increase tolerance for gray/white/near-neutral colors.
+    ///   - preferredBrightnessRange: Color value/brightness range to prefer (penalizes very dark/light picks).
     func dominantBackgroundColor(
         centerBias: Double = 2.0,
         maxDimension: Int = 64,
         alphaThreshold: UInt8 = 8,
-        quantizationBits: Int = 5
+        quantizationBits: Int = 5,
+        minimumSaturation: Double = 0.16,
+        preferredBrightnessRange: ClosedRange<Double> = 0.20...0.82
     ) -> UIColor? {
         guard let cg = cgImage,
               let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)
@@ -114,7 +122,51 @@ public extension UIImage {
             }
         }
         
-        guard let best = buckets.max(by: { $0.value.w < $1.value.w })?.value, best.w > 0 else { return nil }
+        let clampedMinimumSaturation = min(max(minimumSaturation, 0), 1)
+        let lower = min(max(preferredBrightnessRange.lowerBound, 0), 1)
+        let upper = min(max(preferredBrightnessRange.upperBound, 0), 1)
+        let clampedBrightnessRange = min(lower, upper)...max(lower, upper)
+
+        func brightnessPenalty(_ value: Double) -> Double {
+            if clampedBrightnessRange.contains(value) { return 1.0 }
+
+            // Keep a small floor so neutral/very dark/light images still return a color.
+            let floor = 0.04
+            if value < clampedBrightnessRange.lowerBound {
+                guard clampedBrightnessRange.lowerBound > 0 else { return 1.0 }
+                return max(floor, value / clampedBrightnessRange.lowerBound)
+            } else {
+                let upperGap = max(0.001, 1.0 - clampedBrightnessRange.upperBound)
+                return max(floor, (1.0 - value) / upperGap)
+            }
+        }
+
+        func score(_ acc: Acc) -> Double {
+            guard acc.w > 0 else { return 0 }
+
+            let r = (acc.r / acc.w) / 255.0
+            let g = (acc.g / acc.w) / 255.0
+            let b = (acc.b / acc.w) / 255.0
+
+            let maxChannel = max(r, max(g, b))
+            let minChannel = min(r, min(g, b))
+            let chroma = maxChannel - minChannel
+            let saturation = maxChannel == 0 ? 0 : chroma / maxChannel
+            let brightness = maxChannel
+
+            let saturationPenalty: Double
+            if clampedMinimumSaturation <= 0 {
+                saturationPenalty = 1.0
+            } else {
+                saturationPenalty = max(0.04, min(1.0, saturation / clampedMinimumSaturation))
+            }
+
+            // Slight tie-break toward colorful results once penalties are applied.
+            let vibranceBias = 0.75 + (0.25 * saturation)
+            return acc.w * saturationPenalty * brightnessPenalty(brightness) * vibranceBias
+        }
+
+        guard let best = buckets.values.max(by: { score($0) < score($1) }), best.w > 0 else { return nil }
         
         let r = CGFloat(best.r / best.w) / 255.0
         let g = CGFloat(best.g / best.w) / 255.0

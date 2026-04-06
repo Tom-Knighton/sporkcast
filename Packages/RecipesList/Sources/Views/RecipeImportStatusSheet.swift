@@ -10,6 +10,8 @@ import SwiftUI
 public struct RecipeImportStatusSheet: View {
 
     let startedAt: Date
+    let statusTitle: String?
+    let statusSubtitle: String?
     let failureMessage: String?
     let onRetry: () -> Void
     let onDismiss: () -> Void
@@ -18,11 +20,15 @@ public struct RecipeImportStatusSheet: View {
 
     public init(
         startedAt: Date,
+        statusTitle: String? = nil,
+        statusSubtitle: String? = nil,
         failureMessage: String?,
         onRetry: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
         self.startedAt = startedAt
+        self.statusTitle = statusTitle
+        self.statusSubtitle = statusSubtitle
         self.failureMessage = failureMessage
         self.onRetry = onRetry
         self.onDismiss = onDismiss
@@ -53,6 +59,35 @@ public struct RecipeImportStatusSheet: View {
                         .buttonStyle(.bordered)
                 }
                 .padding(.top, 8)
+            } else if let statusTitle {
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.14))
+                            .frame(width: 54, height: 54)
+
+                        Image(systemName: "square.and.arrow.down.on.square")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(.blue)
+                    }
+                    .accessibilityHidden(true)
+
+                    ProgressView()
+                        .controlSize(.large)
+                        .accessibilityLabel("Recipe import in progress")
+
+                    Text(statusTitle)
+                        .font(.title3.weight(.semibold))
+                        .multilineTextAlignment(.center)
+
+                    if let statusSubtitle {
+                        Text(statusSubtitle)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             } else {
                 TimelineView(.periodic(from: startedAt, by: 1)) { context in
                     let stage = ImportStage(elapsed: context.date.timeIntervalSince(startedAt))

@@ -28,6 +28,8 @@ struct RecipeListImportState {
     var webSelectionInput = ""
 
     var importStartedAt: Date = .now
+    var importStatusTitle: String?
+    var importStatusSubtitle: String?
     var importFailureMessage: String?
     var activeImportSource: RecipeImportSource?
     var selectedImportAppSource: ImportAppSource?
@@ -48,6 +50,8 @@ struct RecipeListImportState {
         activeImportSource = source
         importFailureMessage = nil
         importStartedAt = .now
+        importStatusTitle = nil
+        importStatusSubtitle = nil
         isImportStatusSheetPresented = true
         isSelectionSheetPresented = false
         isDuplicateResolutionPresented = false
@@ -61,8 +65,18 @@ struct RecipeListImportState {
         importFailureMessage = nil
     }
 
+    mutating func beginPersisting(recipesCount: Int) {
+        importStartedAt = .now
+        importFailureMessage = nil
+        importStatusTitle = recipesCount == 1 ? "Saving your recipe" : "Saving \(recipesCount) recipes"
+        importStatusSubtitle = "Images from social links will continue syncing in the background."
+        isImportStatusSheetPresented = true
+    }
+
     mutating func closeImportStatus() {
         isImportStatusSheetPresented = false
+        importStatusTitle = nil
+        importStatusSubtitle = nil
         importFailureMessage = nil
     }
 
@@ -91,6 +105,8 @@ struct RecipeListImportState {
     }
 
     mutating func clearImportArtifactsAfterSuccess() {
+        isSelectionSheetPresented = false
+        isDuplicateResolutionPresented = false
         webURLInput = ""
         markdownInput = ""
         webSelectionInput = ""
