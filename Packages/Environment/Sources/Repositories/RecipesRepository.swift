@@ -398,6 +398,8 @@ private extension Recipe {
             ingredientSections: ingredientSections,
             stepSections: stepSections,
             dominantColorHex: dominantColorHex,
+            ingredientScale: ingredientScale,
+            ingredientUnitSystem: ingredientUnitSystem,
             homeId: homeId
         )
     }

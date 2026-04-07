@@ -34,7 +34,8 @@ struct RecipeToShoppingListFlowView: View {
                 homeId: recipe.homeId,
                 recipeTitle: recipe.title,
                 isSelected: true,
-                scale: 1.0,
+                scale: recipe.ingredientScale,
+                unitSystem: recipe.ingredientUnitSystem,
                 ingredients: ingredients.map {
                     RecipeShoppingIngredientDraft(
                         id: $0.id,
@@ -155,7 +156,12 @@ private extension RecipeToShoppingListFlowView {
                     ingredientId: $0.ingredientId,
                     homeId: entryDraft.homeId,
                     scale: entryDraft.scale,
-                    title: ShoppingImportIngredientFormatter.scaledIngredientText(for: $0, scale: entryDraft.scale)
+                    title: ShoppingImportIngredientFormatter.scaledIngredientText(
+                        for: $0,
+                        scale: entryDraft.scale,
+                        unitSystem: entryDraft.unitSystem
+                    )
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
                 )
             }
     }
@@ -167,6 +173,7 @@ private struct RecipeShoppingEntryDraft: Identifiable, Hashable {
     let recipeTitle: String
     var isSelected: Bool
     var scale: Double
+    var unitSystem: RecipeIngredientUnitSystem
     var ingredients: [RecipeShoppingIngredientDraft]
 
     var id: UUID { recipeId }

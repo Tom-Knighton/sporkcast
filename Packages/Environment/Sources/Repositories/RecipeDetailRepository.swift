@@ -49,4 +49,16 @@ public final class RecipeDetailRepository {
             try DBRecipe.find(recipeId).update { $0.summarisedSuggestion = tip }.execute(db)
         }
     }
+
+    public func updateIngredientScale(recipeId: UUID, scale: Double) async throws {
+        try await database.write { db in
+            try DBRecipe.find(recipeId).update { $0.ingredientScale = scale }.execute(db)
+        }
+    }
+
+    public func updateIngredientUnitSystem(recipeId: UUID, unitSystem: RecipeIngredientUnitSystem) async throws {
+        try await database.write { db in
+            try DBRecipe.find(recipeId).update { $0.ingredientUnitSystem = unitSystem.rawValue }.execute(db)
+        }
+    }
 }

@@ -8,6 +8,23 @@
 import Foundation
 import API
 
+public enum RecipeIngredientUnitSystem: String, Codable, Hashable, Sendable, CaseIterable {
+    case original
+    case metric
+    case imperial
+
+    public var displayName: String {
+        switch self {
+        case .original:
+            return "Original"
+        case .metric:
+            return "Metric"
+        case .imperial:
+            return "Imperial"
+        }
+    }
+}
+
 public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     
@@ -52,6 +69,12 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
 
     /// The primary colour associated with the recipe
     public var dominantColorHex: String?
+
+    /// A persisted user-selected multiplier for ingredient quantities.
+    public var ingredientScale: Double
+
+    /// The preferred units to display for ingredients while viewing this recipe.
+    public var ingredientUnitSystem: RecipeIngredientUnitSystem
     
     /// The id of the home this recipe is a part of, if any
     public var homeId: UUID?
@@ -61,7 +84,7 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     }
 
     
-    public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, ingredientScale: Double = 1.0, ingredientUnitSystem: RecipeIngredientUnitSystem = .original, homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
@@ -77,6 +100,8 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
         self.ingredientSections = ingredientSections
         self.stepSections = stepSections
         self.dominantColorHex = dominantColorHex
+        self.ingredientScale = ingredientScale
+        self.ingredientUnitSystem = ingredientUnitSystem
         self.homeId = homeId
     }
 }

@@ -113,7 +113,54 @@ public extension SporkastRecipeExportPayload {
         public let summarisedSuggestion: String?
         public let dateAdded: Date
         public let dateModified: Date
+        public let ingredientScale: Double
+        public let ingredientUnitSystem: String
         public let homeId: UUID?
+
+        private enum CodingKeys: String, CodingKey {
+            case id
+            case title
+            case description
+            case author
+            case sourceUrl
+            case dominantColorHex
+            case minutesToPrepare
+            case minutesToCook
+            case totalMins
+            case serves
+            case overallRating
+            case totalRatings
+            case summarisedRating
+            case summarisedSuggestion
+            case dateAdded
+            case dateModified
+            case ingredientScale
+            case ingredientUnitSystem
+            case homeId
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.id = try container.decode(UUID.self, forKey: .id)
+            self.title = try container.decode(String.self, forKey: .title)
+            self.description = try container.decodeIfPresent(String.self, forKey: .description)
+            self.author = try container.decodeIfPresent(String.self, forKey: .author)
+            self.sourceUrl = try container.decode(String.self, forKey: .sourceUrl)
+            self.dominantColorHex = try container.decodeIfPresent(String.self, forKey: .dominantColorHex)
+            self.minutesToPrepare = try container.decodeIfPresent(Double.self, forKey: .minutesToPrepare)
+            self.minutesToCook = try container.decodeIfPresent(Double.self, forKey: .minutesToCook)
+            self.totalMins = try container.decodeIfPresent(Double.self, forKey: .totalMins)
+            self.serves = try container.decodeIfPresent(String.self, forKey: .serves)
+            self.overallRating = try container.decodeIfPresent(Double.self, forKey: .overallRating)
+            self.totalRatings = try container.decode(Int.self, forKey: .totalRatings)
+            self.summarisedRating = try container.decodeIfPresent(String.self, forKey: .summarisedRating)
+            self.summarisedSuggestion = try container.decodeIfPresent(String.self, forKey: .summarisedSuggestion)
+            self.dateAdded = try container.decode(Date.self, forKey: .dateAdded)
+            self.dateModified = try container.decode(Date.self, forKey: .dateModified)
+            self.ingredientScale = try container.decodeIfPresent(Double.self, forKey: .ingredientScale) ?? 1.0
+            self.ingredientUnitSystem = try container.decodeIfPresent(String.self, forKey: .ingredientUnitSystem) ?? "original"
+            self.homeId = try container.decodeIfPresent(UUID.self, forKey: .homeId)
+        }
 
         public init(_ recipe: DBRecipe) {
             self.id = recipe.id
@@ -132,6 +179,8 @@ public extension SporkastRecipeExportPayload {
             self.summarisedSuggestion = recipe.summarisedSuggestion
             self.dateAdded = recipe.dateAdded
             self.dateModified = recipe.dateModified
+            self.ingredientScale = recipe.ingredientScale
+            self.ingredientUnitSystem = recipe.ingredientUnitSystem
             self.homeId = recipe.homeId
         }
     }

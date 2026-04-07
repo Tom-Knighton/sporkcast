@@ -36,7 +36,25 @@ public struct RecipePage: View {
     @State private var commentsSnapshot: UIImage?
     @State private var completedMealplanIngredientIDs: Set<UUID> = []
     @State private var showingAddToShoppingSheet = false
+    @State private var showingIngredientScaleControls = false
+    @State private var showingIngredientUnitControls = false
     private let mealplanEntryId: UUID?
+
+    private var recipeHasScaledIngredients: Bool {
+        abs(viewModel.recipe.ingredientScale - 1.0) > 0.0001
+    }
+
+    private var ingredientScaleLabel: String {
+        "\(ShoppingImportIngredientFormatter.formatScale(viewModel.recipe.ingredientScale))x"
+    }
+
+    private var recipeHasConvertedUnits: Bool {
+        viewModel.recipe.ingredientUnitSystem != .original
+    }
+
+    private var ingredientUnitLabel: String {
+        viewModel.recipe.ingredientUnitSystem.displayName
+    }
 
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
         self.mealplanEntryId = mealplanEntryId
@@ -136,6 +154,46 @@ public struct RecipePage: View {
                             .pickerStyle(.segmented)
                             Spacer()
                         }
+
+                        if viewModel.segment == 1 {
+                            HStack(spacing: 10) {
+                                ingredientScaleToggleButton
+                                ingredientUnitToggleButton
+
+                                Spacer()
+                            }
+                            .padding(.top, 8)
+
+                            if showingIngredientScaleControls {
+                                RecipeIngredientScaleControl(
+                                    scale: viewModel.recipe.ingredientScale,
+                                    tint: viewModel.dominantColour
+                                ) { newScale in
+                                    saveIngredientScale(newScale)
+                                } onReset: {
+                                    resetIngredientScale()
+                                } onClose: {
+                                    toggleIngredientScaleControls()
+                                }
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+
+                            if showingIngredientUnitControls {
+                                RecipeIngredientUnitControl(
+                                    selectedUnitSystem: viewModel.recipe.ingredientUnitSystem,
+                                    tint: viewModel.dominantColour
+                                ) { newUnitSystem in
+                                    saveIngredientUnitSystem(newUnitSystem)
+                                } onReset: {
+                                    resetIngredientUnitSystem()
+                                } onClose: {
+                                    toggleIngredientUnitControls()
+                                }
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+                        }
                         
                         Spacer().frame(height: 24)
                         
@@ -211,6 +269,22 @@ public struct RecipePage: View {
                     Button(action: { showingAddToShoppingSheet = true }) {
                         Label("Add Ingredients To Shopping", systemImage: "cart.badge.plus")
                     }
+                    Button(action: { presentIngredientScaleControls() }) {
+                        Label("Scale Ingredients", systemImage: "slider.horizontal.3")
+                    }
+                    if recipeHasScaledIngredients {
+                        Button(action: { resetIngredientScale() }) {
+                            Label("Reset Ingredient Scale", systemImage: "arrow.counterclockwise")
+                        }
+                    }
+                    Button(action: { presentIngredientUnitControls() }) {
+                        Label("Convert Ingredient Units", systemImage: "scalemass")
+                    }
+                    if recipeHasConvertedUnits {
+                        Button(action: { resetIngredientUnitSystem() }) {
+                            Label("Reset Ingredient Units", systemImage: "arrow.counterclockwise")
+                        }
+                    }
                     if mealplanEntryId != nil {
                         Button(action: { Task { await clearMealplanIngredientStates() }}) {
                             Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
@@ -226,6 +300,12 @@ public struct RecipePage: View {
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear
+            }
+        }
+        .onChange(of: viewModel.segment) { _, newValue in
+            if newValue != 1 {
+                showingIngredientScaleControls = false
+                showingIngredientUnitControls = false
             }
         }
         .task(id: RecipePageAIGenerationTaskID(
@@ -287,6 +367,90 @@ extension RecipePage {
         Label(title, systemImage: systemImage ?? "")
             .font(.footnote)
             .labelIconToTitleSpacing(2)
+    }
+
+    @ViewBuilder
+    private var ingredientScaleToggleButton: some View {
+        Button(action: { toggleIngredientScaleControls() }) {
+            Label(ingredientScaleLabel, systemImage: "slider.horizontal.3")
+        }
+        .buttonStyle(.glass)
+    }
+
+    @ViewBuilder
+    private var ingredientUnitToggleButton: some View {
+        Button(action: { toggleIngredientUnitControls() }) {
+            Label(ingredientUnitLabel, systemImage: "scalemass")
+        }
+        .buttonStyle(.glass)
+    }
+
+    private func saveIngredientScale(_ value: Double) {
+        Task {
+            await viewModel.setIngredientScale(to: value)
+        }
+    }
+
+    private func resetIngredientScale() {
+        Task {
+            await viewModel.resetIngredientScale()
+        }
+    }
+
+    private func saveIngredientUnitSystem(_ unitSystem: RecipeIngredientUnitSystem) {
+        Task {
+            await viewModel.setIngredientUnitSystem(to: unitSystem)
+        }
+    }
+
+    private func resetIngredientUnitSystem() {
+        Task {
+            await viewModel.resetIngredientUnitSystem()
+        }
+    }
+
+    private func toggleIngredientScaleControls() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            let shouldShowScale = !showingIngredientScaleControls
+            showingIngredientScaleControls = shouldShowScale
+            if shouldShowScale {
+                showingIngredientUnitControls = false
+            }
+        }
+    }
+
+    private func toggleIngredientUnitControls() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            let shouldShowUnits = !showingIngredientUnitControls
+            showingIngredientUnitControls = shouldShowUnits
+            if shouldShowUnits {
+                showingIngredientScaleControls = false
+            }
+        }
+    }
+
+    private func presentIngredientScaleControls() {
+        if viewModel.segment != 1 {
+            viewModel.segment = 1
+        }
+
+        guard !showingIngredientScaleControls else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingIngredientScaleControls = true
+            showingIngredientUnitControls = false
+        }
+    }
+
+    private func presentIngredientUnitControls() {
+        if viewModel.segment != 1 {
+            viewModel.segment = 1
+        }
+
+        guard !showingIngredientUnitControls else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingIngredientUnitControls = true
+            showingIngredientScaleControls = false
+        }
     }
     
     func generateCommentsLabel() {
@@ -406,6 +570,22 @@ public extension ImageRenderer {
                 title: "Main Ingredients",
                 sortIndex: 0,
                 ingredients: [
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
+                    .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
+                    .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
                     .init(id: UUID(), sortIndex: 0, ingredientText: "200g pancetta", ingredientPart: "pancetta", extraInformation: nil, quantity: .init(quantity: 200, quantityText: "200"), unit: .init(unit: "g", unitText: "g"), emoji: "🥓", owned: false),
                     .init(id: UUID(), sortIndex: 1, ingredientText: "3 large eggs", ingredientPart: "eggs", extraInformation: nil, quantity: .init(quantity: 3, quantityText: "3"), unit: nil, emoji: "🥚", owned: true),
                 ]

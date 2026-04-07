@@ -117,10 +117,18 @@ public struct RecipeStepsView: View {
             
             Spacer().frame(width: 4)
             
-            if let quantityText = ingredient.quantity?.quantityText {
+            if let quantityText = ShoppingImportIngredientFormatter.scaledQuantityText(
+                for: ingredient,
+                scale: vm.recipe.ingredientScale,
+                unitSystem: vm.recipe.ingredientUnitSystem
+            ) {
                 Text(quantityText)
                 
-                if let unit = ingredient.unit?.unitText {
+                if let unit = ShoppingImportIngredientFormatter.scaledUnitText(
+                    for: ingredient,
+                    scale: vm.recipe.ingredientScale,
+                    unitSystem: vm.recipe.ingredientUnitSystem
+                ) {
                     Text(unit)
                 }
             }
