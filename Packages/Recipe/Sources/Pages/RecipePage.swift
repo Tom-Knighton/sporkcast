@@ -36,7 +36,16 @@ public struct RecipePage: View {
     @State private var commentsSnapshot: UIImage?
     @State private var completedMealplanIngredientIDs: Set<UUID> = []
     @State private var showingAddToShoppingSheet = false
+    @State private var showingIngredientScaleControls = false
     private let mealplanEntryId: UUID?
+
+    private var recipeHasScaledIngredients: Bool {
+        abs(viewModel.recipe.ingredientScale - 1.0) > 0.0001
+    }
+
+    private var ingredientScaleLabel: String {
+        "\(ShoppingImportIngredientFormatter.formatScale(viewModel.recipe.ingredientScale))x"
+    }
 
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
         self.mealplanEntryId = mealplanEntryId
@@ -136,6 +145,30 @@ public struct RecipePage: View {
                             .pickerStyle(.segmented)
                             Spacer()
                         }
+
+                        if viewModel.segment == 1 {
+                            HStack(spacing: 10) {
+                                ingredientScaleToggleButton
+
+                                Spacer()
+                            }
+                            .padding(.top, 8)
+
+                            if showingIngredientScaleControls {
+                                RecipeIngredientScaleControl(
+                                    scale: viewModel.recipe.ingredientScale,
+                                    tint: viewModel.dominantColour
+                                ) { newScale in
+                                    saveIngredientScale(newScale)
+                                } onReset: {
+                                    resetIngredientScale()
+                                } onClose: {
+                                    toggleIngredientScaleControls()
+                                }
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+                        }
                         
                         Spacer().frame(height: 24)
                         
@@ -211,6 +244,14 @@ public struct RecipePage: View {
                     Button(action: { showingAddToShoppingSheet = true }) {
                         Label("Add Ingredients To Shopping", systemImage: "cart.badge.plus")
                     }
+                    Button(action: { presentIngredientScaleControls() }) {
+                        Label("Scale Ingredients", systemImage: "slider.horizontal.3")
+                    }
+                    if recipeHasScaledIngredients {
+                        Button(action: { resetIngredientScale() }) {
+                            Label("Reset Ingredient Scale", systemImage: "arrow.counterclockwise")
+                        }
+                    }
                     if mealplanEntryId != nil {
                         Button(action: { Task { await clearMealplanIngredientStates() }}) {
                             Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
@@ -226,6 +267,11 @@ public struct RecipePage: View {
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear
+            }
+        }
+        .onChange(of: viewModel.segment) { _, newValue in
+            if newValue != 1, showingIngredientScaleControls {
+                showingIngredientScaleControls = false
             }
         }
         .task(id: RecipePageAIGenerationTaskID(
@@ -287,6 +333,43 @@ extension RecipePage {
         Label(title, systemImage: systemImage ?? "")
             .font(.footnote)
             .labelIconToTitleSpacing(2)
+    }
+
+    @ViewBuilder
+    private var ingredientScaleToggleButton: some View {
+        Button(action: { toggleIngredientScaleControls() }) {
+            Label(ingredientScaleLabel, systemImage: "slider.horizontal.3")
+        }
+        .buttonStyle(.glass)
+    }
+
+    private func saveIngredientScale(_ value: Double) {
+        Task {
+            await viewModel.setIngredientScale(to: value)
+        }
+    }
+
+    private func resetIngredientScale() {
+        Task {
+            await viewModel.resetIngredientScale()
+        }
+    }
+
+    private func toggleIngredientScaleControls() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingIngredientScaleControls.toggle()
+        }
+    }
+
+    private func presentIngredientScaleControls() {
+        if viewModel.segment != 1 {
+            viewModel.segment = 1
+        }
+
+        guard !showingIngredientScaleControls else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingIngredientScaleControls = true
+        }
     }
     
     func generateCommentsLabel() {

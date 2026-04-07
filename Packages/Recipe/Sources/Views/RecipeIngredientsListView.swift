@@ -50,7 +50,13 @@ public struct RecipeIngredientsListView: View {
                         }
                     }
                     
-                    Text(IngredientHighlighter.highlight(ingredient: ingredient, tint: tint))
+                    Text(
+                        ShoppingImportIngredientFormatter.highlightedIngredientText(
+                            for: ingredient,
+                            scale: viewModel.recipe.ingredientScale,
+                            tint: tint
+                        )
+                    )
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)

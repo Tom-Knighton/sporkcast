@@ -34,7 +34,7 @@ struct RecipeToShoppingListFlowView: View {
                 homeId: recipe.homeId,
                 recipeTitle: recipe.title,
                 isSelected: true,
-                scale: 1.0,
+                scale: recipe.ingredientScale,
                 ingredients: ingredients.map {
                     RecipeShoppingIngredientDraft(
                         id: $0.id,

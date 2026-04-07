@@ -44,6 +44,16 @@ public class RecipeViewModel: @unchecked Sendable {
             try? await repository.updateDominantColor(recipeId: id, hex: hex)
         }
     }
+
+    public func setIngredientScale(to scale: Double) async {
+        let clamped = min(max(scale, 0.25), 4.0)
+        guard abs(recipe.ingredientScale - clamped) > 0.0001 else { return }
+        try? await repository.updateIngredientScale(recipeId: recipe.id, scale: clamped)
+    }
+
+    public func resetIngredientScale() async {
+        await setIngredientScale(to: 1.0)
+    }
     
     /// Uses Apple Intelligence to generate emojis for each ingredient, and saves them to the model in one go
     public func generateEmojis() async throws {
