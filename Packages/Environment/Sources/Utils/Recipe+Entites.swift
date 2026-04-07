@@ -14,7 +14,7 @@ import Models
 public extension Recipe {
     static func entites(from dto: Recipe) async -> (DBRecipe, DBRecipeImage, [DBRecipeIngredientGroup], [DBRecipeIngredient], [DBRecipeStepGroup], [DBRecipeStep], [DBRecipeStepTiming], [DBRecipeStepTemperature], [DBRecipeRating], [DBRecipeStepLinkedIngredient]) {
         
-        let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: dto.ratingInfo?.summarisedRating, summarisedSuggestion: dto.summarisedTip, dateAdded: dto.dateAdded, dateModified: dto.dateModified, ingredientScale: dto.ingredientScale, homeId: dto.homeId)
+        let recipeEntry: DBRecipe = .init(id: dto.id, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.sourceUrl, dominantColorHex: dto.dominantColorHex, minutesToPrepare: dto.timing.prepTime, minutesToCook: dto.timing.cookTime, totalMins: dto.timing.totalTime, serves: dto.serves, overallRating: dto.ratingInfo?.overallRating, totalRatings: dto.ratingInfo?.totalRatings ?? 0, summarisedRating: dto.ratingInfo?.summarisedRating, summarisedSuggestion: dto.summarisedTip, dateAdded: dto.dateAdded, dateModified: dto.dateModified, ingredientScale: dto.ingredientScale, ingredientUnitSystem: dto.ingredientUnitSystem.rawValue, homeId: dto.homeId)
         
         let recipeImage = DBRecipeImage(recipeId: dto.id, imageSourceUrl: dto.image.imageUrl, imageData: dto.image.imageThumbnailData)
         
@@ -52,7 +52,7 @@ public extension RecipeDTO {
             sourceURL: dto.url
         )
         
-        let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, totalRatings: dto.ratings.totalRatings, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, ingredientScale: 1.0, homeId: homeId)
+        let recipe = DBRecipe(id: recipeId, title: dto.title, description: dto.description, author: dto.author, sourceUrl: dto.url, dominantColorHex: nil, minutesToPrepare: dto.minutesToPrepare, minutesToCook: dto.minutesToCook, totalMins: dto.totalMins, serves: dto.serves, overallRating: dto.ratings.overallRating, totalRatings: dto.ratings.totalRatings, summarisedRating: nil, summarisedSuggestion: nil, dateAdded: now, dateModified: now, ingredientScale: 1.0, ingredientUnitSystem: RecipeIngredientUnitSystem.original.rawValue, homeId: homeId)
         
         let recipeImage = DBRecipeImage(recipeId: recipe.id, imageSourceUrl: dto.imageUrl, imageData: thumbnailData)
         

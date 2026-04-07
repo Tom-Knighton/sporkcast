@@ -27,10 +27,11 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     public let dateAdded: Date
     public let dateModified: Date
     public let ingredientScale: Double
+    public let ingredientUnitSystem: String
     
     public let homeId: UUID?
     
-    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, totalRatings: Int, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, ingredientScale: Double = 1.0, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, totalRatings: Int, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, ingredientScale: Double = 1.0, ingredientUnitSystem: String = "original", homeId: UUID?) {
         self.id = id
         self.title = title
         self.description = description
@@ -48,6 +49,7 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
         self.dateAdded = dateAdded
         self.dateModified = dateModified
         self.ingredientScale = ingredientScale
+        self.ingredientUnitSystem = ingredientUnitSystem
         self.homeId = homeId
     }
 }
@@ -506,6 +508,12 @@ public struct SchemaV1 {
         migrator.registerMigration("Add Recipe Ingredient Scale") { db in
             try db.alter(table: "Recipes") { e in
                 e.add(column: "ingredientScale", .double).notNull().defaults(to: 1.0)
+            }
+        }
+
+        migrator.registerMigration("Add Recipe Ingredient Unit System") { db in
+            try db.alter(table: "Recipes") { e in
+                e.add(column: "ingredientUnitSystem", .text).notNull().defaults(to: "original")
             }
         }
 

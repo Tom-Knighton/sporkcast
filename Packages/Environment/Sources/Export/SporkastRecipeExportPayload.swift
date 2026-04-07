@@ -114,6 +114,7 @@ public extension SporkastRecipeExportPayload {
         public let dateAdded: Date
         public let dateModified: Date
         public let ingredientScale: Double
+        public let ingredientUnitSystem: String
         public let homeId: UUID?
 
         private enum CodingKeys: String, CodingKey {
@@ -134,6 +135,7 @@ public extension SporkastRecipeExportPayload {
             case dateAdded
             case dateModified
             case ingredientScale
+            case ingredientUnitSystem
             case homeId
         }
 
@@ -156,6 +158,7 @@ public extension SporkastRecipeExportPayload {
             self.dateAdded = try container.decode(Date.self, forKey: .dateAdded)
             self.dateModified = try container.decode(Date.self, forKey: .dateModified)
             self.ingredientScale = try container.decodeIfPresent(Double.self, forKey: .ingredientScale) ?? 1.0
+            self.ingredientUnitSystem = try container.decodeIfPresent(String.self, forKey: .ingredientUnitSystem) ?? "original"
             self.homeId = try container.decodeIfPresent(UUID.self, forKey: .homeId)
         }
 
@@ -177,6 +180,7 @@ public extension SporkastRecipeExportPayload {
             self.dateAdded = recipe.dateAdded
             self.dateModified = recipe.dateModified
             self.ingredientScale = recipe.ingredientScale
+            self.ingredientUnitSystem = recipe.ingredientUnitSystem
             self.homeId = recipe.homeId
         }
     }

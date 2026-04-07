@@ -8,6 +8,12 @@
 import Foundation
 import Persistence
 
+private extension DBRecipe {
+    var parsedIngredientUnitSystem: RecipeIngredientUnitSystem {
+        RecipeIngredientUnitSystem(rawValue: ingredientUnitSystem) ?? .original
+    }
+}
+
 public extension FullDBRecipe {
     
     /**
@@ -44,7 +50,7 @@ public extension FullDBRecipe {
             return RecipeStepSection(id: grp.id, sortIndex: grp.sortIndex, title: grp.title, steps: steps)
         }
                 
-        return Recipe(id: self.recipe.id, title: self.recipe.title, description: self.recipe.description, summarisedTip: self.recipe.summarisedSuggestion, author: self.recipe.author, sourceUrl: self.recipe.sourceUrl, image: image, timing: timing, serves: self.recipe.serves, ratingInfo: ratingInfo, dateAdded: self.recipe.dateAdded, dateModified: self.recipe.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.recipe.dominantColorHex, ingredientScale: self.recipe.ingredientScale, homeId: self.recipe.homeId)
+        return Recipe(id: self.recipe.id, title: self.recipe.title, description: self.recipe.description, summarisedTip: self.recipe.summarisedSuggestion, author: self.recipe.author, sourceUrl: self.recipe.sourceUrl, image: image, timing: timing, serves: self.recipe.serves, ratingInfo: ratingInfo, dateAdded: self.recipe.dateAdded, dateModified: self.recipe.dateModified, ingredientSections: ingredientSections, stepSections: stepSections, dominantColorHex: self.recipe.dominantColorHex, ingredientScale: self.recipe.ingredientScale, ingredientUnitSystem: self.recipe.parsedIngredientUnitSystem, homeId: self.recipe.homeId)
     }
 }
 
@@ -83,6 +89,7 @@ public extension ListDBRecipe {
             stepSections: [],
             dominantColorHex: recipe.dominantColorHex,
             ingredientScale: recipe.ingredientScale,
+            ingredientUnitSystem: recipe.parsedIngredientUnitSystem,
             homeId: recipe.homeId
         )
     }

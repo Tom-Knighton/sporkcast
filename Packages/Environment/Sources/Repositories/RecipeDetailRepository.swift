@@ -55,4 +55,10 @@ public final class RecipeDetailRepository {
             try DBRecipe.find(recipeId).update { $0.ingredientScale = scale }.execute(db)
         }
     }
+
+    public func updateIngredientUnitSystem(recipeId: UUID, unitSystem: RecipeIngredientUnitSystem) async throws {
+        try await database.write { db in
+            try DBRecipe.find(recipeId).update { $0.ingredientUnitSystem = unitSystem.rawValue }.execute(db)
+        }
+    }
 }

@@ -54,6 +54,7 @@ public struct RecipeIngredientsListView: View {
                         ShoppingImportIngredientFormatter.highlightedIngredientText(
                             for: ingredient,
                             scale: viewModel.recipe.ingredientScale,
+                            unitSystem: viewModel.recipe.ingredientUnitSystem,
                             tint: tint
                         )
                     )

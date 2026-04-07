@@ -54,6 +54,15 @@ public class RecipeViewModel: @unchecked Sendable {
     public func resetIngredientScale() async {
         await setIngredientScale(to: 1.0)
     }
+
+    public func setIngredientUnitSystem(to unitSystem: RecipeIngredientUnitSystem) async {
+        guard recipe.ingredientUnitSystem != unitSystem else { return }
+        try? await repository.updateIngredientUnitSystem(recipeId: recipe.id, unitSystem: unitSystem)
+    }
+
+    public func resetIngredientUnitSystem() async {
+        await setIngredientUnitSystem(to: .original)
+    }
     
     /// Uses Apple Intelligence to generate emojis for each ingredient, and saves them to the model in one go
     public func generateEmojis() async throws {

@@ -37,6 +37,7 @@ public struct RecipePage: View {
     @State private var completedMealplanIngredientIDs: Set<UUID> = []
     @State private var showingAddToShoppingSheet = false
     @State private var showingIngredientScaleControls = false
+    @State private var showingIngredientUnitControls = false
     private let mealplanEntryId: UUID?
 
     private var recipeHasScaledIngredients: Bool {
@@ -45,6 +46,14 @@ public struct RecipePage: View {
 
     private var ingredientScaleLabel: String {
         "\(ShoppingImportIngredientFormatter.formatScale(viewModel.recipe.ingredientScale))x"
+    }
+
+    private var recipeHasConvertedUnits: Bool {
+        viewModel.recipe.ingredientUnitSystem != .original
+    }
+
+    private var ingredientUnitLabel: String {
+        viewModel.recipe.ingredientUnitSystem.displayName
     }
 
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
@@ -149,6 +158,7 @@ public struct RecipePage: View {
                         if viewModel.segment == 1 {
                             HStack(spacing: 10) {
                                 ingredientScaleToggleButton
+                                ingredientUnitToggleButton
 
                                 Spacer()
                             }
@@ -164,6 +174,21 @@ public struct RecipePage: View {
                                     resetIngredientScale()
                                 } onClose: {
                                     toggleIngredientScaleControls()
+                                }
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+
+                            if showingIngredientUnitControls {
+                                RecipeIngredientUnitControl(
+                                    selectedUnitSystem: viewModel.recipe.ingredientUnitSystem,
+                                    tint: viewModel.dominantColour
+                                ) { newUnitSystem in
+                                    saveIngredientUnitSystem(newUnitSystem)
+                                } onReset: {
+                                    resetIngredientUnitSystem()
+                                } onClose: {
+                                    toggleIngredientUnitControls()
                                 }
                                 .padding(.top, 8)
                                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -252,6 +277,14 @@ public struct RecipePage: View {
                             Label("Reset Ingredient Scale", systemImage: "arrow.counterclockwise")
                         }
                     }
+                    Button(action: { presentIngredientUnitControls() }) {
+                        Label("Convert Ingredient Units", systemImage: "scalemass")
+                    }
+                    if recipeHasConvertedUnits {
+                        Button(action: { resetIngredientUnitSystem() }) {
+                            Label("Reset Ingredient Units", systemImage: "arrow.counterclockwise")
+                        }
+                    }
                     if mealplanEntryId != nil {
                         Button(action: { Task { await clearMealplanIngredientStates() }}) {
                             Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
@@ -270,8 +303,9 @@ public struct RecipePage: View {
             }
         }
         .onChange(of: viewModel.segment) { _, newValue in
-            if newValue != 1, showingIngredientScaleControls {
+            if newValue != 1 {
                 showingIngredientScaleControls = false
+                showingIngredientUnitControls = false
             }
         }
         .task(id: RecipePageAIGenerationTaskID(
@@ -343,6 +377,14 @@ extension RecipePage {
         .buttonStyle(.glass)
     }
 
+    @ViewBuilder
+    private var ingredientUnitToggleButton: some View {
+        Button(action: { toggleIngredientUnitControls() }) {
+            Label(ingredientUnitLabel, systemImage: "scalemass")
+        }
+        .buttonStyle(.glass)
+    }
+
     private func saveIngredientScale(_ value: Double) {
         Task {
             await viewModel.setIngredientScale(to: value)
@@ -355,9 +397,35 @@ extension RecipePage {
         }
     }
 
+    private func saveIngredientUnitSystem(_ unitSystem: RecipeIngredientUnitSystem) {
+        Task {
+            await viewModel.setIngredientUnitSystem(to: unitSystem)
+        }
+    }
+
+    private func resetIngredientUnitSystem() {
+        Task {
+            await viewModel.resetIngredientUnitSystem()
+        }
+    }
+
     private func toggleIngredientScaleControls() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            showingIngredientScaleControls.toggle()
+            let shouldShowScale = !showingIngredientScaleControls
+            showingIngredientScaleControls = shouldShowScale
+            if shouldShowScale {
+                showingIngredientUnitControls = false
+            }
+        }
+    }
+
+    private func toggleIngredientUnitControls() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            let shouldShowUnits = !showingIngredientUnitControls
+            showingIngredientUnitControls = shouldShowUnits
+            if shouldShowUnits {
+                showingIngredientScaleControls = false
+            }
         }
     }
 
@@ -369,6 +437,19 @@ extension RecipePage {
         guard !showingIngredientScaleControls else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             showingIngredientScaleControls = true
+            showingIngredientUnitControls = false
+        }
+    }
+
+    private func presentIngredientUnitControls() {
+        if viewModel.segment != 1 {
+            viewModel.segment = 1
+        }
+
+        guard !showingIngredientUnitControls else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showingIngredientUnitControls = true
+            showingIngredientScaleControls = false
         }
     }
     
