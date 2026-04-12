@@ -62,6 +62,10 @@ public struct SettingsPage: View {
     #if DEBUG
     private var debugSection: some View {
         Section("Debug") {
+            NavigationLink(destination: DatabaseDebugViewerPage()) {
+                Label("Database Viewer", systemImage: "internaldrive")
+            }
+
             Button(role: .destructive, action: deleteAllData) {
                 Text("Delete All DB")
             }

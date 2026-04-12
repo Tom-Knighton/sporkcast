@@ -22,14 +22,32 @@ struct SporkcastApp: App {
     init() {
         prepareDependencies {
             $0.defaultDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
-                #if DEBUG
-                    print(description)
-                #endif
+#if DEBUG
+                print(description)
+#endif
             })
-
+            
             $0.defaultSyncEngine = try! SyncEngine(
                 for: $0.defaultDatabase,
-                tables: DBHome.self, DBRecipe.self, DBRecipeIngredientGroup.self, DBRecipeIngredient.self, DBRecipeStepGroup.self, DBRecipeStep.self, DBRecipeStepTiming.self, DBRecipeStepTemperature.self, DBRecipeImage.self, DBMealplanEntry.self, DBRecipeRating.self, DBShoppingList.self, DBShoppingListItem.self, DBShoppingListItemReminderLink.self,
+                tables:
+                    DBHome.self,
+                DBRecipe.self,
+                DBRecipeIngredientGroup.self,
+                DBRecipeIngredient.self,
+                DBRecipeStepGroup.self,
+                DBRecipeStep.self,
+                DBRecipeStepTiming.self,
+                DBRecipeStepTemperature.self,
+                DBRecipeStepLinkedIngredient.self,
+                DBRecipeRating.self,
+                DBRecipeImage.self,
+                DBMealplanEntry.self,
+                DBRecipeRating.self,
+                DBShoppingList.self,
+                DBShoppingListItem.self,
+                DBShoppingListItemIngredientLink.self,
+                DBShoppingListItemReminderLink.self,
+                DBShoppingListItemMealplanLink.self,
             )
         }
     }

@@ -37,7 +37,8 @@ public enum AppDatabaseFactory {
 
         var migrator = DatabaseMigrator()
         #if DEBUG
-        migrator.eraseDatabaseOnSchemaChange = true
+        migrator.eraseDatabaseOnSchemaChange =
+            ProcessInfo.processInfo.environment["SPORKCAST_ERASE_DB_ON_SCHEMA_CHANGE"] == "1"
         #endif
         SchemaV1.migrate(&migrator)
         try migrator.migrate(database)
@@ -45,4 +46,3 @@ public enum AppDatabaseFactory {
         return database
     }
 }
-

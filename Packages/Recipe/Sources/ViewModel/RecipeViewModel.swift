@@ -79,7 +79,7 @@ public class RecipeViewModel: @unchecked Sendable {
         
         let session = LanguageModelSession {
                 """
-                You are a tool tagging an ingredient for a recipe with one single related emoji. If you cannot find a sensible emoji, return nil. Have items like soy sauce and oils = 🍶.
+                You are a tool tagging an ingredient for a recipe with a related emoji. The emoji should represent the ingredient. If you cannot find a sensible emoji, return nil. Have items like soy sauce and oils = 🍶.
                 """
         }
         session.prewarm()

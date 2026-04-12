@@ -37,7 +37,7 @@ public final class SettingsRepository {
             try FileManager.default.removeItem(at: exportURL)
         }
 
-        try await database.write { try $0.execute(sql: "VACUUM INTO ?", arguments: [exportURL.path]) }
+        try await database.vacuum(into: exportURL.path)
         return exportURL
     }
 
@@ -59,7 +59,100 @@ public final class SettingsRepository {
             )
         }.value
     }
+
+    #if DEBUG
+    public func exportDebugDatabaseDump() async throws -> DebugDatabaseDump {
+        let content = try await database.read { db in
+            let stream = DebugStringOutputStream()
+            try db.dumpContent(format: .debug(), to: stream)
+
+            let metadataRows = try SyncMetadata.all.fetchAll(db)
+            let unsyncedRows = try DebugUnsyncedRecordID.all.fetchAll(db)
+            let recordTypes = try DebugRecordType.all.fetchAll(db)
+            var output: String = stream.output
+
+            output += "\n\nsqlitedata_icloud_metadata (attached)\n"
+            if metadataRows.isEmpty {
+                output += "<empty>"
+            } else {
+                let lines = metadataRows
+                    .sorted {
+                        if $0.recordType != $1.recordType { return $0.recordType < $1.recordType }
+                        return $0.recordPrimaryKey < $1.recordPrimaryKey
+                    }
+                    .map { row -> String in
+                        let parentType = row.parentRecordType ?? "nil"
+                        let parentKey = row.parentRecordPrimaryKey ?? "nil"
+                        return "\(row.recordType)|\(row.recordPrimaryKey)|zone=\(row.zoneName)|owner=\(row.ownerName)|parentType=\(parentType)|parentKey=\(parentKey)|isShared=\(row.isShared)|hasServerRecord=\(row.hasLastKnownServerRecord)|deleted=\(row._isDeleted)|modTime=\(row.userModificationTime)"
+                    }
+                    .joined(separator: "\n")
+                output += lines
+            }
+
+            output += "\n\nsqlitedata_icloud_unsyncedRecordIDs (attached)\n"
+            if unsyncedRows.isEmpty {
+                output += "<empty>"
+            } else {
+                output += unsyncedRows
+                    .sorted {
+                        if $0.zoneName != $1.zoneName { return $0.zoneName < $1.zoneName }
+                        if $0.ownerName != $1.ownerName { return $0.ownerName < $1.ownerName }
+                        return $0.recordName < $1.recordName
+                    }
+                    .map { "\($0.recordName)|zone=\($0.zoneName)|owner=\($0.ownerName)" }
+                    .joined(separator: "\n")
+            }
+
+            output += "\n\nsqlitedata_icloud_recordTypes (attached)\n"
+            if recordTypes.isEmpty {
+                output += "<empty>"
+            } else {
+                output += recordTypes
+                    .map(\.tableName)
+                    .sorted()
+                    .joined(separator: "\n")
+            }
+
+            return output
+        }
+        return DebugDatabaseDump(generatedAt: .now, content: content)
+    }
+    #endif
 }
+
+#if DEBUG
+public struct DebugDatabaseDump: Sendable {
+    public let generatedAt: Date
+    public let content: String
+
+    public init(generatedAt: Date, content: String) {
+        self.generatedAt = generatedAt
+        self.content = content
+    }
+}
+
+private final class DebugStringOutputStream: TextOutputStream, @unchecked Sendable {
+    var output: String = ""
+
+    func write(_ string: String) {
+        output += string
+    }
+}
+
+@Table("sqlitedata_icloud_unsyncedRecordIDs")
+private struct DebugUnsyncedRecordID: Codable, Sendable {
+    let recordName: String
+    let zoneName: String
+    let ownerName: String
+}
+
+@Table("sqlitedata_icloud_recordTypes")
+private struct DebugRecordType: Codable, Sendable {
+    let tableName: String
+    let schema: String
+    let tableInfo: String
+}
+#endif
 
 private extension SettingsRepository {
     nonisolated static func makeRecipeExportPackage(
