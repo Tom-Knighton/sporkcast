@@ -82,7 +82,7 @@ struct AppContent: View {
         .environment(\.cloudKit, cloudKitGate)
         .environment(\.shoppingListMutations, shoppingMutations)
         .environment(\.flagKit, flagKit)
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .tabBarMinimizeBehavior(flagKit.isEnabled(.appCollapseTabBar, default: false) ? .onScrollDown : .automatic)
         .onOpenURL(prefersInApp: true)
         .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }
         .onChange(of: alarmManager.timers, initial: true) { _, newValue in
