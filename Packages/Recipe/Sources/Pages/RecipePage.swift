@@ -31,17 +31,18 @@ public struct RecipePage: View {
     @Environment(\.displayScale) private var displayScale
     @Environment(\.flagKit) private var flagKit
     @Dependency(\.defaultDatabase) private var db
-
+    
     @State private var viewModel: RecipeViewModel
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
     @State private var commentsSnapshot: UIImage?
     @State private var completedMealplanIngredientIDs: Set<UUID> = []
     @State private var showingAddToShoppingSheet = false
+    @State private var inlinePickerVisible = true
     @State private var showingIngredientScaleControls = false
     @State private var showingIngredientUnitControls = false
     private let mealplanEntryId: UUID?
-
-
+    
+    
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
         self.mealplanEntryId = mealplanEntryId
         self.viewModel = .init(recipe: recipe)
@@ -120,7 +121,7 @@ public struct RecipePage: View {
                             RecipeSourceButton(with: viewModel.dominantColour) {
                                 image()
                             }
-                        } 
+                        }
                         
                         Spacer().frame(height: 20)
                         HStack {
@@ -136,7 +137,7 @@ public struct RecipePage: View {
                                     Text("Comments")
                                         .tag(3)
                                 }
-
+                                
                                 if shouldShowRecipeChatTab {
                                     Text("Chat")
                                         .tag(4)
@@ -145,16 +146,19 @@ public struct RecipePage: View {
                             .pickerStyle(.segmented)
                             Spacer()
                         }
-
+                        .onScrollVisibilityChange { visible in
+                            inlinePickerVisible = visible
+                        }
+                        
                         if viewModel.segment == 1 {
                             HStack(spacing: 10) {
                                 ingredientScaleToggleButton
                                 ingredientUnitToggleButton
-
+                                
                                 Spacer()
                             }
                             .padding(.top, 8)
-
+                            
                             if showingIngredientScaleControls {
                                 RecipeIngredientScaleControl(
                                     scale: viewModel.recipe.ingredientScale,
@@ -169,7 +173,7 @@ public struct RecipePage: View {
                                 .padding(.top, 8)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                             }
-
+                            
                             if showingIngredientUnitControls {
                                 RecipeIngredientUnitControl(
                                     selectedUnitSystem: viewModel.recipe.ingredientUnitSystem,
@@ -195,7 +199,7 @@ public struct RecipePage: View {
                                 completedIngredientIDs: completedMealplanIngredientIDs,
                                 showMealplanShoppingTicks: mealplanEntryId != nil
                             )
-                                .tint(viewModel.dominantColour)
+                            .tint(viewModel.dominantColour)
                         case 2:
                             RecipeStepsView(
                                 tint: viewModel.dominantColour,
@@ -291,9 +295,33 @@ public struct RecipePage: View {
                     Image(systemName: "ellipsis")
                 }
             }
-            
-
         }
+        .safeAreaBar(edge: .top) {
+            if !inlinePickerVisible {
+                Picker("", selection: $viewModel.segment) {
+                    Text("Ingredients")
+                        .tag(1)
+                    Text("Steps").tag(2)
+                    
+                    if shouldShowRecipeChatInline, let commentsUIImage = commentsSnapshot {
+                        Image(uiImage: commentsUIImage)
+                            .tag(3)
+                    } else {
+                        Text("Comments")
+                            .tag(3)
+                    }
+                    
+                    if shouldShowRecipeChatTab {
+                        Text("Chat")
+                            .tag(4)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.horizontal)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: inlinePickerVisible)
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear
@@ -370,7 +398,7 @@ extension RecipePage {
             .font(.footnote)
             .labelIconToTitleSpacing(2)
     }
-
+    
     @ViewBuilder
     private var ingredientScaleToggleButton: some View {
         Button(action: { toggleIngredientScaleControls() }) {
@@ -378,7 +406,7 @@ extension RecipePage {
         }
         .buttonStyle(.glass)
     }
-
+    
     @ViewBuilder
     private var ingredientUnitToggleButton: some View {
         Button(action: { toggleIngredientUnitControls() }) {
@@ -386,31 +414,31 @@ extension RecipePage {
         }
         .buttonStyle(.glass)
     }
-
+    
     private func saveIngredientScale(_ value: Double) {
         Task {
             await viewModel.setIngredientScale(to: value)
         }
     }
-
+    
     private func resetIngredientScale() {
         Task {
             await viewModel.resetIngredientScale()
         }
     }
-
+    
     private func saveIngredientUnitSystem(_ unitSystem: RecipeIngredientUnitSystem) {
         Task {
             await viewModel.setIngredientUnitSystem(to: unitSystem)
         }
     }
-
+    
     private func resetIngredientUnitSystem() {
         Task {
             await viewModel.resetIngredientUnitSystem()
         }
     }
-
+    
     private func toggleIngredientScaleControls() {
         withAnimation(.easeInOut(duration: 0.2)) {
             let shouldShowScale = !showingIngredientScaleControls
@@ -420,7 +448,7 @@ extension RecipePage {
             }
         }
     }
-
+    
     private func toggleIngredientUnitControls() {
         withAnimation(.easeInOut(duration: 0.2)) {
             let shouldShowUnits = !showingIngredientUnitControls
@@ -430,24 +458,24 @@ extension RecipePage {
             }
         }
     }
-
+    
     private func presentIngredientScaleControls() {
         if viewModel.segment != 1 {
             viewModel.segment = 1
         }
-
+        
         guard !showingIngredientScaleControls else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             showingIngredientScaleControls = true
             showingIngredientUnitControls = false
         }
     }
-
+    
     private func presentIngredientUnitControls() {
         if viewModel.segment != 1 {
             viewModel.segment = 1
         }
-
+        
         guard !showingIngredientUnitControls else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             showingIngredientUnitControls = true
@@ -464,19 +492,19 @@ extension RecipePage {
             }
         }
     }
-
+    
     func loadMealplanIngredientCompletionState() async {
         guard let mealplanEntryId else {
             await MainActor.run { completedMealplanIngredientIDs = [] }
             return
         }
-
+        
         let recipeIngredientIDs = Set(viewModel.recipe.ingredientSections.flatMap(\.ingredients).map(\.id))
         guard !recipeIngredientIDs.isEmpty else {
             await MainActor.run { completedMealplanIngredientIDs = [] }
             return
         }
-
+        
         do {
             let completedIngredientIDs = try await db.read { db in
                 let itemIDsForMealplanEntry = Set(
@@ -486,7 +514,7 @@ extension RecipePage {
                         .fetchAll(db)
                 )
                 guard !itemIDsForMealplanEntry.isEmpty else { return Set<UUID>() }
-
+                
                 let completedItemIDs = Set(
                     try DBShoppingListItem
                         .where {
@@ -496,18 +524,18 @@ extension RecipePage {
                         .fetchAll(db)
                 )
                 guard !completedItemIDs.isEmpty else { return Set<UUID>() }
-
+                
                 return Set(
                     try DBShoppingListItemIngredientLink
                         .where {
                             completedItemIDs.contains($0.shoppingListItemId)
-                                && recipeIngredientIDs.contains($0.ingredientId)
+                            && recipeIngredientIDs.contains($0.ingredientId)
                         }
                         .select(\.ingredientId)
                         .fetchAll(db)
                 )
             }
-
+            
             await MainActor.run {
                 completedMealplanIngredientIDs = completedIngredientIDs
             }
@@ -548,7 +576,7 @@ public extension ImageRenderer {
 
 #Preview {
     let _ = PreviewSupport.preparePreviewDatabase()
-
+    
     let recipe = Recipe(
         id: UUID(),
         title: "Preview Carbonara",
@@ -611,7 +639,7 @@ public extension ImageRenderer {
         dominantColorHex: nil,
         homeId: nil
     )
-
+    
     return NavigationStack {
         RecipePage(recipe)
     }
