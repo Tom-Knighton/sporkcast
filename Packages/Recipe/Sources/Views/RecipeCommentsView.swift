@@ -13,6 +13,11 @@ struct RecipeCommentsView: View {
     
     @State private var showLLMInfo: Bool = false
     @Environment(RecipeViewModel.self) private var vm
+    let showRecipeChat: Bool
+
+    init(showRecipeChat: Bool = false) {
+        self.showRecipeChat = showRecipeChat
+    }
     
     private var ratings: [RecipeRating] {
         (vm.recipe.ratingInfo?.ratings ?? []).filter { $0.comment != nil }
@@ -49,6 +54,11 @@ struct RecipeCommentsView: View {
                 .glassEffect(.regular, in: .rect(cornerRadius: 10))
                 .intelligenceBackground(in: .rect(cornerRadius: 10), animated: false)
                 .transition(.blurReplace)
+            }
+
+            if showRecipeChat {
+                Spacer().frame(height: 8)
+                RecipeChatView()
             }
             
             if let overallRating = vm.recipe.ratingInfo?.overallRating {

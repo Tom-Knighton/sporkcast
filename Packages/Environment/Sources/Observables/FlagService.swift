@@ -24,6 +24,9 @@ public struct AppFlagContext: Sendable {
 
 public enum FeatureFlag: String, Sendable {
     case recipeImportPaprikaEnabled = "recipe-import-paprika-support"
+    case recipeChatEnabled = "recipe_chat_enabled"
+    case recipeChatSeperateTab = "recipe_chat_seperate_tab"
+    case appCollapseTabBar = "app-collapse-tab-bar"
 }
 
 public protocol FlagServiceProtocol: Sendable {
@@ -59,9 +62,10 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
             autoEnvAttributes: .enabled
         )
         config.diagnosticOptOut = true
+        let installId = InstallationId.get()
         
-        var builder = LDContextBuilder()
-        builder.anonymous(true)
+        var builder = LDContextBuilder(key: installId)
+        builder.anonymous(false)
         builder.trySetValue("appVersion", .init(stringLiteral: context.appVersion))
         builder.trySetValue("subscriptionTier", .init(stringLiteral: context.subscriptionTier))
         
@@ -95,7 +99,7 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
         guard hasStarted, let client = LDClient.get() else {
             return defaultValue
         }
-        
+                
         return client.boolVariation(
             forKey: flag.rawValue,
             defaultValue: defaultValue

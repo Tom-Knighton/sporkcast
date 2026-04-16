@@ -29,6 +29,7 @@ public struct RecipePage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.flagKit) private var flagKit
     @Dependency(\.defaultDatabase) private var db
 
     @State private var viewModel: RecipeViewModel
@@ -40,21 +41,6 @@ public struct RecipePage: View {
     @State private var showingIngredientUnitControls = false
     private let mealplanEntryId: UUID?
 
-    private var recipeHasScaledIngredients: Bool {
-        abs(viewModel.recipe.ingredientScale - 1.0) > 0.0001
-    }
-
-    private var ingredientScaleLabel: String {
-        "\(ShoppingImportIngredientFormatter.formatScale(viewModel.recipe.ingredientScale))x"
-    }
-
-    private var recipeHasConvertedUnits: Bool {
-        viewModel.recipe.ingredientUnitSystem != .original
-    }
-
-    private var ingredientUnitLabel: String {
-        viewModel.recipe.ingredientUnitSystem.displayName
-    }
 
     public init(_ recipe: Recipe, mealplanEntryId: UUID? = nil) {
         self.mealplanEntryId = mealplanEntryId
@@ -141,14 +127,19 @@ public struct RecipePage: View {
                             Picker("", selection: $viewModel.segment) {
                                 Text("Ingredients")
                                     .tag(1)
-                                Text("Directions").tag(2)
+                                Text("Steps").tag(2)
                                 
-                                if let commentsUIImage = commentsSnapshot {
+                                if shouldShowRecipeChatInline, let commentsUIImage = commentsSnapshot {
                                     Image(uiImage: commentsUIImage)
                                         .tag(3)
                                 } else {
                                     Text("Comments")
                                         .tag(3)
+                                }
+
+                                if shouldShowRecipeChatTab {
+                                    Text("Chat")
+                                        .tag(4)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -212,7 +203,13 @@ public struct RecipePage: View {
                                 showMealplanShoppingTicks: mealplanEntryId != nil
                             )
                         case 3:
-                            RecipeCommentsView()
+                            RecipeCommentsView(showRecipeChat: shouldShowRecipeChatInline)
+                        case 4:
+                            if shouldShowRecipeChatTab {
+                                RecipeChatView()
+                            } else {
+                                EmptyView()
+                            }
                         default:
                             EmptyView()
                         }
@@ -223,7 +220,7 @@ public struct RecipePage: View {
             }
             .scrollClipDisabled(true)
             .fontDesign(.rounded)
-            .tabBarMinimizeBehavior(.onScrollDown)
+            .tabBarMinimizeBehavior(shouldCollapseTab ? .onScrollDown : .automatic)
             .scrollBounceBehavior(.always, axes: .vertical)
             .coordinateSpace(name: "recipeScroll")
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
@@ -306,6 +303,11 @@ public struct RecipePage: View {
             if newValue != 1 {
                 showingIngredientScaleControls = false
                 showingIngredientUnitControls = false
+            }
+        }
+        .onChange(of: shouldShowRecipeChatTab, initial: true) { _, isShown in
+            if isShown == false, viewModel.segment == 4 {
+                viewModel.segment = 3
             }
         }
         .task(id: RecipePageAIGenerationTaskID(
@@ -456,7 +458,7 @@ extension RecipePage {
     func generateCommentsLabel() {
         Task {
             let renderer = ImageRenderer(
-                content: buildPickerLabel(title: "Comments", systemImage: viewModel.recipe.summarisedTip == nil ? "" : "sparkles"), scale: self.displayScale)
+                content: buildPickerLabel(title: "Suggestions", systemImage: viewModel.recipe.summarisedTip == nil ? "" : "sparkles"), scale: self.displayScale)
             if let image = renderer.uiImage {
                 self.commentsSnapshot = image
             }
@@ -615,4 +617,47 @@ public extension ImageRenderer {
     }
     .environment(AppRouter(initialTab: .recipes))
     .environment(RecipeTimerStore.shared)
+}
+
+
+extension RecipePage {
+    private var recipeHasScaledIngredients: Bool {
+        abs(viewModel.recipe.ingredientScale - 1.0) > 0.0001
+    }
+    
+    private var ingredientScaleLabel: String {
+        "\(ShoppingImportIngredientFormatter.formatScale(viewModel.recipe.ingredientScale))x"
+    }
+    
+    private var recipeHasConvertedUnits: Bool {
+        viewModel.recipe.ingredientUnitSystem != .original
+    }
+    
+    private var ingredientUnitLabel: String {
+        viewModel.recipe.ingredientUnitSystem.displayName
+    }
+    
+    private var recipeChatEnabled: Bool {
+        flagKit.isEnabled(.recipeChatEnabled, default: false)
+    }
+    
+    private var recipeChatSeperateTab: Bool {
+        flagKit.isEnabled(.recipeChatSeperateTab, default: false)
+    }
+    
+    private var shouldShowRecipeChat: Bool {
+        recipeChatEnabled && viewModel.supportsRecipeChat
+    }
+    
+    private var shouldShowRecipeChatInline: Bool {
+        shouldShowRecipeChat && !recipeChatSeperateTab
+    }
+    
+    private var shouldShowRecipeChatTab: Bool {
+        shouldShowRecipeChat && recipeChatSeperateTab
+    }
+    
+    private var shouldCollapseTab: Bool {
+        flagKit.isEnabled(.appCollapseTabBar, default: false)
+    }
 }
