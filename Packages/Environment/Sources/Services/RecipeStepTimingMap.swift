@@ -13,8 +13,10 @@ public struct MatchedTiming: Equatable, Hashable {
     public let range: Range<String.Index>
     public let seconds: Double
     public let displayText: String
+    public let timingId: UUID
     
-    public init(range: Range<String.Index>, seconds: Double, displayText: String) {
+    public init(timingId: UUID, range: Range<String.Index>, seconds: Double, displayText: String) {
+        self.timingId = timingId
         self.range = range
         self.seconds = seconds
         self.displayText = displayText
@@ -55,20 +57,20 @@ public extension RecipeStep {
             pools[key] = ranges
         }
         
-        var assigned: [(range: Range<String.Index>, seconds: Double)] = []
+        var assigned: [(range: Range<String.Index>, seconds: Double, id: UUID)] = []
         
         for t in timings {
             let key = Key(timeText: t.timeText, unit: t.timeUnitText)
             guard var pool = pools[key], !pool.isEmpty else { continue }
             let r = pool.removeFirst()
             pools[key] = pool
-            assigned.append((range: r, seconds: t.timeInSeconds))
+            assigned.append((range: r, seconds: t.timeInSeconds, id: t.id))
         }
         
         assigned.sort { a, b in a.range.lowerBound < b.range.lowerBound }
         
         return assigned.map { item in
-            MatchedTiming(range: item.range, seconds: item.seconds, displayText: String(instructionText[item.range]))
+            MatchedTiming(timingId: item.id, range: item.range, seconds: item.seconds, displayText: String(instructionText[item.range]))
         }
     }
 }

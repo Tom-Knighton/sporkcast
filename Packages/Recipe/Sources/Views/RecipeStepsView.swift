@@ -51,9 +51,9 @@ public struct RecipeStepsView: View {
                         
                         VStack {
                             ingredientsView(for: step)
-                            RecipeStepWithTimingsView(step, recipeId: vm.recipe.id, tint: tint) { index in
+                            RecipeStepWithTimingsView(step, recipeId: vm.recipe.id, tint: tint) { id in
                                 Task {
-                                    await createAlarm(for: step, timerIndex: index)
+                                    await createAlarm(for: step, timingId: id)
                                 }
                             }
                         }
@@ -96,12 +96,12 @@ public struct RecipeStepsView: View {
         self.stepSections = sections
     }
     
-    private func createAlarm(for recipeStep: RecipeStep, timerIndex: Int) async {
+    private func createAlarm(for recipeStep: RecipeStep, timingId: UUID) async {
         let timings = recipeStep.timings
-        guard timerIndex < timings.count else { return }
-        let timer = timings[timerIndex]
+        guard let timer = timings.first(where: { $0.id == timingId }) else { return }
         
-        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: vm.recipe.id, recipeStepId: recipeStep.id, timerIndex: timerIndex, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.instructionText)
+        print("Staarting timer \(timer.timeText) - \(timer.timeInSeconds)  - \(timings.count)")
+        let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: vm.recipe.id, recipeStepId: recipeStep.id, timingId: timingId, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.instructionText)
     }
     
     @ViewBuilder
@@ -162,107 +162,3 @@ extension RecipeStepsView {
     }
 }
 
-struct RecipeStepWithTimingsView: View {
-    @Environment(RecipeTimerStore.self) private var timers
-    let step: RecipeStep
-    let recipeId: UUID
-    let matchedTimings: [MatchedTiming]
-    let tint: Color
-    @State private var buttonRects: [MatchedTiming: CGRect] = [:]
-    let onTimerTap: (Int) -> Void
-    
-    init(_ step: RecipeStep, recipeId: UUID, tint: Color, onTimerTap: @escaping (Int) -> Void) {
-        self.step = step
-        self.tint = tint
-        self.recipeId = recipeId
-        self.matchedTimings = step.matchedTimings().sorted { $0.range.lowerBound < $1.range.lowerBound }
-        self.onTimerTap = onTimerTap
-    }
-
-    var body: some View {
-        FlowLayout(alignment: .leading, spacing: 4) {
-            ForEach(Array(createSegments().enumerated()), id: \.offset) { index, segment in
-                switch segment {
-                case .text(let string):
-                    ForEach(string.components(separatedBy: " ").enumerated(), id: \.offset) { index, word in
-                        if !word.isEmpty {
-                            Text(word)
-                                .baselineOffset(-4)
-                                .fixedSize()
-                        }
-                    }
-                case .button(let timing):
-                    let index = step.matchedTimings().firstIndex(where: { $0.range == timing.range }) ?? 0
-                    let timer = timers.timers.first(where: { $0.metadata.recipeId == recipeId && $0.metadata.recipeStepId == step.id && $0.metadata.stepTimerIndex == index })
-                    Button(action: {
-                        if timer == nil {
-                            onTimerTap(index)
-                        }
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer")
-                                .font(.caption)
-                            
-                            if let timer {
-                                if case let .countdown(total, elapsed, startDate) = timer.presentation.mode {
-                                    let remaining = max(0, total - elapsed)
-                                    Text(timerInterval: startDate ... startDate.addingTimeInterval(remaining),
-                                         countsDown: true,
-                                         showsHours: true)
-                                }
-                                if case let .paused(total, prev) = timer.presentation.mode {
-                                    let remaining = max(0, total - prev)
-                                    let duration = Duration.seconds(remaining)
-                                    Text(duration, format: .time(pattern: remaining >= 3600 ? .hourMinuteSecond : .minuteSecond))
-                                }
-                                
-                            } else {
-                                Text(timing.displayText)
-                            }
-                        }
-                        .fontWeight(.heavy)
-                        .foregroundStyle(tint)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.regularMaterial)
-                        .clipShape(.capsule)
-                        .fixedSize()
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
-        }
-    }
-    
-    private enum TextSegment {
-        case text(String)
-        case button(MatchedTiming)
-    }
-    
-    private func createSegments() -> [TextSegment] {
-        var segments: [TextSegment] = []
-        var currentIndex = step.instructionText.startIndex
-        
-        for timing in matchedTimings {
-            if currentIndex < timing.range.lowerBound {
-                let textBefore = String(step.instructionText[currentIndex..<timing.range.lowerBound])
-                if !textBefore.isEmpty {
-                    segments.append(.text(textBefore))
-                }
-            }
-            
-            segments.append(.button(timing))
-            
-            currentIndex = timing.range.upperBound
-        }
-        
-        if currentIndex < step.instructionText.endIndex {
-            let remainingText = String(step.instructionText[currentIndex..<step.instructionText.endIndex])
-            if !remainingText.isEmpty {
-                segments.append(.text(remainingText))
-            }
-        }
-        
-        return segments
-    }
-}

@@ -15,16 +15,16 @@ public struct RecipeTimerMetadata: AlarmMetadata, Codable, Hashable {
     public let createdAt: Date
     public let colorHex: String
     public let recipeStepId: UUID
-    public let stepTimerIndex: Int
+    public let stepTimingId: UUID
     public let recipeId: UUID
     public let description: String?
     
-    public init(title: String, createdAt: Date, colorHex: String, recipeStepId: UUID, stepTimerIndex: Int, recipeId: UUID, description: String?) {
+    public init(title: String, createdAt: Date, colorHex: String, recipeStepId: UUID, stepTimingId: UUID, recipeId: UUID, description: String?) {
         self.title = title
         self.createdAt = createdAt
         self.colorHex = colorHex
         self.recipeStepId = recipeStepId
-        self.stepTimerIndex = stepTimerIndex
+        self.stepTimingId = stepTimingId
         self.recipeId = recipeId
         self.description = description
     }
@@ -111,7 +111,7 @@ public final class RecipeTimerStore {
     }
     
     @MainActor
-    public func scheduleRecipeStepTimer(for recipeId: UUID, recipeStepId: UUID, timerIndex: Int, seconds: Int, title: String, description: String?, tint: Color = Color.orange) async throws -> UUID {
+    public func scheduleRecipeStepTimer(for recipeId: UUID, recipeStepId: UUID, timingId: UUID, seconds: Int, title: String, description: String?, tint: Color = Color.orange) async throws -> UUID {
         try await ensureAuth()
         
         let pauseButton = AlarmButton(text: "Pause", textColor: tint, systemImageName: "pause.fill.circle")
@@ -122,7 +122,7 @@ public final class RecipeTimerStore {
         let countdown = AlarmPresentation.Countdown(title: "\(title)", pauseButton: pauseButton)
         let paused = AlarmPresentation.Paused(title: "Paused", resumeButton: resumeButton)
         
-        let attributes = AlarmAttributes(presentation: .init(alert: alert, countdown: countdown, paused: paused), metadata: RecipeTimerMetadata(title: title, createdAt: .now, colorHex: tint.toHex() ?? "#FFFFFF", recipeStepId: recipeStepId, stepTimerIndex: timerIndex, recipeId: recipeId, description: description), tintColor: tint)
+        let attributes = AlarmAttributes(presentation: .init(alert: alert, countdown: countdown, paused: paused), metadata: RecipeTimerMetadata(title: title, createdAt: .now, colorHex: tint.toHex() ?? "#FFFFFF", recipeStepId: recipeStepId, stepTimingId: timingId, recipeId: recipeId, description: description), tintColor: tint)
         
         let stopIntent = StopTimerIntent()
         let pauseIntent = PauseTimerIntent()
@@ -169,7 +169,7 @@ public final class RecipeTimerStore {
     private func observeAlarmUpdates() async {
         for await alarms in manager.alarmUpdates {
             for alarm in alarms {
-                let meta = persisted[alarm.id]?.metadata ?? .init(title: "Timer", createdAt: .now, colorHex: "#FFFFFF", recipeStepId: UUID(), stepTimerIndex: 0, recipeId: UUID(), description: nil)
+                let meta = persisted[alarm.id]?.metadata ?? .init(title: "Timer", createdAt: .now, colorHex: "#FFFFFF", recipeStepId: UUID(), stepTimingId: UUID(), recipeId: UUID(), description: nil)
                 upsertFromAlarm(alarm: alarm, metadata: meta, manualTransition: nil)
             }
             
@@ -181,7 +181,7 @@ public final class RecipeTimerStore {
     }
     
     private func upsertFromAlarm(alarm: Alarm, metadata: RecipeTimerMetadata?, manualTransition: RecipeTimerPresentation.Mode?) {
-        let meta = metadata ?? .init(title: "Timer", createdAt: .now, colorHex: "#FFFFFF", recipeStepId: UUID(), stepTimerIndex: 0, recipeId: UUID(), description: nil)
+        let meta = metadata ?? .init(title: "Timer", createdAt: .now, colorHex: "#FFFFFF", recipeStepId: UUID(), stepTimingId: UUID(), recipeId: UUID(), description: nil)
         
         let existing = timers.first(where: { $0.id == alarm.id })
         let newMode: RecipeTimerPresentation.Mode = {
