@@ -83,6 +83,7 @@ public struct RecipeImportStatusSheet: View {
                     if let statusSubtitle {
                         Text(statusSubtitle)
                             .font(.body)
+                            .fixedSize(horizontal: false, vertical: true)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
@@ -127,6 +128,7 @@ public struct RecipeImportStatusSheet: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .contentTransition(.opacity)
+                            .fixedSize(horizontal: false, vertical: true)
                             .animation(
                                 reduceMotion ? nil : .easeInOut(duration: 0.25),
                                 value: stage
