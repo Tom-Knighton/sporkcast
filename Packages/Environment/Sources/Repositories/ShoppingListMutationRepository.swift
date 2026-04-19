@@ -98,31 +98,76 @@ public final class ShoppingListMutationRepository {
         categorySource: String,
         modifiedAt: Date = Date()
     ) async throws -> UUID {
-        let itemId = UUID()
+        let parsedIncomingTitle = ShoppingListItemQuantityMerger.parsedTitle(title)
+        let persistedItemId = try await database.write { db in
+            let itemId: UUID
+            if !isComplete {
+                let existingItems = try DBShoppingListItem
+                    .where { $0.listId.eq(listId) }
+                    .fetchAll(db)
+                    .filter { !$0.isComplete }
 
-        try await database.write { db in
-            try DBShoppingListItem.insert {
-                DBShoppingListItem(
-                    id: itemId,
-                    title: title,
-                    listId: listId,
-                    isComplete: isComplete,
-                    modifiedAt: modifiedAt,
-                    categoryIdentifier: category.rawValue,
-                    categoryDisplayName: category.displayName,
-                    categorySource: categorySource
-                )
+                if let existingItem = Self.bestMatchingItem(
+                    in: existingItems,
+                    for: parsedIncomingTitle
+                ) {
+                    let mergedTitle = ShoppingListItemQuantityMerger.mergedTitle(
+                        existing: existingItem.title,
+                        incoming: title
+                    )
+
+                    try DBShoppingListItem.find(existingItem.id).update {
+                        $0.title = mergedTitle
+                        $0.modifiedAt = modifiedAt
+                    }
+                    .execute(db)
+
+                    itemId = existingItem.id
+                } else {
+                    let newItemId = UUID()
+                    try DBShoppingListItem.insert {
+                        DBShoppingListItem(
+                            id: newItemId,
+                            title: title,
+                            listId: listId,
+                            isComplete: isComplete,
+                            modifiedAt: modifiedAt,
+                            categoryIdentifier: category.rawValue,
+                            categoryDisplayName: category.displayName,
+                            categorySource: categorySource
+                        )
+                    }
+                    .execute(db)
+                    itemId = newItemId
+                }
+            } else {
+                let newItemId = UUID()
+                try DBShoppingListItem.insert {
+                    DBShoppingListItem(
+                        id: newItemId,
+                        title: title,
+                        listId: listId,
+                        isComplete: isComplete,
+                        modifiedAt: modifiedAt,
+                        categoryIdentifier: category.rawValue,
+                        categoryDisplayName: category.displayName,
+                        categorySource: categorySource
+                    )
+                }
+                .execute(db)
+                itemId = newItemId
             }
-            .execute(db)
 
             try DBShoppingList.find(listId).update {
                 $0.modifiedAt = modifiedAt
             }
             .execute(db)
+
+            return itemId
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        return itemId
+        return persistedItemId
     }
 
     @MainActor
@@ -254,18 +299,62 @@ public final class ShoppingListMutationRepository {
 
             let dbClassifierItems = try DBShoppingListItem.all.fetchAll(db)
             var classifierKnownItems = Self.classifierContextItems(from: dbClassifierItems)
+            var openItemsByKey = Self.openItemsByMergeKey(
+                from: dbClassifierItems,
+                listId: listId
+            )
 
             for payload in payloads {
-                let itemId = UUID()
                 let inferredCategory = classifier.classify(
                     payload.title,
                     fallback: .unknown,
                     knownItems: classifierKnownItems
                 )
                 let categorySource = inferredCategory == .unknown ? "manual" : "classifier"
+                let parsedIncomingTitle = ShoppingListItemQuantityMerger.parsedTitle(payload.title)
 
-                try DBShoppingListItem.insert {
-                    DBShoppingListItem(
+                let itemId: UUID
+                if let existingItem = openItemsByKey[parsedIncomingTitle.normalizedMergeKey] {
+                    let mergedTitle = ShoppingListItemQuantityMerger.mergedTitle(
+                        existing: existingItem.title,
+                        incoming: payload.title
+                    )
+
+                    try DBShoppingListItem.find(existingItem.id).update {
+                        $0.title = mergedTitle
+                        $0.modifiedAt = now
+                    }
+                    .execute(db)
+
+                    let mergedItem = DBShoppingListItem(
+                        id: existingItem.id,
+                        title: mergedTitle,
+                        listId: existingItem.listId,
+                        isComplete: false,
+                        modifiedAt: now,
+                        categoryIdentifier: existingItem.categoryIdentifier,
+                        categoryDisplayName: existingItem.categoryDisplayName,
+                        categorySource: existingItem.categorySource
+                    )
+                    openItemsByKey[parsedIncomingTitle.normalizedMergeKey] = mergedItem
+                    itemId = existingItem.id
+                } else {
+                    itemId = UUID()
+                    try DBShoppingListItem.insert {
+                        DBShoppingListItem(
+                            id: itemId,
+                            title: payload.title,
+                            listId: listId,
+                            isComplete: false,
+                            modifiedAt: now,
+                            categoryIdentifier: inferredCategory.rawValue,
+                            categoryDisplayName: inferredCategory.displayName,
+                            categorySource: categorySource
+                        )
+                    }
+                    .execute(db)
+
+                    openItemsByKey[parsedIncomingTitle.normalizedMergeKey] = DBShoppingListItem(
                         id: itemId,
                         title: payload.title,
                         listId: listId,
@@ -276,16 +365,16 @@ public final class ShoppingListMutationRepository {
                         categorySource: categorySource
                     )
                 }
-                .execute(db)
 
-                classifierKnownItems.append(
-                    ShoppingListItem(
+                Self.upsertClassifierKnownItem(
+                    &classifierKnownItems,
+                    item: ShoppingListItem(
                         id: itemId,
-                        title: payload.title,
+                        title: openItemsByKey[parsedIncomingTitle.normalizedMergeKey]?.title ?? payload.title,
                         isComplete: false,
-                        categoryId: inferredCategory.rawValue,
-                        categoryName: inferredCategory.displayName,
-                        categorySource: categorySource
+                        categoryId: openItemsByKey[parsedIncomingTitle.normalizedMergeKey]?.categoryIdentifier ?? inferredCategory.rawValue,
+                        categoryName: openItemsByKey[parsedIncomingTitle.normalizedMergeKey]?.categoryDisplayName ?? inferredCategory.displayName,
+                        categorySource: openItemsByKey[parsedIncomingTitle.normalizedMergeKey]?.categorySource ?? categorySource
                     )
                 )
 
@@ -368,5 +457,50 @@ private extension ShoppingListMutationRepository {
         default:
             return 2
         }
+    }
+
+    static func openItemsByMergeKey(
+        from dbItems: [DBShoppingListItem],
+        listId: UUID
+    ) -> [String: DBShoppingListItem] {
+        var itemsByKey: [String: DBShoppingListItem] = [:]
+        for item in dbItems where item.listId == listId && !item.isComplete {
+            let parsed = ShoppingListItemQuantityMerger.parsedTitle(item.title)
+            guard !parsed.normalizedMergeKey.isEmpty else { continue }
+
+            if let existing = itemsByKey[parsed.normalizedMergeKey],
+               existing.modifiedAt >= item.modifiedAt {
+                continue
+            }
+
+            itemsByKey[parsed.normalizedMergeKey] = item
+        }
+
+        return itemsByKey
+    }
+
+    static func bestMatchingItem(
+        in items: [DBShoppingListItem],
+        for incoming: ShoppingListParsedItemTitle
+    ) -> DBShoppingListItem? {
+        var best: DBShoppingListItem?
+        for item in items {
+            let key = ShoppingListItemQuantityMerger.parsedTitle(item.title).normalizedMergeKey
+            guard key == incoming.normalizedMergeKey else { continue }
+            if let best, best.modifiedAt >= item.modifiedAt {
+                continue
+            }
+            best = item
+        }
+        return best
+    }
+
+    static func upsertClassifierKnownItem(_ items: inout [ShoppingListItem], item: ShoppingListItem) {
+        if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
+            items[existingIndex] = item
+            return
+        }
+
+        items.append(item)
     }
 }
