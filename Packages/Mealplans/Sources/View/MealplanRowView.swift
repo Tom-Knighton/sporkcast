@@ -271,8 +271,8 @@ public struct MealplanRowView: View {
         if calendar.isDateInYesterday(day) {
             return "Yesterday"
         }
-        
-        return day.formatted(date: .abbreviated, time: .omitted)
+
+        return day.formatted(.dateTime.weekday(.abbreviated)) + " " + day.formatted(date: .abbreviated, time: .omitted)
     }
     
     func dayDifferenceFromNow(for date: Date) -> Int
