@@ -12,7 +12,6 @@ import Design
 import Models
 import Persistence
 import RecipeImporting
-import UniformTypeIdentifiers
 
 public struct RecipeListPage: View {
 
@@ -22,6 +21,7 @@ public struct RecipeListPage: View {
     @Environment(\.networkClient) private var client
     @Environment(\.appSettings) private var appSettings
 
+    @Binding private var pendingSharedImportURL: URL?
     @State private var importState = RecipeListImportState()
     @State private var importSuccessFeedbackToken: Int = 0
     @State private var importFailureFeedbackToken: Int = 0
@@ -48,7 +48,9 @@ public struct RecipeListPage: View {
         return sortedRecipes(filtered)
     }
 
-    public init() {}
+    public init(pendingSharedImportURL: Binding<URL?> = .constant(nil)) {
+        self._pendingSharedImportURL = pendingSharedImportURL
+    }
 
     public var body: some View {
         ZStack {
@@ -175,6 +177,9 @@ public struct RecipeListPage: View {
         .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
         .sheet(isPresented: $isFilterSheetPresented) {
             RecipeFiltersSheet(filters: $filters)
+        }
+        .task(id: pendingSharedImportURL) {
+            importPendingSharedURLIfNeeded()
         }
     }
 }
@@ -410,6 +415,13 @@ private extension RecipeListPage {
             return "We couldn't import that recipe right now. Please try again."
         }
         return description
+    }
+
+    @MainActor
+    func importPendingSharedURLIfNeeded() {
+        guard let sharedURL = pendingSharedImportURL else { return }
+        startImport(from: .webURL(sharedURL))
+        pendingSharedImportURL = nil
     }
 }
 

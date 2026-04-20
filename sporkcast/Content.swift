@@ -21,6 +21,9 @@ import CloudKit
 import ShoppingLists
 
 struct AppContent: View {
+    private let appGroupSuiteName = "group.sporkcast"
+    private let sharedImportURLDefaultsKey = "share.recipeImportURL.v1"
+
     @Namespace private var appRouterNamespace
     
     @State private var appRouter: AppRouter
@@ -36,6 +39,9 @@ struct AppContent: View {
     @State private var appSettings = SettingsStore()
     @State private var apiClient = APIClient(host: "https://api.dev.sporkast.tomk.online/")
     @State private var cloudKitGate = CloudKitGate()
+    @State private var pendingSharedImportURL: URL?
+    @State private var lastRoutedSharedImport: (url: String, at: Date)?
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
     
     public init() {
@@ -47,7 +53,7 @@ struct AppContent: View {
         TabScaffold(selection: $appRouter.selectedTab) {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
-                    RecipeListPage()
+                    RecipeListPage(pendingSharedImportURL: $pendingSharedImportURL)
                 }
             }
         } mealplans: {
@@ -84,6 +90,21 @@ struct AppContent: View {
         .environment(\.flagKit, flagKit)
         .tabBarMinimizeBehavior(flagKit.isEnabled(.appCollapseTabBar, default: false) ? .onScrollDown : .automatic)
         .onOpenURL(prefersInApp: true)
+        .onOpenURL { incomingURL in
+            handleIncomingURL(incomingURL)
+        }
+        .task {
+            if let sharedURL = consumePendingSharedImportURLFromDefaults() {
+                routeToRecipeImport(url: sharedURL)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active,
+                  let sharedURL = consumePendingSharedImportURLFromDefaults() else {
+                return
+            }
+            routeToRecipeImport(url: sharedURL)
+        }
         .tabViewBottomAccessoryCompat(isEnabled: !alarmManager.timers.isEmpty) { bottomAccessory }
         .onChange(of: alarmManager.timers, initial: true) { _, newValue in
             if let first = newValue.first(where: { $0.alarmState == .alerting }) {
@@ -151,6 +172,61 @@ extension AppContent {
         case .dark:
             return .dark
         }
+    }
+
+    private func handleIncomingURL(_ incomingURL: URL) {
+        guard incomingURL.scheme?.lowercased() == "sporkcast",
+              incomingURL.host == "import-recipe" else {
+            return
+        }
+
+        if let components = URLComponents(url: incomingURL, resolvingAgainstBaseURL: false),
+           let sharedURLString = components.queryItems?.first(where: { $0.name == "url" })?.value,
+           let sharedURL = URL(string: sharedURLString),
+           let scheme = sharedURL.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            clearPendingSharedImportURLFromDefaults()
+            routeToRecipeImport(url: sharedURL)
+            return
+        }
+
+        guard let sharedURL = consumePendingSharedImportURLFromDefaults() else { return }
+        routeToRecipeImport(url: sharedURL)
+    }
+
+    private func routeToRecipeImport(url: URL) {
+        let absoluteURL = url.absoluteString
+        if let lastRoutedSharedImport,
+           lastRoutedSharedImport.url == absoluteURL,
+           Date().timeIntervalSince(lastRoutedSharedImport.at) < 5 {
+            return
+        }
+
+        lastRoutedSharedImport = (absoluteURL, Date())
+        appRouter.selectedTab = .recipes
+        pendingSharedImportURL = url
+    }
+
+    private func consumePendingSharedImportURLFromDefaults() -> URL? {
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName),
+              let sharedURLString = defaults.string(forKey: sharedImportURLDefaultsKey) else {
+            return nil
+        }
+
+        defaults.removeObject(forKey: sharedImportURLDefaultsKey)
+
+        guard let sharedURL = URL(string: sharedURLString),
+              let scheme = sharedURL.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            return nil
+        }
+
+        return sharedURL
+    }
+
+    private func clearPendingSharedImportURLFromDefaults() {
+        let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        defaults?.removeObject(forKey: sharedImportURLDefaultsKey)
     }
 }
 

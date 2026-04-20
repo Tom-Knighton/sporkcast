@@ -15,6 +15,8 @@
 		E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E23AC6C02E88A30B00A1CC8E /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E23AC6BF2E88A30B00A1CC8E /* Environment */; };
 		E23E23842F812E0E00B5F431 /* TestPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = E23E23832F812E0E00B5F431 /* TestPlan.xctestplan */; };
+		E241B1002F9B000100A1CC8E /* recipeShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E241B1032F9B000100A1CC8E /* recipeShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E241B2002F9C000100A1CC8E /* recipeShareServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E241B2032F9C000100A1CC8E /* recipeShareServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E254D73A2E7DFF3E00CDE935 /* Environment in Frameworks */ = {isa = PBXBuildFile; productRef = E254D7392E7DFF3E00CDE935 /* Environment */; };
 		E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */ = {isa = PBXBuildFile; productRef = E254D73C2E7E01FF00CDE935 /* RecipesList */; };
 		E2BBA9122E5B2D8600846D3E /* API in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9112E5B2D8600846D3E /* API */; };
@@ -32,6 +34,20 @@
 			remoteGlobalIDString = E23AC6A52E88A16E00A1CC8E;
 			remoteInfo = countdownextensionExtension;
 		};
+		E241B1012F9B000100A1CC8E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E2BBA8F12E59224700846D3E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E241B1102F9B000100A1CC8E;
+			remoteInfo = recipeShareExtension;
+		};
+		E241B2012F9C000100A1CC8E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E2BBA8F12E59224700846D3E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E241B2102F9C000100A1CC8E;
+			remoteInfo = recipeShareServiceExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,6 +58,8 @@
 			dstSubfolderSpec = 13;
 			files = (
 				E23AC6B52E88A16F00A1CC8E /* countdownextensionExtension.appex in Embed Foundation Extensions */,
+				E241B1002F9B000100A1CC8E /* recipeShareExtension.appex in Embed Foundation Extensions */,
+				E241B2002F9C000100A1CC8E /* recipeShareServiceExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -54,6 +72,10 @@
 		E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.countdownextensionExtension.entitlements; sourceTree = "<group>"; };
 		E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = countdownextensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E23E23832F812E0E00B5F431 /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = TestPlan.xctestplan; path = sporkcast/TestPlan.xctestplan; sourceTree = "<group>"; };
+		E241B1022F9B000100A1CC8E /* sporkcast.recipeShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.recipeShareExtension.entitlements; sourceTree = "<group>"; };
+		E241B1032F9B000100A1CC8E /* recipeShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = recipeShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E241B2022F9C000100A1CC8E /* sporkcast.recipeShareServiceExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.recipeShareServiceExtension.entitlements; sourceTree = "<group>"; };
+		E241B2032F9C000100A1CC8E /* recipeShareServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = recipeShareServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
 		E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tomja.xcodeproj; sourceTree = "<group>"; };
@@ -66,6 +88,20 @@
 				Info.plist,
 			);
 			target = E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */;
+		};
+		E241B1042F9B000100A1CC8E /* Exceptions for "recipeShareExtension" folder in "recipeShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E241B1102F9B000100A1CC8E /* recipeShareExtension */;
+		};
+		E241B2042F9C000100A1CC8E /* Exceptions for "recipeShareServiceExtension" folder in "recipeShareServiceExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E241B2102F9C000100A1CC8E /* recipeShareServiceExtension */;
 		};
 		E2BBA90D2E5B2BCF00846D3E /* Exceptions for "Packages" folder in "sporkcast" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -101,6 +137,22 @@
 			path = countdownextension;
 			sourceTree = "<group>";
 		};
+		E241B1052F9B000100A1CC8E /* recipeShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E241B1042F9B000100A1CC8E /* Exceptions for "recipeShareExtension" folder in "recipeShareExtension" target */,
+			);
+			path = recipeShareExtension;
+			sourceTree = "<group>";
+		};
+		E241B2052F9C000100A1CC8E /* recipeShareServiceExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E241B2042F9C000100A1CC8E /* Exceptions for "recipeShareServiceExtension" folder in "recipeShareServiceExtension" target */,
+			);
+			path = recipeShareServiceExtension;
+			sourceTree = "<group>";
+		};
 		E2BBA8FB2E59224700846D3E /* sporkcast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -130,6 +182,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E241B1112F9B000100A1CC8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E241B2112F9C000100A1CC8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E2BBA8F62E59224700846D3E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -156,9 +222,13 @@
 				E23E23832F812E0E00B5F431 /* TestPlan.xctestplan */,
 				E2BBD5F82EF610AF00F7097E /* ci_scripts */,
 				E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */,
+				E241B1022F9B000100A1CC8E /* sporkcast.recipeShareExtension.entitlements */,
+				E241B2022F9C000100A1CC8E /* sporkcast.recipeShareServiceExtension.entitlements */,
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
 				E2BBA90B2E5B2BBB00846D3E /* Packages */,
 				E23AC6A92E88A16E00A1CC8E /* countdownextension */,
+				E241B1052F9B000100A1CC8E /* recipeShareExtension */,
+				E241B2052F9C000100A1CC8E /* recipeShareServiceExtension */,
 				E2BBA9102E5B2D8600846D3E /* Frameworks */,
 				E2BBA8FA2E59224700846D3E /* Products */,
 			);
@@ -169,6 +239,8 @@
 			children = (
 				E2BBA8F92E59224700846D3E /* sporkcast.app */,
 				E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */,
+				E241B1032F9B000100A1CC8E /* recipeShareExtension.appex */,
+				E241B2032F9C000100A1CC8E /* recipeShareServiceExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -223,6 +295,50 @@
 			productReference = E23AC6A62E88A16E00A1CC8E /* countdownextensionExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		E241B1102F9B000100A1CC8E /* recipeShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E241B1222F9B000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareExtension" */;
+			buildPhases = (
+				E241B1132F9B000100A1CC8E /* Sources */,
+				E241B1112F9B000100A1CC8E /* Frameworks */,
+				E241B1122F9B000100A1CC8E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E241B1052F9B000100A1CC8E /* recipeShareExtension */,
+			);
+			name = recipeShareExtension;
+			packageProductDependencies = (
+			);
+			productName = recipeShareExtension;
+			productReference = E241B1032F9B000100A1CC8E /* recipeShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		E241B2102F9C000100A1CC8E /* recipeShareServiceExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E241B2222F9C000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareServiceExtension" */;
+			buildPhases = (
+				E241B2132F9C000100A1CC8E /* Sources */,
+				E241B2112F9C000100A1CC8E /* Frameworks */,
+				E241B2122F9C000100A1CC8E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E241B2052F9C000100A1CC8E /* recipeShareServiceExtension */,
+			);
+			name = recipeShareServiceExtension;
+			packageProductDependencies = (
+			);
+			productName = recipeShareServiceExtension;
+			productReference = E241B2032F9C000100A1CC8E /* recipeShareServiceExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		E2BBA8F82E59224700846D3E /* sporkcast */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E2BBA9042E59224900846D3E /* Build configuration list for PBXNativeTarget "sporkcast" */;
@@ -236,6 +352,8 @@
 			);
 			dependencies = (
 				E23AC6B42E88A16F00A1CC8E /* PBXTargetDependency */,
+				E241B1142F9B000100A1CC8E /* PBXTargetDependency */,
+				E241B2142F9C000100A1CC8E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
@@ -271,6 +389,12 @@
 					E23AC6A52E88A16E00A1CC8E = {
 						CreatedOnToolsVersion = 26.0;
 					};
+					E241B1102F9B000100A1CC8E = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					E241B2102F9C000100A1CC8E = {
+						CreatedOnToolsVersion = 26.0;
+					};
 					E2BBA8F82E59224700846D3E = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -298,12 +422,28 @@
 			targets = (
 				E2BBA8F82E59224700846D3E /* sporkcast */,
 				E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */,
+				E241B1102F9B000100A1CC8E /* recipeShareExtension */,
+				E241B2102F9C000100A1CC8E /* recipeShareServiceExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		E23AC6A42E88A16E00A1CC8E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E241B1122F9B000100A1CC8E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E241B2122F9C000100A1CC8E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -328,6 +468,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E241B1132F9B000100A1CC8E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E241B2132F9C000100A1CC8E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E2BBA8F52E59224700846D3E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -342,6 +496,16 @@
 			isa = PBXTargetDependency;
 			target = E23AC6A52E88A16E00A1CC8E /* countdownextensionExtension */;
 			targetProxy = E23AC6B32E88A16F00A1CC8E /* PBXContainerItemProxy */;
+		};
+		E241B1142F9B000100A1CC8E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E241B1102F9B000100A1CC8E /* recipeShareExtension */;
+			targetProxy = E241B1012F9B000100A1CC8E /* PBXContainerItemProxy */;
+		};
+		E241B2142F9C000100A1CC8E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E241B2102F9C000100A1CC8E /* recipeShareServiceExtension */;
+			targetProxy = E241B2012F9C000100A1CC8E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -429,6 +593,164 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		E241B1202F9B000100A1CC8E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = sporkcast.recipeShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = recipeShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Add Recipe to Sporkcast";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E241B1212F9B000100A1CC8E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = sporkcast.recipeShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = recipeShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Add Recipe to Sporkcast";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		E241B2202F9C000100A1CC8E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = sporkcast.recipeShareServiceExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = recipeShareServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Share to Sporkast";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E241B2212F9C000100A1CC8E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = sporkcast.recipeShareServiceExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 8H3J46CN24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = recipeShareServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Share to Sporkast";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -653,6 +975,24 @@
 			buildConfigurations = (
 				E23AC6B72E88A16F00A1CC8E /* Debug */,
 				E23AC6B82E88A16F00A1CC8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E241B1222F9B000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E241B1202F9B000100A1CC8E /* Debug */,
+				E241B1212F9B000100A1CC8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E241B2222F9C000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareServiceExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E241B2202F9C000100A1CC8E /* Debug */,
+				E241B2212F9C000100A1CC8E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
