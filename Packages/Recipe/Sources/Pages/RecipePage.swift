@@ -14,12 +14,109 @@ import SQLiteData
 import Environment
 import NukeUI
 import Persistence
+import RecipeImporting
 
 private struct RecipePageAIGenerationTaskID: Equatable {
     let scenePhase: ScenePhase
     let segment: Int
     let recipeID: UUID
     let summary: String?
+}
+
+private struct ReimportAlertContent: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
+private enum RecipeReimportPlan {
+    case webURL(URL)
+    case unavailable(reason: String)
+}
+
+private struct RecipeReimportStatusSheet: View {
+    let statusTitle: String
+    let statusSubtitle: String
+    let failureMessage: String?
+    let onRetry: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            if let failureMessage {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 38, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+
+                Text("This recipe didn't re-import")
+                    .font(.title3.weight(.semibold))
+                    .multilineTextAlignment(.center)
+
+                Text(failureMessage)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 12) {
+                    Button("Try Again", systemImage: "arrow.clockwise", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+
+                    Button("Dismiss", role: .cancel, action: onDismiss)
+                        .buttonStyle(.bordered)
+                }
+                .padding(.top, 8)
+            } else {
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.14))
+                            .frame(width: 54, height: 54)
+
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(.blue)
+                    }
+                    .accessibilityHidden(true)
+
+                    ProgressView()
+                        .controlSize(.large)
+                        .accessibilityLabel("Recipe re-import in progress")
+
+                    Text(statusTitle)
+                        .font(.title3.weight(.semibold))
+                        .multilineTextAlignment(.center)
+
+                    Text(statusSubtitle)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.12),
+                            Color.cyan.opacity(0.07),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .ignoresSafeArea()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
+    }
 }
 
 public struct RecipePage: View {
@@ -40,6 +137,13 @@ public struct RecipePage: View {
     @State private var inlinePickerVisible = true
     @State private var showingIngredientScaleControls = false
     @State private var showingIngredientUnitControls = false
+    @State private var showReimportConfirmation = false
+    @State private var isReimporting = false
+    @State private var reimportAlert: ReimportAlertContent?
+    @State private var showReimportStatusSheet = false
+    @State private var reimportFailureMessage: String?
+    @State private var reimportSuccessFeedbackToken: Int = 0
+    @State private var reimportFailureFeedbackToken: Int = 0
     private let mealplanEntryId: UUID?
     
     
@@ -295,8 +399,27 @@ public struct RecipePage: View {
                             Label("Clear Ingredient Status", systemImage: "cart.badge.minus.fill")
                         }
                     }
+                    Divider()
+                    Button(role: .destructive, action: presentReimportConfirmationDialog) {
+                        Label(isReimporting ? "Re-importing Recipe..." : "Re-import Recipe", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isReimporting)
                 } label: {
                     Image(systemName: "ellipsis")
+                }
+                .confirmationDialog(
+                    "Re-import this recipe?",
+                    isPresented: $showReimportConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Re-import", role: .destructive) {
+                        Task {
+                            await performRecipeReimport()
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This will overwrite your edits with a fresh import from the original source.")
                 }
             }
         }
@@ -359,8 +482,33 @@ public struct RecipePage: View {
             await loadMealplanIngredientCompletionState()
         }
         .sensoryFeedback(.success, trigger: viewModel.recipe.summarisedTip)
+        .sensoryFeedback(.success, trigger: reimportSuccessFeedbackToken)
+        .sensoryFeedback(.error, trigger: reimportFailureFeedbackToken)
+        .alert(item: $reimportAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
         .sheet(isPresented: $showingAddToShoppingSheet) {
             RecipeToShoppingListFlowView(recipe: viewModel.recipe)
+        }
+        .sheet(isPresented: $showReimportStatusSheet, onDismiss: dismissReimportStatusSheet) {
+            RecipeReimportStatusSheet(
+                statusTitle: "Re-importing your recipe",
+                statusSubtitle: "Fetching the original source and replacing your edits.",
+                failureMessage: reimportFailureMessage
+            ) {
+                Task {
+                    await performRecipeReimport()
+                }
+            } onDismiss: {
+                dismissReimportStatusSheet()
+            }
+            .interactiveDismissDisabled(reimportFailureMessage == nil)
+            .presentationDetents(reimportFailureMessage == nil ? [.height(250)] : [.height(340)])
+            .presentationDragIndicator(reimportFailureMessage == nil ? .hidden : .visible)
         }
     }
     
@@ -486,7 +634,92 @@ extension RecipePage {
             showingIngredientScaleControls = false
         }
     }
-    
+
+    @MainActor
+    private func presentReimportConfirmationDialog() {
+        switch reimportPlan {
+        case .webURL:
+            showReimportConfirmation = true
+        case .unavailable(let reason):
+            reimportFailureFeedbackToken += 1
+            presentReimportAlert(
+                title: "Re-import Unavailable",
+                message: reason
+            )
+        }
+    }
+
+    @MainActor
+    private func performRecipeReimport() async {
+        guard !isReimporting else { return }
+        guard case .webURL(let sourceURL) = reimportPlan else { return }
+
+        reimportFailureMessage = nil
+        showReimportStatusSheet = true
+        isReimporting = true
+        defer { isReimporting = false }
+
+        do {
+            let coordinator = RecipeImportCoordinator(client: client)
+            let importResult = try await coordinator.prepareImport(
+                from: .webURL(sourceURL),
+                homeId: viewModel.recipe.homeId
+            )
+
+            guard let selected = selectReimportCandidate(
+                from: importResult.candidates,
+                matching: viewModel.recipe
+            ) else {
+                throw RecipeImportError.noRecipesDetected
+            }
+
+            let repository = RecipesRepository()
+            try await repository.replaceImportedRecipe(
+                existingRecipeId: viewModel.recipe.id,
+                with: selected.recipe
+            )
+            showReimportStatusSheet = false
+            reimportSuccessFeedbackToken += 1
+        } catch {
+            reimportFailureFeedbackToken += 1
+            reimportFailureMessage = mapReimportError(error, sourceURL: sourceURL)
+            print(error)
+        }
+    }
+
+    private func selectReimportCandidate(
+        from candidates: [RecipeImportCandidate],
+        matching existingRecipe: Recipe
+    ) -> RecipeImportCandidate? {
+        guard !candidates.isEmpty else { return nil }
+
+        return candidates.max { lhs, rhs in
+            let lhsSimilarity = lhs.recipe.duplicateSimilarity(with: existingRecipe).score
+            let rhsSimilarity = rhs.recipe.duplicateSimilarity(with: existingRecipe).score
+            if abs(lhsSimilarity - rhsSimilarity) > 0.0001 {
+                return lhsSimilarity < rhsSimilarity
+            }
+
+            if abs(lhs.quality.score - rhs.quality.score) > 0.0001 {
+                return lhs.quality.score < rhs.quality.score
+            }
+
+            let lhsIngredientCount = lhs.recipe.ingredientSections.flatMap(\.ingredients).count
+            let rhsIngredientCount = rhs.recipe.ingredientSections.flatMap(\.ingredients).count
+            return lhsIngredientCount < rhsIngredientCount
+        }
+    }
+
+    private func presentReimportAlert(title: String, message: String) {
+        reimportAlert = ReimportAlertContent(title: title, message: message)
+    }
+
+    @MainActor
+    private func dismissReimportStatusSheet() {
+        showReimportStatusSheet = false
+        reimportFailureMessage = nil
+    }
+
     func generateCommentsLabel() {
         Task {
             let renderer = ImageRenderer(
@@ -679,6 +912,87 @@ extension RecipePage {
     
     private var ingredientUnitLabel: String {
         viewModel.recipe.ingredientUnitSystem.displayName
+    }
+
+    private var reimportPlan: RecipeReimportPlan {
+        let source = viewModel.recipe.sourceUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !source.isEmpty else {
+            return .unavailable(reason: "This recipe does not have a reusable source recorded.")
+        }
+
+        if SyntheticSourceURL.isExternalWebURL(source), let sourceURL = URL(string: source) {
+            return .webURL(sourceURL)
+        }
+
+        guard let synthetic = SyntheticSourceURL.parse(source) else {
+            return .unavailable(reason: "This recipe source cannot be replayed automatically.")
+        }
+
+        switch synthetic.mode {
+        case .web:
+            return .unavailable(reason: "This recipe was imported from the web, but the original URL is no longer available.")
+        case .markdown:
+            return .unavailable(reason: "This recipe was imported from pasted markdown text. Paste the original text again to re-import.")
+        case .webSelection:
+            return .unavailable(reason: "This recipe was imported from copied website text. Re-import from that source page or paste the selection again.")
+        case .ocr:
+            return .unavailable(reason: "This recipe was imported from photo text recognition. Re-import by scanning or pasting the recipe text again.")
+        case .file, .archive:
+            return .unavailable(reason: unavailableFileReimportMessage(for: synthetic.vendor))
+        }
+    }
+
+    private func unavailableFileReimportMessage(for vendor: RecipeImportVendor) -> String {
+        switch vendor {
+        case .pestle:
+            return "This recipe came from a Pestle export file. Automatic re-import is not possible without that file, and some video-based Pestle recipes do not expose a stable source URL."
+        case .sporkcast:
+            return "This recipe came from a Sporkast export file. Re-import it by selecting that export file again."
+        case .crouton:
+            return "This recipe came from a Crouton export file. Re-import it by selecting that export file again."
+        case .paprika:
+            return "This recipe came from a Paprika export file. Re-import it by selecting that export file again."
+        case .markdown, .web, .unknown:
+            return "This recipe came from an imported file or archive that cannot be replayed automatically. Re-import from the original file."
+        }
+    }
+
+    private func mapReimportError(_ error: Error, sourceURL: URL) -> String {
+        if isLikelyVideoSourceURL(sourceURL) {
+            return "This looks like a video source link, which can fail to parse for re-import. Try re-importing from the original app export file (for example, a Pestle export)."
+        }
+
+        if error is DecodingError {
+            return "The source returned recipe data in an unexpected format. Please try re-importing later."
+        }
+
+        if let importError = error as? RecipeImportError,
+           let message = importError.errorDescription {
+            return message
+        }
+
+        let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "We couldn't re-import this recipe right now. Please try again."
+        }
+
+        return description
+    }
+
+    private func isLikelyVideoSourceURL(_ sourceURL: URL) -> Bool {
+        guard let host = sourceURL.host?.lowercased() else { return false }
+
+        let videoHosts = [
+            "youtube.com",
+            "youtu.be",
+            "tiktok.com",
+            "instagram.com",
+            "facebook.com",
+            "fb.watch",
+            "vimeo.com"
+        ]
+
+        return videoHosts.contains { host == $0 || host.hasSuffix(".\($0)") }
     }
     
     private var recipeChatEnabled: Bool {
