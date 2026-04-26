@@ -264,7 +264,11 @@ public struct RecipePage: View {
             }
             ToolbarItem {
                 Menu {
-                    Button(action: { router.presentSheet(.recipeEdit(recipe: viewModel.recipe))}) {
+                    Button(action: {
+                        Task {
+                            await presentEditRecipeSheet()
+                        }
+                    }) {
                         Label("Edit Recipe", systemImage: "pencil")
                     }
                     Button(action: { showingAddToShoppingSheet = true }) {
@@ -649,6 +653,18 @@ public extension ImageRenderer {
 
 
 extension RecipePage {
+    @MainActor
+    private func presentEditRecipeSheet() async {
+        let fallbackRecipe = viewModel.recipe
+        let recipeId = fallbackRecipe.id
+
+        let fullRecipe = try? await db.read { db in
+            try DBRecipe.full.find(recipeId).fetchOne(db)?.toDomainModel()
+        }
+
+        router.presentSheet(.recipeEdit(recipe: fullRecipe ?? fallbackRecipe))
+    }
+
     private var recipeHasScaledIngredients: Bool {
         abs(viewModel.recipe.ingredientScale - 1.0) > 0.0001
     }
