@@ -32,6 +32,23 @@ import Models
     #expect(synthetic.hasPrefix("sporkcast://import/"))
     #expect(SyntheticSourceURL.isExternalWebURL(synthetic) == false)
     #expect(SyntheticSourceURL.isExternalWebURL("https://example.com") == true)
+    let descriptor = SyntheticSourceURL.parse(synthetic)
+    #expect(descriptor?.mode == .markdown)
+    #expect(descriptor?.vendor == .markdown)
+    #expect(descriptor?.key.isEmpty == false)
+}
+
+@Test func syntheticSourceURLParsesModeAndVendor() {
+    let descriptor = SyntheticSourceURL.parse("sporkcast://import/archive/pestle/abc123")
+    #expect(descriptor?.mode == .archive)
+    #expect(descriptor?.vendor == .pestle)
+    #expect(descriptor?.key == "abc123")
+}
+
+@Test func invalidSyntheticSourceURLDoesNotParse() {
+    #expect(SyntheticSourceURL.parse("https://example.com") == nil)
+    #expect(SyntheticSourceURL.parse("sporkcast://import") == nil)
+    #expect(SyntheticSourceURL.parse("sporkcast://import/web/invalid-vendor/key") == nil)
 }
 
 @Test func duplicateDetectionFindsStrongMatch() async {
