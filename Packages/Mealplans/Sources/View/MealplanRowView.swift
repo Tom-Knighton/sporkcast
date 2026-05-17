@@ -163,22 +163,23 @@ public struct MealplanRowView: View {
         if let recipe = entry.recipe {
             let cached = recipeImages[recipe.id]
             
-            RecipeCardView(
-                recipe: recipe,
-                enablePreview: false,
-                preloadedImage: cached,
-                onImageLoaded: { img in
-                    recipeImages[recipe.id] = img
+            SwipeView {
+                RecipeCardView(
+                    recipe: recipe,
+                    enablePreview: false,
+                    preloadedImage: cached,
+                    onImageLoaded: { img in
+                        recipeImages[recipe.id] = img
+                    }
+                )
+                .padding(4)
+                .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
+                .containerShape(.rect(cornerRadius: 10))
+                .transition(.opacity)
+                .draggable(entry) {
+                    mealPreview(for: entry)
+                        .onAppear { draggingId = entry.id }
                 }
-            )
-            .padding(4)
-            .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
-            .containerShape(.rect(cornerRadius: 10))
-            .transition(.opacity)
-            .draggable(entry) {
-                mealPreview(for: entry)
-                    .onAppear { draggingId = entry.id }
-            }
                 .contextMenu {
                     Button {
                         draggingId = nil
@@ -186,39 +187,61 @@ public struct MealplanRowView: View {
                     } label: {
                         Text("Open Recipe")
                     }
-                Divider()
-                Button(role: .destructive) { Task { try? await removeEntry(id: entry.id) } }  label: {
-                    Label("Remove meal", systemImage: "trash")
-                }
-            } preview: {
-                mealPreview(for: entry)
-            }
-            .onTapGesture {
-                self.draggingId = nil
-                self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
-            }
-        } else if let note = entry.note {
-            NoteView(text: note)
-                .draggable(entry) {
-                    NoteView(text: note)
-                        .onAppear {
-                            self.draggingId = entry.id
-                        }
-                }
-                .transition(.opacity)
-                .padding(4)
-                .containerShape(.rect(cornerRadius: 10))
-                .contextMenu {
-                    Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
-                        Label("Edit", systemImage: "pencil")
-                    }
                     Divider()
-                    Button(role: .destructive, action: {
-                        Task { try? await removeEntry(id: entry.id) }
-                    }) {
-                        Label("Remove note", systemImage: "trash")
+                    Button(role: .destructive) { Task { try? await removeEntry(id: entry.id) } }  label: {
+                        Label("Remove meal", systemImage: "trash")
                     }
+                } preview: {
+                    mealPreview(for: entry)
                 }
+                .onTapGesture {
+                    self.draggingId = nil
+                    self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
+                }
+            } trailingActions: { _ in
+                SwipeAction {
+                    Task { try? await removeEntry(id: entry.id) }
+                } label: { _ in
+                    Label("Delete", systemImage: "trash")
+                } background: { _ in
+                    Color.red
+                }
+                .allowSwipeToTrigger()
+            }
+
+        } else if let note = entry.note {
+            SwipeView {
+                NoteView(text: note)
+                    .draggable(entry) {
+                        NoteView(text: note)
+                            .onAppear {
+                                self.draggingId = entry.id
+                            }
+                    }
+                    .transition(.opacity)
+                    .padding(4)
+                    .containerShape(.rect(cornerRadius: 10))
+                    .contextMenu {
+                        Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Divider()
+                        Button(role: .destructive, action: {
+                            Task { try? await removeEntry(id: entry.id) }
+                        }) {
+                            Label("Remove note", systemImage: "trash")
+                        }
+                    }
+            } trailingActions: { _ in
+                SwipeAction {
+                    Task { try? await removeEntry(id: entry.id) }
+                } label: { _ in
+                    Label("Delete", systemImage: "trash")
+                } background: { _ in
+                    Color.red
+                }
+                .allowSwipeToTrigger()
+            } 
         }
     }
     
