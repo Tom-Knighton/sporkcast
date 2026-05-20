@@ -37,6 +37,9 @@ public final class RecipesRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
+    @Dependency(\.defaultSyncEngine) private var syncEngine
+
+    @ObservationIgnored
     @FetchAll(DBRecipe.list) private var dbRecipes: [ListDBRecipe]
 
     public var recipes: [Recipe] {
@@ -81,27 +84,43 @@ public final class RecipesRepository {
     public func saveImportedRecipes(_ recipes: [Recipe]) async throws {
         guard !recipes.isEmpty else { return }
 
+        var entityBatch: [ImportedRecipeEntities] = []
+        entityBatch.reserveCapacity(recipes.count)
+
         var startIndex = 0
         while startIndex < recipes.count {
             let endIndex = min(startIndex + Self.importWriteBatchSize, recipes.count)
-
-            var entityBatch: [ImportedRecipeEntities] = []
-            entityBatch.reserveCapacity(endIndex - startIndex)
 
             for recipe in recipes[startIndex..<endIndex] {
                 let entities = await Recipe.entites(from: recipe)
                 entityBatch.append(entities)
             }
 
-            try await saveImportedRecipes(entityBatch)
             startIndex = endIndex
         }
 
+        try await saveImportedRecipes(entityBatch)
         scheduleImportedImageHydration(for: recipes)
     }
 
     public func saveImportedRecipes(_ entityBatch: [ImportedRecipeEntities]) async throws {
         guard !entityBatch.isEmpty else { return }
+
+        let shouldPauseSync = entityBatch.count > 1
+        if shouldPauseSync {
+            syncEngine.stop()
+        }
+        defer {
+            if shouldPauseSync {
+                Task {
+                    do {
+                        try await syncEngine.start()
+                    } catch {
+                        print("Error restarting sync after recipe import: \(error)")
+                    }
+                }
+            }
+        }
 
         var startIndex = 0
         while startIndex < entityBatch.count {

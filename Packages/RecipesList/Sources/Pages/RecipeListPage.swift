@@ -20,15 +20,19 @@ public struct RecipeListPage: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.networkClient) private var client
     @Environment(\.appSettings) private var appSettings
+    @Environment(\.flagKit) private var flagKit
 
     @Binding private var pendingSharedImportURL: URL?
+    private let initialFolderID: UUID?
     @State private var importState = RecipeListImportState()
     @State private var importSuccessFeedbackToken: Int = 0
     @State private var importFailureFeedbackToken: Int = 0
     @State private var repository = RecipesRepository()
+    @State private var organizationRepository = RecipeOrganizationRepository()
     @State private var showDeleteConfirmId: UUID?
     @State private var searchText: String = ""
     @State private var isFilterSheetPresented = false
+    @State private var organizationRecipe: Recipe?
     @State private var filters = RecipeFilters()
 
     private var searchTokens: [String] {
@@ -48,8 +52,22 @@ public struct RecipeListPage: View {
         return sortedRecipes(filtered)
     }
 
-    public init(pendingSharedImportURL: Binding<URL?> = .constant(nil)) {
+    private var navigationTitle: String {
+        guard hasRecipeOrganizationProAccess,
+              let folderName = organizationRepository.folder(id: filters.selectedFolderID)?.name else {
+            return "Recipes"
+        }
+
+        return folderName
+    }
+
+    public init(
+        pendingSharedImportURL: Binding<URL?> = .constant(nil),
+        initialFolderID: UUID? = nil
+    ) {
         self._pendingSharedImportURL = pendingSharedImportURL
+        self.initialFolderID = initialFolderID
+        self._filters = State(initialValue: RecipeFilters(selectedFolderID: initialFolderID))
     }
 
     public var body: some View {
@@ -68,10 +86,14 @@ public struct RecipeListPage: View {
                         await deleteRecipe(id: id)
                     }
                 },
+                canOrganize: hasRecipeOrganizationProAccess,
+                onOrganize: { recipe in
+                    organizationRecipe = recipe
+                },
                 showDeleteConfirmId: $showDeleteConfirmId
             )
         }
-        .navigationTitle("Recipes")
+        .navigationTitle(navigationTitle)
         .toolbar { toolbarContent }
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search recipes, ingredients..."))
         .sheet(isPresented: $importState.isAddRecipeSheetPresented) {
@@ -176,10 +198,28 @@ public struct RecipeListPage: View {
         .sensoryFeedback(.success, trigger: importSuccessFeedbackToken)
         .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
         .sheet(isPresented: $isFilterSheetPresented) {
-            RecipeFiltersSheet(filters: $filters)
+            RecipeFiltersSheet(
+                filters: $filters,
+                folderSummaries: organizationRepository.folderSummaries(homeId: homes.home?.id),
+                tagSummaries: organizationRepository.tagSummaries(homeId: homes.home?.id),
+                isRecipeOrganizationEnabled: hasRecipeOrganizationProAccess
+            )
+        }
+        .sheet(item: $organizationRecipe) { recipe in
+            RecipeOrganizationAssignmentSheet(
+                recipe: recipe,
+                repository: organizationRepository,
+                homeId: homes.home?.id
+            )
         }
         .task(id: pendingSharedImportURL) {
             importPendingSharedURLIfNeeded()
+        }
+        .onChange(of: hasRecipeOrganizationProAccess) { _, isEnabled in
+            guard !isEnabled else { return }
+            filters.selectedFolderID = nil
+            filters.selectedTagIDs = []
+            organizationRecipe = nil
         }
     }
 }
@@ -201,6 +241,19 @@ private extension RecipeListPage {
         ToolbarItem {
             Button(action: presentFilters) {
                 Image(systemName: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+            }
+        }
+
+        if hasRecipeOrganizationProAccess {
+            ToolbarItem {
+                NavigationLink {
+                    RecipeOrganizationManagePage(
+                        repository: organizationRepository,
+                        homeId: homes.home?.id
+                    )
+                } label: {
+                    Label("Folders & Tags", systemImage: "folder.badge.gearshape")
+                }
             }
         }
     }
@@ -269,7 +322,29 @@ private extension RecipeListPage {
             guard let time = recipe.filterTimeMinutes, time <= Double(filters.maximumTimeMinutes) else { return false }
         }
 
+        if hasRecipeOrganizationProAccess {
+            if let selectedFolderID = filters.selectedFolderID, !recipe.folders.contains(where: { $0.id == selectedFolderID }) {
+                let descendantIDs = organizationRepository.descendantFolderIDs(for: selectedFolderID, homeId: homes.home?.id)
+                guard recipe.folders.contains(where: { $0.id == selectedFolderID || descendantIDs.contains($0.id) }) else {
+                    return false
+                }
+            }
+
+            if !filters.selectedTagIDs.isEmpty {
+                let recipeTagIDs = Set(recipe.tags.map(\.id))
+                guard filters.selectedTagIDs.isSubset(of: recipeTagIDs) else { return false }
+            }
+        }
+
         return true
+    }
+
+    var hasRecipeOrganizationProAccess: Bool {
+        #if DEBUG
+        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        #else
+        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        #endif
     }
 
     func sortedRecipes(_ recipes: [Recipe]) -> [Recipe] {

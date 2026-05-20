@@ -211,6 +211,112 @@ public struct DBRecipeRating: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+@Table("RecipeFolders")
+public struct DBRecipeFolder: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let homeId: UUID?
+    public var name: String
+    public var symbolName: String
+    public var colorHex: String
+    public var sortIndex: Int
+    public var createdAt: Date
+    public var modifiedAt: Date
+
+    public init(
+        id: UUID,
+        homeId: UUID?,
+        name: String,
+        symbolName: String,
+        colorHex: String,
+        sortIndex: Int,
+        createdAt: Date,
+        modifiedAt: Date
+    ) {
+        self.id = id
+        self.homeId = homeId
+        self.name = name
+        self.symbolName = symbolName
+        self.colorHex = colorHex
+        self.sortIndex = sortIndex
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+    }
+}
+
+@Table("RecipeFolderHierarchy")
+public struct DBRecipeFolderHierarchy: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let parentFolderId: UUID
+    public let childFolderId: UUID
+
+    public init(id: UUID, parentFolderId: UUID, childFolderId: UUID) {
+        self.id = id
+        self.parentFolderId = parentFolderId
+        self.childFolderId = childFolderId
+    }
+}
+
+@Table("RecipeTags")
+public struct DBRecipeTag: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let homeId: UUID?
+    public var name: String
+    public var colorHex: String
+    public var createdAt: Date
+    public var modifiedAt: Date
+
+    public init(
+        id: UUID,
+        homeId: UUID?,
+        name: String,
+        colorHex: String,
+        createdAt: Date,
+        modifiedAt: Date
+    ) {
+        self.id = id
+        self.homeId = homeId
+        self.name = name
+        self.colorHex = colorHex
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+    }
+}
+
+@Table("RecipeFolderAssignments")
+public struct DBRecipeFolderAssignment: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let recipeId: UUID
+    public let folderId: UUID
+    public let assignedAt: Date
+
+    public init(id: UUID, recipeId: UUID, folderId: UUID, assignedAt: Date) {
+        self.id = id
+        self.recipeId = recipeId
+        self.folderId = folderId
+        self.assignedAt = assignedAt
+    }
+}
+
+@Table("RecipeTagAssignments")
+public struct DBRecipeTagAssignment: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let recipeId: UUID
+    public let tagId: UUID
+    public let assignedAt: Date
+
+    public init(id: UUID, recipeId: UUID, tagId: UUID, assignedAt: Date) {
+        self.id = id
+        self.recipeId = recipeId
+        self.tagId = tagId
+        self.assignedAt = assignedAt
+    }
+}
+
 @Table("Homes")
 public struct DBHome: Codable, Identifiable, Sendable, Equatable {
     @Column(primaryKey: true)
@@ -553,6 +659,50 @@ public struct SchemaV1 {
                 e.column("reminderIdentifier", .text).notNull().indexed()
                 e.column("reminderExternalIdentifier", .text).indexed()
                 e.column("lastSyncedAt", .date).notNull()
+            }
+        }
+
+        migrator.registerMigration("Create Recipe Organization Tables") { db in
+            try db.create(table: "RecipeFolders") { e in
+                e.primaryKey("id", .text)
+                e.column("homeId", .text).references("Homes", onDelete: .cascade).indexed()
+                e.column("name", .text).notNull()
+                e.column("symbolName", .text).notNull().defaults(to: "folder")
+                e.column("colorHex", .text).notNull().defaults(to: "#F59E0B")
+                e.column("sortIndex", .integer).notNull().defaults(to: 0)
+                e.column("createdAt", .date).notNull()
+                e.column("modifiedAt", .date).notNull()
+            }
+
+            try db.create(table: "RecipeTags") { e in
+                e.primaryKey("id", .text)
+                e.column("homeId", .text).references("Homes", onDelete: .cascade).indexed()
+                e.column("name", .text).notNull()
+                e.column("colorHex", .text).notNull().defaults(to: "#2563EB")
+                e.column("createdAt", .date).notNull()
+                e.column("modifiedAt", .date).notNull()
+            }
+
+            try db.create(table: "RecipeFolderAssignments") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeId", .text).notNull().references("Recipes", onDelete: .cascade).indexed()
+                e.column("folderId", .text).notNull().references("RecipeFolders", onDelete: .cascade).indexed()
+                e.column("assignedAt", .date).notNull()
+            }
+
+            try db.create(table: "RecipeTagAssignments") { e in
+                e.primaryKey("id", .text)
+                e.column("recipeId", .text).notNull().references("Recipes", onDelete: .cascade).indexed()
+                e.column("tagId", .text).notNull().references("RecipeTags", onDelete: .cascade).indexed()
+                e.column("assignedAt", .date).notNull()
+            }
+        }
+
+        migrator.registerMigration("Create Recipe Folder Hierarchy") { db in
+            try db.create(table: "RecipeFolderHierarchy") { e in
+                e.primaryKey("id", .text)
+                e.column("parentFolderId", .text).notNull().references("RecipeFolders", onDelete: .cascade).indexed()
+                e.column("childFolderId", .text).notNull().references("RecipeFolders", onDelete: .cascade).indexed()
             }
         }
     }

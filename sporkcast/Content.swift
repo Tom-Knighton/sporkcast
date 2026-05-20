@@ -32,6 +32,7 @@ struct AppContent: View {
     @State private var households = HouseholdService.shared
     @State private var shoppingMutations = ShoppingListMutationRepository()
     @State private var flagKit: FlagService
+    @State private var proAccess = ProAccessService.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
@@ -41,6 +42,7 @@ struct AppContent: View {
     @State private var cloudKitGate = CloudKitGate()
     @State private var pendingSharedImportURL: URL?
     @State private var lastRoutedSharedImport: (url: String, at: Date)?
+    @State private var didSeedRecipesStack = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
     
@@ -52,8 +54,23 @@ struct AppContent: View {
     var body: some View {
         TabScaffold(selection: $appRouter.selectedTab) {
             NavigationStack(path: $appRouter[.recipes]) {
-                WithNavigationDestinations(namespace: appRouterNamespace) {
-                    RecipeListPage(pendingSharedImportURL: $pendingSharedImportURL)
+                WithNavigationDestinations(
+                    namespace: appRouterNamespace,
+                    pendingSharedImportURL: $pendingSharedImportURL
+                ) {
+                    if hasRecipeOrganizationFeatureAccess {
+                        RecipeFoldersPage()
+                            .task {
+                                guard !didSeedRecipesStack else { return }
+                                didSeedRecipesStack = true
+                                appRouter.navigateTo(.recipes())
+                            }
+                    } else {
+                        RecipeListPage(pendingSharedImportURL: $pendingSharedImportURL)
+                            .onAppear {
+                                didSeedRecipesStack = false
+                            }
+                    }
                 }
             }
         } mealplans: {
@@ -88,6 +105,7 @@ struct AppContent: View {
         .environment(\.cloudKit, cloudKitGate)
         .environment(\.shoppingListMutations, shoppingMutations)
         .environment(\.flagKit, flagKit)
+        .environment(\.proAccess, proAccess)
         .tabBarMinimizeBehavior(flagKit.isEnabled(.appCollapseTabBar, default: false) ? .onScrollDown : .automatic)
         .onOpenURL(prefersInApp: true)
         .onOpenURL { incomingURL in
@@ -140,12 +158,18 @@ struct AppContent: View {
             await households.syncEntities()
         }
         .task {
+            proAccess.configure()
+            await proAccess.refresh()
             flagKit.start()
+            flagKit.updateSubscriptionTier(proAccess.subscriptionTier)
             await shoppingListRemindersSync.start()
             let syncSnapshot = await shoppingListRemindersSync.snapshot()
             if syncSnapshot.isEnabled {
                 await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
             }
+        }
+        .onChange(of: proAccess.subscriptionTier, initial: true) { _, tier in
+            flagKit.updateSubscriptionTier(tier)
         }
     }
     
@@ -159,6 +183,14 @@ struct AppContent: View {
         } else {
             EmptyView()
         }
+    }
+
+    private var hasRecipeOrganizationFeatureAccess: Bool {
+        #if DEBUG
+        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        #else
+        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        #endif
     }
 }
 

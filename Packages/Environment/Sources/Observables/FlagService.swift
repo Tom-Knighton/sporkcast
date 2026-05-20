@@ -27,19 +27,22 @@ public enum FeatureFlag: String, Sendable {
     case recipeChatEnabled = "recipe_chat_enabled"
     case recipeChatSeperateTab = "recipe_chat_seperate_tab"
     case appCollapseTabBar = "app-collapse-tab-bar"
+    case recipeOrganizationPro = "recipe-organization-pro"
 }
 
 public protocol FlagServiceProtocol: Sendable {
     func start()
+    func updateSubscriptionTier(_ subscriptionTier: String)
     func isEnabled(_ flag: FeatureFlag, default defaultValue: Bool) -> Bool
 }
 
 @Observable
 public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
     public private(set) var hasStarted = false
+    public private(set) var contextVersion = 0
     
     private let mobileKey: String
-    private let context: AppFlagContext
+    private var context: AppFlagContext
     
     public init(
         mobileKey: String,
@@ -62,14 +65,8 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
             autoEnvAttributes: .enabled
         )
         config.diagnosticOptOut = true
-        let installId = InstallationId.get()
         
-        var builder = LDContextBuilder(key: installId)
-        builder.anonymous(false)
-        builder.trySetValue("appVersion", .init(stringLiteral: context.appVersion))
-        builder.trySetValue("subscriptionTier", .init(stringLiteral: context.subscriptionTier))
-        
-        guard case .success(let ldContext) = builder.build() else {
+        guard let ldContext = makeLaunchDarklyContext() else {
             assertionFailure("Failed to build LaunchDarkly context")
             return
         }
@@ -89,6 +86,32 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
                 print("LaunchDarkly initialized successfully.")
             }
 #endif
+            self.contextVersion += 1
+        }
+    }
+
+    public func updateSubscriptionTier(_ subscriptionTier: String) {
+        context = AppFlagContext(
+            appVersion: context.appVersion,
+            subscriptionTier: subscriptionTier
+        )
+
+        guard hasStarted,
+              let client = LDClient.get(),
+              let ldContext = makeLaunchDarklyContext() else {
+            return
+        }
+
+        client.identify(context: ldContext) { result in
+            Task { @MainActor in
+                self.contextVersion += 1
+            }
+
+#if DEBUG
+            if case .error = result {
+                print("LaunchDarkly identify failed while updating subscription tier.")
+            }
+#endif
         }
     }
     
@@ -99,6 +122,8 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
         guard hasStarted, let client = LDClient.get() else {
             return defaultValue
         }
+
+        _ = contextVersion
                 
         return client.boolVariation(
             forKey: flag.rawValue,
@@ -108,6 +133,20 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
     
     public static var currentAppVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+    }
+
+    private func makeLaunchDarklyContext() -> LDContext? {
+        let installId = InstallationId.get()
+        var builder = LDContextBuilder(key: installId)
+        builder.anonymous(false)
+        builder.trySetValue("appVersion", .init(stringLiteral: context.appVersion))
+        builder.trySetValue("subscriptionTier", .init(stringLiteral: context.subscriptionTier))
+
+        guard case .success(let ldContext) = builder.build() else {
+            return nil
+        }
+
+        return ldContext
     }
 }
 
@@ -119,6 +158,8 @@ public final class MockFlagService: FlagServiceProtocol {
     }
     
     public func start() {}
+
+    public func updateSubscriptionTier(_ subscriptionTier: String) {}
     
     public func isEnabled(
         _ flag: FeatureFlag,

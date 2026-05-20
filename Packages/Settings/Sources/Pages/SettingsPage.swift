@@ -14,6 +14,9 @@ import API
 public struct SettingsPage: View {
 
     @Environment(AppRouter.self) private var appRouter
+    @Environment(\.appSettings) private var appSettings
+    @Environment(\.proAccess) private var proAccess
+    @Environment(\.flagKit) private var flagKit
     @State private var repository = SettingsRepository()
     @State private var shareItems: [Any] = []
     @State private var cleanupURLs: [URL] = []
@@ -41,6 +44,8 @@ public struct SettingsPage: View {
                 }
             }
 
+            proSection
+
             #if DEBUG
             debugSection
             #endif
@@ -57,6 +62,43 @@ public struct SettingsPage: View {
         }, message: {
             Text(errorMessage ?? "An unknown error occurred.")
         })
+        .task {
+            await proAccess.refresh()
+        }
+    }
+
+    private var proSection: some View {
+        Section {
+            if proAccess.hasProAccess {
+                Label("Sporkast Pro Active", systemImage: "checkmark.seal.fill")
+                    .foregroundStyle(.green)
+            } else {
+                ForEach(proAccess.availablePlans) { plan in
+                    Button(action: { purchase(plan) }) {
+                        HStack {
+                            Label(plan.title, systemImage: icon(for: plan.duration))
+                            Spacer()
+                            Text(plan.price)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(proAccess.isLoading)
+                }
+
+                Button(action: restorePurchases) {
+                    Label("Restore Purchases", systemImage: "arrow.clockwise")
+                }
+                .disabled(proAccess.isLoading)
+            }
+
+            if proAccess.isLoading {
+                ProgressView()
+            }
+        } header: {
+            Text("Sporkast Pro")
+        } footer: {
+            Text("Unlock recipe folders, nested folder browsing, and professional recipe tagging.")
+        }
     }
 
     #if DEBUG
@@ -73,6 +115,8 @@ public struct SettingsPage: View {
             Button(action: exportDatabase) {
                 Text("Export DB")
             }
+
+            Toggle("Recipe Folders & Tags Pro", isOn: appSettings.binding(\.enableRecipeOrganizationPro))
         }
     }
     #endif
@@ -102,6 +146,35 @@ public struct SettingsPage: View {
         }
     }
 
+    private func purchase(_ plan: ProPlan) {
+        Task {
+            await proAccess.purchase(plan: plan)
+            flagKit.updateSubscriptionTier(proAccess.subscriptionTier)
+            if let message = proAccess.errorMessage {
+                presentErrorMessage(message)
+            }
+        }
+    }
+
+    private func restorePurchases() {
+        Task {
+            await proAccess.restorePurchases()
+            flagKit.updateSubscriptionTier(proAccess.subscriptionTier)
+            if let message = proAccess.errorMessage {
+                presentErrorMessage(message)
+            }
+        }
+    }
+
+    private func icon(for duration: ProPlanDuration) -> String {
+        switch duration {
+        case .monthly: return "calendar"
+        case .yearly: return "calendar.badge.clock"
+        case .lifetime: return "infinity"
+        case .other: return "sparkles"
+        }
+    }
+
     private func presentShareSheet(items: [Any], cleanupURLs: [URL]) {
         shareItems = items
         self.cleanupURLs = cleanupURLs
@@ -119,6 +192,11 @@ public struct SettingsPage: View {
 
     private func presentError(_ error: Error) {
         errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        isErrorPresented = true
+    }
+
+    private func presentErrorMessage(_ message: String) {
+        errorMessage = message
         isErrorPresented = true
     }
 }
