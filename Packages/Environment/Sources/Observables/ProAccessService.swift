@@ -65,7 +65,7 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
     #if DEBUG
     private static let apiKey = "test_LLDFxuRGhaxgNbxfraFSrtPXLqP"
     #else
-    private static let apiKey = "appl_JXlzTcMrylNjvqvIGONUMcQZnCd"
+    private static let apiKey = "appl_KQWYKmRLREkFTHMvhmyjqISPxKg"
     #endif
     
     public static let shared = ProAccessService(apiKey: apiKey)
