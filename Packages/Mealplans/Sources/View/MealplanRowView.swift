@@ -241,7 +241,8 @@ public struct MealplanRowView: View {
                     Color.red
                 }
                 .allowSwipeToTrigger()
-            } 
+            }
+            
         }
     }
     

@@ -24,6 +24,11 @@ public enum PreviewSupport {
                 DBRecipeStepTiming.self,
                 DBRecipeStepTemperature.self,
                 DBRecipeImage.self,
+                DBRecipeFolder.self,
+                DBRecipeFolderHierarchy.self,
+                DBRecipeTag.self,
+                DBRecipeFolderAssignment.self,
+                DBRecipeTagAssignment.self,
                 DBMealplanEntry.self,
             )
             

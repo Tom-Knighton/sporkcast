@@ -19,9 +19,12 @@ public struct EditRecipePage: View {
     
     @Dependency(\.defaultDatabase) private var db
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.homeServices) private var homes
+    @Environment(\.flagKit) private var flagKit
 
     private let recipe: Recipe
     @State private var editingRecipe: Recipe
+    @State private var organizationRepository = RecipeOrganizationRepository()
     
     @State private var totalTime: Duration = .seconds(0)
     @State private var cookTime: Duration = .seconds(0)
@@ -31,6 +34,11 @@ public struct EditRecipePage: View {
     @State private var showErrorMessage: Bool = false
     @State private var selectedImageItem: PhotosPickerItem? = nil
     @State private var selectedImageData: Data? = nil
+    @State private var selectedFolderIDs: Set<UUID> = []
+    @State private var selectedTagIDs: Set<UUID> = []
+    @State private var newFolderName = ""
+    @State private var newTagName = ""
+    @State private var isProPaywallPresented = false
     
     @FocusState private var focusedIngredientID: UUID?
     @FocusState private var focusedStepID: UUID?
@@ -73,6 +81,11 @@ public struct EditRecipePage: View {
                     basicDetailsSection()
                     servesSection()
                     timingsSection()
+                    if hasRecipeOrganizationProAccess {
+                        organizationSection()
+                    } else {
+                        lockedOrganizationSection()
+                    }
                     ingredientsSection()
                     stepSections()
                 }
@@ -102,6 +115,12 @@ public struct EditRecipePage: View {
             Button(role: .confirm) { self.errorMessage = nil }
         } message: {
             Text(errorMessage ?? "Something went wrong")
+        }
+        .task {
+            loadCurrentOrganization()
+        }
+        .sheet(isPresented: $isProPaywallPresented) {
+            ProPaywallView()
         }
 
     }
@@ -243,6 +262,77 @@ extension EditRecipePage {
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func organizationSection() -> some View {
+        Section("Folders & Tags") {
+            if organizationRepository.folders(in: homes.home?.id).isEmpty {
+                ContentUnavailableView("No Folders", systemImage: "folder", description: Text("Create folders for menus, prep batches, events, or family favourites."))
+            } else {
+                ForEach(organizationRepository.folders(in: homes.home?.id)) { folder in
+                    OrganizationSelectionRow(
+                        title: folder.name,
+                        systemImage: folder.symbolName,
+                        isSelected: selectedFolderIDs.contains(folder.id),
+                        indentation: folderDepth(folder)
+                    ) {
+                        toggleFolder(folder.id)
+                    }
+                }
+            }
+
+            InlineOrganizationCreateRow(title: "New Folder", text: $newFolderName, action: createFolder)
+
+            if organizationRepository.tags(in: homes.home?.id).isEmpty {
+                ContentUnavailableView("No Tags", systemImage: "tag", description: Text("Create tags for cuisine, dietary notes, prep style, or station planning."))
+            } else {
+                ForEach(organizationRepository.tags(in: homes.home?.id)) { tag in
+                    OrganizationSelectionRow(
+                        title: tag.name,
+                        systemImage: "tag",
+                        isSelected: selectedTagIDs.contains(tag.id),
+                        indentation: 0
+                    ) {
+                        toggleTag(tag.id)
+                    }
+                }
+            }
+
+            InlineOrganizationCreateRow(title: "New Tag", text: $newTagName, action: createTag)
+        }
+    }
+
+    @ViewBuilder
+    private func lockedOrganizationSection() -> some View {
+        Section("Folders & Tags") {
+            Button {
+                isProPaywallPresented = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Unlock recipe organization")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        Text("Add this recipe to folders, subfolders, and tags with Sporkast Pro.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
     
@@ -410,12 +500,149 @@ extension EditRecipePage {
                     .insert { newRatings }
                     .execute(db)
             }
+
+            if hasRecipeOrganizationProAccess {
+                try await organizationRepository.setOrganization(
+                    for: editingRecipe,
+                    folderIDs: selectedFolderIDs,
+                    tagIDs: selectedTagIDs
+                )
+            }
             
             self.dismiss()
         } catch {
             self.errorMessage = "Failed to save recipe."
             return
         }
+    }
+
+    private func loadCurrentOrganization() {
+        selectedFolderIDs = organizationRepository.currentFolderIDs(for: recipe.id)
+        selectedTagIDs = organizationRepository.currentTagIDs(for: recipe.id)
+    }
+
+    private func toggleFolder(_ id: UUID) {
+        if selectedFolderIDs.contains(id) {
+            selectedFolderIDs.remove(id)
+        } else {
+            selectedFolderIDs.insert(id)
+        }
+    }
+
+    private func toggleTag(_ id: UUID) {
+        if selectedTagIDs.contains(id) {
+            selectedTagIDs.remove(id)
+        } else {
+            selectedTagIDs.insert(id)
+        }
+    }
+
+    private func createFolder() {
+        let name = newFolderName
+        Task {
+            do {
+                if let folder = try await organizationRepository.createFolder(name: name, homeId: homes.home?.id) {
+                    selectedFolderIDs.insert(folder.id)
+                    newFolderName = ""
+                }
+            } catch {
+                errorMessage = "Failed to create folder."
+            }
+        }
+    }
+
+    private func createTag() {
+        let name = newTagName
+        Task {
+            do {
+                if let tag = try await organizationRepository.createTag(name: name, homeId: homes.home?.id) {
+                    selectedTagIDs.insert(tag.id)
+                    newTagName = ""
+                }
+            } catch {
+                errorMessage = "Failed to create tag."
+            }
+        }
+    }
+
+    private func folderDepth(_ folder: RecipeFolder) -> Int {
+        var depth = 0
+        var currentParentID = folder.parentFolderId
+
+        while let parentID = currentParentID,
+              let parent = organizationRepository.folder(id: parentID),
+              depth < 8 {
+            depth += 1
+            currentParentID = parent.parentFolderId
+        }
+
+        return depth
+    }
+
+    private var hasRecipeOrganizationProAccess: Bool {
+        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+    }
+}
+
+private struct OrganizationSelectionRow: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    let indentation: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                if indentation > 0 {
+                    Spacer()
+                        .frame(width: CGFloat(indentation) * 18)
+                }
+
+                Image(systemName: systemImage)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+
+                Text(title)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct InlineOrganizationCreateRow: View {
+    let title: String
+    @Binding var text: String
+    let action: () -> Void
+
+    private var canSubmit: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        HStack {
+            TextField(title, text: $text)
+                .textInputAutocapitalization(.words)
+                .submitLabel(.done)
+                .onSubmit(submit)
+
+            Button(action: submit) {
+                Label("Add", systemImage: "plus.circle.fill")
+            }
+            .buttonStyle(.glass)
+            .disabled(!canSubmit)
+        }
+    }
+
+    private func submit() {
+        guard canSubmit else { return }
+        action()
     }
 }
 
@@ -483,4 +710,3 @@ extension EditRecipePage {
             .environment(AlertManager())
     }
 }
-

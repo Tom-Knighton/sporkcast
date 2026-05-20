@@ -39,7 +39,7 @@ public enum AppTab: String, Codable, TabType, CaseIterable {
 }
 
 public enum AppDestination: DestinationType {
-    case recipes
+    case recipes(folderID: UUID? = nil)
     case recipe(recipe: Recipe, zoomSuffix: String? = nil)
     
     public static func from(path: String, fullPath: [String], parameters: [String : String]) -> AppDestination? {

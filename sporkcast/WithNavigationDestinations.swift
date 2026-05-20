@@ -17,10 +17,16 @@ import Design
 
 struct WithNavigationDestinations<Content: View>: View {
     let namespace: Namespace.ID
+    @Binding var pendingSharedImportURL: URL?
     let content: () -> Content
 
-    init(namespace: Namespace.ID, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        namespace: Namespace.ID,
+        pendingSharedImportURL: Binding<URL?> = .constant(nil),
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.namespace = namespace
+        self._pendingSharedImportURL = pendingSharedImportURL
         self.content = content
     }
 
@@ -29,8 +35,11 @@ struct WithNavigationDestinations<Content: View>: View {
             .navigationDestination(for: AppDestination.self) { dest in
                 switch dest {
                     
-                case .recipes:
-                    RecipeListPage()
+                case let .recipes(folderID):
+                    RecipeListPage(
+                        pendingSharedImportURL: $pendingSharedImportURL,
+                        initialFolderID: folderID
+                    )
                 case let .recipe(recipe, suffix):
                     RecipePage(
                         recipe,

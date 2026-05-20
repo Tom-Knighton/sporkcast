@@ -6,15 +6,23 @@
 //
 
 import SwiftUI
+import Environment
 
 struct RecipeFilters: Equatable {
     var minimumRating: Double = 0
     var minimumComments: Int = 0
     var maximumTimeMinutes: Int = 0
     var sort: RecipeSortOption = .dateModified
+    var selectedFolderID: UUID?
+    var selectedTagIDs: Set<UUID> = []
 
     var hasActiveFilters: Bool {
-        minimumRating > 0 || minimumComments > 0 || maximumTimeMinutes > 0 || sort != .dateModified
+        minimumRating > 0
+        || minimumComments > 0
+        || maximumTimeMinutes > 0
+        || sort != .dateModified
+        || selectedFolderID != nil
+        || !selectedTagIDs.isEmpty
     }
 }
 
@@ -45,6 +53,10 @@ enum RecipeSortOption: String, CaseIterable, Identifiable {
 
 struct RecipeFiltersSheet: View {
     @Binding var filters: RecipeFilters
+    let folderSummaries: [RecipeFolderSummary]
+    let tagSummaries: [RecipeTagSummary]
+    let isRecipeOrganizationEnabled: Bool
+
     @Environment(\.dismiss) private var dismiss
 
     private var minimumRatingLabel: String {
@@ -86,6 +98,35 @@ struct RecipeFiltersSheet: View {
                         Text(minimumCommentsLabel)
                     }
                 }
+
+                if isRecipeOrganizationEnabled {
+                    Section("Folders") {
+                        Picker("Folder", selection: $filters.selectedFolderID) {
+                            Text("Any Folder").tag(UUID?.none)
+                            ForEach(folderSummaries) { summary in
+                                Text("\(summary.folder.name) (\(summary.recipeCount))")
+                                    .tag(Optional(summary.folder.id))
+                            }
+                        }
+                    }
+
+                    Section("Tags") {
+                        if tagSummaries.isEmpty {
+                            ContentUnavailableView("No Tags", systemImage: "tag", description: Text("Create tags from the folders and tags manager."))
+                        } else {
+                            ForEach(tagSummaries) { summary in
+                                Toggle(isOn: tagBinding(summary.tag.id)) {
+                                    HStack {
+                                        Text(summary.tag.name)
+                                        Spacer()
+                                        Text("\(summary.recipeCount)")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("Filters")
             .toolbar {
@@ -103,6 +144,19 @@ struct RecipeFiltersSheet: View {
 
     private func resetFilters() {
         filters = RecipeFilters()
+    }
+
+    private func tagBinding(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { filters.selectedTagIDs.contains(id) },
+            set: { isSelected in
+                if isSelected {
+                    filters.selectedTagIDs.insert(id)
+                } else {
+                    filters.selectedTagIDs.remove(id)
+                }
+            }
+        )
     }
 
     private func dismissSheet() {

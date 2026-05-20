@@ -73,7 +73,12 @@ public struct RecipePickerPage: View {
         }
         .searchable(text: $searchText, placement: .automatic, prompt: Text("Search recipes, ingredients..."))
         .sheet(isPresented: $isFilterSheetPresented) {
-            RecipeFiltersSheet(filters: $filters)
+            RecipeFiltersSheet(
+                filters: $filters,
+                folderSummaries: [],
+                tagSummaries: [],
+                isRecipeOrganizationEnabled: false
+            )
         }
     }
 
@@ -188,6 +193,14 @@ extension Recipe {
             .compactMap(\.comment)
             .joined(separator: " ")
 
+        let folderText = folders
+            .map(\.name)
+            .joined(separator: " ")
+
+        let tagText = tags
+            .map(\.name)
+            .joined(separator: " ")
+
         return [
             title,
             description,
@@ -196,6 +209,8 @@ extension Recipe {
             serves,
             ingredientText,
             stepText,
+            folderText,
+            tagText,
             ratingInfo?.summarisedRating,
             ratingText,
         ]

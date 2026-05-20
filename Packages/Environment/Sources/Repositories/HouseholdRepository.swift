@@ -98,5 +98,17 @@ public final class HouseholdRepository {
                 .update { $0.homeId = #bind(_dbHome.id) }
                 .execute(db)
         }
+
+        try? await database.write { db in
+            try DBRecipeFolder
+                .where { $0.homeId.is(nil) }
+                .update { $0.homeId = #bind(_dbHome.id) }
+                .execute(db)
+
+            try DBRecipeTag
+                .where { $0.homeId.is(nil) }
+                .update { $0.homeId = #bind(_dbHome.id) }
+                .execute(db)
+        }
     }
 }

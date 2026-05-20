@@ -165,6 +165,19 @@ public struct RecipeCardView: View {
                 }
                 
                 Spacer()
+
+                if !recipe.folders.isEmpty || !recipe.tags.isEmpty {
+                    FlowLayout(alignment: .leading, spacing: 6) {
+                        ForEach(recipe.folders.prefix(1)) { folder in
+                            RecipeOrganizationBadge(title: folder.name, systemImage: folder.symbolName)
+                        }
+
+                        ForEach(recipe.tags.prefix(2)) { tag in
+                            RecipeOrganizationBadge(title: tag.name, systemImage: "tag")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 
                 Text(recipe.title)
                     .bold()
@@ -179,5 +192,22 @@ public struct RecipeCardView: View {
         .clipShape(.rect(corners: .concentric))
         .fontDesign(.rounded)
         .contentShape(Rectangle())
+    }
+}
+
+private struct RecipeOrganizationBadge: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Material.ultraThin)
+            .clipShape(.rect(cornerRadius: 8))
+            .foregroundStyle(.white)
+            .shadow(radius: 2)
     }
 }

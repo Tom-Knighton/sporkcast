@@ -78,13 +78,19 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
     
     /// The id of the home this recipe is a part of, if any
     public var homeId: UUID?
+
+    /// Pro organization metadata assigned to this recipe.
+    public var folders: [RecipeFolder]
+
+    /// Pro organization tags assigned to this recipe.
+    public var tags: [RecipeTag]
     
     public var hasUsableSource: Bool {
         !self.sourceUrl.starts(with: "sporkcast://")
     }
 
     
-    public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, ingredientScale: Double = 1.0, ingredientUnitSystem: RecipeIngredientUnitSystem = .original, homeId: UUID?) {
+    public init(id: UUID, title: String, description: String?, summarisedTip: String?, author: String?, sourceUrl: String, image: RecipeImage, timing: RecipeTiming, serves: String?, ratingInfo: RecipeRatingInfo?, dateAdded: Date, dateModified: Date, ingredientSections: [RecipeIngredientGroup], stepSections: [RecipeStepSection], dominantColorHex: String?, ingredientScale: Double = 1.0, ingredientUnitSystem: RecipeIngredientUnitSystem = .original, homeId: UUID?, folders: [RecipeFolder] = [], tags: [RecipeTag] = []) {
         self.id = id
         self.title = title
         self.description = description
@@ -103,6 +109,8 @@ public struct Recipe: Identifiable, Hashable, Sendable, Codable {
         self.ingredientScale = ingredientScale
         self.ingredientUnitSystem = ingredientUnitSystem
         self.homeId = homeId
+        self.folders = folders
+        self.tags = tags
     }
 }
 

@@ -38,7 +38,7 @@ public struct FullDBRecipe: Sendable, Identifiable, Equatable {
     
     @Column(as: [DBRecipeStepLinkedIngredient].JSONRepresentation.self)
     public let stepLinkedIngredients: [DBRecipeStepLinkedIngredient]
-    
+
     public var id: UUID { recipe.id }
 }
 
@@ -47,6 +47,10 @@ public struct ListDBRecipe: Sendable, Identifiable, Equatable {
 
     public let recipe: DBRecipe
     public let imageData: DBRecipeImage?
+    @Column(as: [DBRecipeFolder].JSONRepresentation.self)
+    public let folders: [DBRecipeFolder]
+    @Column(as: [DBRecipeTag].JSONRepresentation.self)
+    public let tags: [DBRecipeTag]
 
     public var id: UUID { recipe.id }
 }
@@ -86,7 +90,7 @@ public struct FullDBShoppingList: Sendable, Identifiable, Equatable {
 public extension DBRecipe {
     
     typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?, DBRecipeStepLinkedIngredient?)>
-    typealias ListSelect = Select<ListDBRecipe, DBRecipe, (DBRecipeImage?)>
+    typealias ListSelect = Select<ListDBRecipe, DBRecipe, (DBRecipeImage?, DBRecipeFolderAssignment?, DBRecipeFolder?, DBRecipeTagAssignment?, DBRecipeTag?)>
     
     static var full: FullSelect {
         
@@ -133,7 +137,7 @@ public extension DBRecipe {
             .leftJoin(DBRecipeStepLinkedIngredient.all) {
                 $4.id.eq($9.recipeStepId)
             }
-    
+
         let query = withStepIngredients
             .select {
                 let igs = $1.jsonGroupArray(distinct: true)
@@ -167,11 +171,33 @@ public extension DBRecipe {
                 $0.id.eq($1.recipeId)
             }
 
-        let query = withImage
+        let withFolderAssignments = withImage
+            .leftJoin(DBRecipeFolderAssignment.all) {
+                $0.id.eq($2.recipeId)
+            }
+
+        let withFolders = withFolderAssignments
+            .leftJoin(DBRecipeFolder.all) {
+                $2.folderId.eq($3.id)
+            }
+
+        let withTagAssignments = withFolders
+            .leftJoin(DBRecipeTagAssignment.all) {
+                $0.id.eq($4.recipeId)
+            }
+
+        let withTags = withTagAssignments
+            .leftJoin(DBRecipeTag.all) {
+                $4.tagId.eq($5.id)
+            }
+
+        let query = withTags
             .select {
                 ListDBRecipe.Columns(
                     recipe: $0,
-                    imageData: $1
+                    imageData: $1,
+                    folders: $3.jsonGroupArray(distinct: true),
+                    tags: $5.jsonGroupArray(distinct: true)
                 )
             }
 

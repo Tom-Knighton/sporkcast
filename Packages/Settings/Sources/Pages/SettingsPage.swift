@@ -39,6 +39,10 @@ public struct SettingsPage: View {
                 Button(action: openHomeSettings) {
                     Label("Home", systemImage: "house.fill")
                 }
+
+                NavigationLink(destination: ProSettingsPage()) {
+                    Label("Sporkast Pro", systemImage: "sparkles")
+                }
             }
 
             #if DEBUG
@@ -121,6 +125,7 @@ public struct SettingsPage: View {
         errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         isErrorPresented = true
     }
+
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

@@ -15,6 +15,10 @@ struct RecipeCardsListView: View {
     let zoomNamespace: Namespace.ID
     let onOpen: (Recipe) -> Void
     let onDelete: (UUID) -> Void
+    var canOrganize: Bool = false
+    var canShowOrganizeUpsell: Bool = false
+    var onOrganize: (Recipe) -> Void = { _ in }
+    var onOrganizeUpsell: () -> Void = {}
     
     @State private var isSwiping: Bool = false
     
@@ -44,6 +48,16 @@ struct RecipeCardsListView: View {
                                 .contextMenu {
                                     Button(action: { onOpen(recipe) }) {
                                         Label("Open", systemImage: "hand.point.up")
+                                    }
+
+                                    if canOrganize {
+                                        Button(action: { onOrganize(recipe) }) {
+                                            Label("Folders & Tags", systemImage: "folder.badge.plus")
+                                        }
+                                    } else if canShowOrganizeUpsell {
+                                        Button(action: onOrganizeUpsell) {
+                                            Label("Unlock Folders & Tags", systemImage: "lock.fill")
+                                        }
                                     }
                                     
                                     Divider()

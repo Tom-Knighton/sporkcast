@@ -90,7 +90,9 @@ public extension ListDBRecipe {
             dominantColorHex: recipe.dominantColorHex,
             ingredientScale: recipe.ingredientScale,
             ingredientUnitSystem: recipe.parsedIngredientUnitSystem,
-            homeId: recipe.homeId
+            homeId: recipe.homeId,
+            folders: folders.sorted { $0.sortIndex < $1.sortIndex }.map { $0.toDomainModel() },
+            tags: tags.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }.map { $0.toDomainModel() }
         )
     }
 }
