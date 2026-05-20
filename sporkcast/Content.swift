@@ -61,9 +61,10 @@ struct AppContent: View {
                     if hasRecipeOrganizationFeatureAccess {
                         RecipeFoldersPage()
                             .task {
-                                guard !didSeedRecipesStack else { return }
-                                didSeedRecipesStack = true
-                                appRouter.navigateTo(.recipes())
+                                seedRecipesStackIfNeeded()
+                            }
+                            .onChange(of: appRouter.selectedTab) { _, _ in
+                                seedRecipesStackIfNeeded()
                             }
                     } else {
                         RecipeListPage(pendingSharedImportURL: $pendingSharedImportURL)
@@ -186,11 +187,17 @@ struct AppContent: View {
     }
 
     private var hasRecipeOrganizationFeatureAccess: Bool {
-        #if DEBUG
-        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #else
         flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #endif
+    }
+
+    private func seedRecipesStackIfNeeded() {
+        guard appRouter.selectedTab == .recipes,
+              !didSeedRecipesStack else {
+            return
+        }
+
+        didSeedRecipesStack = true
+        appRouter.navigateTo(.recipes())
     }
 }
 

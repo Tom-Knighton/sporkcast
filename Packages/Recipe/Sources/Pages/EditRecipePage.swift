@@ -19,7 +19,6 @@ public struct EditRecipePage: View {
     
     @Dependency(\.defaultDatabase) private var db
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.appSettings) private var appSettings
     @Environment(\.homeServices) private var homes
     @Environment(\.flagKit) private var flagKit
 
@@ -39,6 +38,7 @@ public struct EditRecipePage: View {
     @State private var selectedTagIDs: Set<UUID> = []
     @State private var newFolderName = ""
     @State private var newTagName = ""
+    @State private var isProPaywallPresented = false
     
     @FocusState private var focusedIngredientID: UUID?
     @FocusState private var focusedStepID: UUID?
@@ -83,6 +83,8 @@ public struct EditRecipePage: View {
                     timingsSection()
                     if hasRecipeOrganizationProAccess {
                         organizationSection()
+                    } else {
+                        lockedOrganizationSection()
                     }
                     ingredientsSection()
                     stepSections()
@@ -116,6 +118,9 @@ public struct EditRecipePage: View {
         }
         .task {
             loadCurrentOrganization()
+        }
+        .sheet(isPresented: $isProPaywallPresented) {
+            ProPaywallView()
         }
 
     }
@@ -296,6 +301,38 @@ extension EditRecipePage {
             }
 
             InlineOrganizationCreateRow(title: "New Tag", text: $newTagName, action: createTag)
+        }
+    }
+
+    @ViewBuilder
+    private func lockedOrganizationSection() -> some View {
+        Section("Folders & Tags") {
+            Button {
+                isProPaywallPresented = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Unlock recipe organization")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        Text("Add this recipe to folders, subfolders, and tags with Sporkast Pro.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
     
@@ -543,11 +580,7 @@ extension EditRecipePage {
     }
 
     private var hasRecipeOrganizationProAccess: Bool {
-        #if DEBUG
-        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #else
         flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #endif
     }
 }
 

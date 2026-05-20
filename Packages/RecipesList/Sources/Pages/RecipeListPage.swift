@@ -32,6 +32,7 @@ public struct RecipeListPage: View {
     @State private var showDeleteConfirmId: UUID?
     @State private var searchText: String = ""
     @State private var isFilterSheetPresented = false
+    @State private var isProPaywallPresented = false
     @State private var organizationRecipe: Recipe?
     @State private var filters = RecipeFilters()
 
@@ -87,8 +88,12 @@ public struct RecipeListPage: View {
                     }
                 },
                 canOrganize: hasRecipeOrganizationProAccess,
+                canShowOrganizeUpsell: !hasRecipeOrganizationProAccess,
                 onOrganize: { recipe in
                     organizationRecipe = recipe
+                },
+                onOrganizeUpsell: {
+                    isProPaywallPresented = true
                 },
                 showDeleteConfirmId: $showDeleteConfirmId
             )
@@ -212,6 +217,9 @@ public struct RecipeListPage: View {
                 homeId: homes.home?.id
             )
         }
+        .sheet(isPresented: $isProPaywallPresented) {
+            ProPaywallView()
+        }
         .task(id: pendingSharedImportURL) {
             importPendingSharedURLIfNeeded()
         }
@@ -253,6 +261,14 @@ private extension RecipeListPage {
                     )
                 } label: {
                     Label("Folders & Tags", systemImage: "folder.badge.gearshape")
+                }
+            }
+        } else {
+            ToolbarItem {
+                Button {
+                    isProPaywallPresented = true
+                } label: {
+                    Label("Unlock Folders & Tags", systemImage: "lock.fill")
                 }
             }
         }
@@ -340,11 +356,7 @@ private extension RecipeListPage {
     }
 
     var hasRecipeOrganizationProAccess: Bool {
-        #if DEBUG
-        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #else
         flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #endif
     }
 
     func sortedRecipes(_ recipes: [Recipe]) -> [Recipe] {

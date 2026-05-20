@@ -2,7 +2,7 @@
 //  ProAccessService.swift
 //  Environment
 //
-//  Created by Codex on 19/05/2026.
+//  Created by Tom Knighton on 19/05/2026.
 //
 
 import Foundation
@@ -62,7 +62,13 @@ public protocol ProAccessServiceProtocol: AnyObject, Sendable {
 @Observable
 public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendable {
 
-    public static let shared = ProAccessService(apiKey: "test_LLDFxuRGhaxgNbxfraFSrtPXLqP")
+    #if DEBUG
+    private static let apiKey = "test_LLDFxuRGhaxgNbxfraFSrtPXLqP"
+    #else
+    private static let apiKey = "appl_JXlzTcMrylNjvqvIGONUMcQZnCd"
+    #endif
+    
+    public static let shared = ProAccessService(apiKey: apiKey)
 
     public private(set) var hasProAccess = false
     public private(set) var subscriptionTier = "free"

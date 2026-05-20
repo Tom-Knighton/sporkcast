@@ -2,7 +2,7 @@
 //  RecipeOrganizationViews.swift
 //  RecipesList
 //
-//  Created by Codex on 19/05/2026.
+//  Created by Tom Knighton on 19/05/2026.
 //
 
 import Design
@@ -13,10 +13,10 @@ import SwiftUI
 public struct RecipeFoldersPage: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.homeServices) private var homes
-    @Environment(\.appSettings) private var appSettings
     @Environment(\.flagKit) private var flagKit
 
     @State private var repository = RecipeOrganizationRepository()
+    @State private var isProPaywallPresented = false
 
     private var rootNodes: [RecipeFolderNode] {
         RecipeFolderNode.nodes(from: repository.folderSummaries(homeId: homes.home?.id))
@@ -34,6 +34,12 @@ public struct RecipeFoldersPage: View {
                 if hasRecipeOrganizationProAccess {
                     ForEach(rootNodes) { node in
                         RecipeFolderTreeNavigationRow(node: node)
+                    }
+                } else {
+                    Button {
+                        isProPaywallPresented = true
+                    } label: {
+                        Label("Unlock Folders & Tags", systemImage: "lock.fill")
                     }
                 }
             }
@@ -54,16 +60,23 @@ public struct RecipeFoldersPage: View {
                         Label("Manage Folders & Tags", systemImage: "folder.badge.gearshape")
                     }
                 }
+            } else {
+                ToolbarItem {
+                    Button {
+                        isProPaywallPresented = true
+                    } label: {
+                        Label("Unlock Folders & Tags", systemImage: "lock.fill")
+                    }
+                }
             }
+        }
+        .sheet(isPresented: $isProPaywallPresented) {
+            ProPaywallView()
         }
     }
 
     private var hasRecipeOrganizationProAccess: Bool {
-        #if DEBUG
-        appSettings.settings.enableRecipeOrganizationPro || flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #else
         flagKit.isEnabled(.recipeOrganizationPro, default: false)
-        #endif
     }
 }
 

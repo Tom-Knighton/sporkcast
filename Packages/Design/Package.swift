@@ -13,13 +13,13 @@ let package = Package(
             targets: ["Design"]
         ),
     ],
-    dependencies: [.package(url: "https://github.com/kean/Nuke", from: "12.8.0"), .package(path: "../API"), .package(path: "../Environment"), .package(path: "../Models"), .package(path: "../Persistence")],
+    dependencies: [.package(url: "https://github.com/kean/Nuke", from: "12.8.0"), .package(url: "https://github.com/RevenueCat/purchases-ios.git", .upToNextMajor(from: "5.0.0")), .package(path: "../API"), .package(path: "../Environment"), .package(path: "../Models"), .package(path: "../Persistence")],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Design",
-            dependencies: [.product(name: "NukeUI", package: "Nuke"), .product(name: "Nuke", package: "Nuke"), "API", "Environment", "Models", "Persistence"]
+            dependencies: [.product(name: "NukeUI", package: "Nuke"), .product(name: "Nuke", package: "Nuke"), .product(name: "RevenueCatUI", package: "purchases-ios"), "API", "Environment", "Models", "Persistence"]
         ),
         .testTarget(name: "DesignTests", dependencies: ["Design", "Environment", "Persistence", "Models"])
     ]
