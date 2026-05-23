@@ -203,6 +203,69 @@ import Models
     #expect(steps.isEmpty)
 }
 
+@Test func socialRecipePageExtractorHandlesInstagramRecipeHeadingWithNamedIngredientBlocks() throws {
+    let html = """
+    <meta name="description" content="173K likes, 262 comments - lauras__bakery__ on February 25, 2026: &quot;Brownie batter stuffed banana bread &#x1f90e;&#x1f34c; and yes it&#x2019;s as good as it looks!
+
+    Recipe:
+
+    Fudgy Brownie Center:
+    (Thick enough so it doesn&#x2019;t disappear into the bread)
+
+    &#xbd; cup unsalted butter (melted)
+    &#xbd; cup granulated sugar
+    &#xbc; cup brown sugar
+    1 large egg
+    1 tsp vanilla
+    &#xbd; cup cocoa powder
+    &#x2153; cup all-purpose flour
+    &#xbc; tsp salt
+    &#xbd; cup chocolate chips
+
+    Banana Bread:
+    3 ripe bananas (mashed)
+    &#xbd; cup unsalted butter (melted) (or oil)
+    &#xbe; cup brown sugar
+    1 large egg
+    1 tsp vanilla
+    1 &#xbd; cups all-purpose flour
+    1 tsp baking soda
+    &#xbd; tsp salt
+
+    -Preheat oven to 350&#xb0;F. Line a 9x5 loaf pan with parchment paper or grease well.
+    Brownie center:
+    -Mix melted butter + sugars until well combined.
+    -Add egg + vanilla. Mix until smooth.
+    -Stir in flour, cocoa, and salt. Mix until just combined.
+    -Fold in chocolate chips.
+    -Place in the fridge while you make banana batter (this helps it stay thick and fudgy).
+
+    Banana batter:
+    -Mix mashed bananas, butter, sugar, egg, vanilla until well combined.
+    -Stir in flour, baking soda, and salt. Mix until just combined.
+    -Pour &#x2154; of banana batter into the pan.
+    -Spoon the chilled brownie batter in a thick line down the center (do not spread to edges).
+    -Cover with remaining banana batter.
+    -(Optional) sprinkle mini chocolate chips on top.
+    -Bake 55&#x2013;65 minutes. The top should be golden and set.
+    -Let cool at least 30&#x2013;45 minutes before slicing so the center sets slightly but stays gooey. Enjoy!!&quot;. " />
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "Brownie batter stuffed banana bread 🤎🍌 and yes it’s as good as it looks!")
+    #expect(ingredients.contains("½ cup unsalted butter (melted)"))
+    #expect(ingredients.contains("1 ½ cups all-purpose flour"))
+    #expect(ingredients.contains("Fudgy Brownie Center:") == false)
+    #expect(steps.contains(where: { $0.hasPrefix("Preheat oven to 350°F") }))
+    #expect(steps.contains(where: { $0.hasPrefix("Mix melted butter") }))
+    #expect(steps.contains("Brownie center:") == false)
+}
+
 @Test func socialRecipePageExtractorHandlesInstagramProcedureAndServingHeading() throws {
     let html = """
     <meta name="description" content="53K likes, 54 comments - gianlucaruggierichef on February 8, 2026: &quot;PASTA (square spaghetti) ALLA GRICIA
@@ -314,6 +377,20 @@ import Models
     #expect((ratingInfo?.totalRatings ?? 0) > 0)
     #expect((ratingInfo?.ratings.count ?? 0) > 0)
     #expect(ratingInfo?.ratings.contains(where: { ($0.comment?.isEmpty == false) }) == true)
+}
+
+@Test func socialURLImportTriesURLParserBeforeLocalCaptionExtraction() async throws {
+    let client = RecordingClient()
+    let coordinator = RecipeImportCoordinator(client: client)
+
+    let sourceURL = try #require(URL(string: "https://www.instagram.com/reel/DVNBJSDEXgl/"))
+    let result = try await coordinator.prepareImport(from: .webURL(sourceURL), homeId: nil)
+
+    #expect(result.candidates.count == 1)
+
+    let paths = await client.paths()
+    #expect(paths.first == "Parser/Parse")
+    #expect(paths.contains("Parser/ParseText") == false)
 }
 
 @Test func pestleExtensionParsesWithPestleVendor() throws {

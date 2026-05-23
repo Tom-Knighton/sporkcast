@@ -69,6 +69,9 @@ public struct ProPaywallView: View {
             .onRestoreCompleted { customerInfo in
                 complete(.restore, customerInfo: customerInfo)
             }
+            // RevenueCat auto-dismisses full-screen paywalls after purchase; keep this sheet alive
+            // so customers can see the Pro success screen and dismiss it intentionally.
+            .onRequestedDismissal {}
     }
 
     private func complete(_ completion: ProPaywallCompletion, customerInfo: CustomerInfo) {

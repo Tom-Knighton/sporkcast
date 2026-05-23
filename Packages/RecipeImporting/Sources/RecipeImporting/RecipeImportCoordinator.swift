@@ -162,6 +162,14 @@ public actor RecipeImportCoordinator: RecipeImporting {
     }
 
     private func parseFromSocialWeb(url: URL, homeId: UUID?) async throws -> [ParsedImportRecord] {
+        do {
+            return try await parseFromWeb(url: url, homeId: homeId)
+        } catch {
+            return try await parseFromSocialPage(url: url, homeId: homeId)
+        }
+    }
+
+    private func parseFromSocialPage(url: URL, homeId: UUID?) async throws -> [ParsedImportRecord] {
         let html = try await fetchSocialPageHTML(from: url)
         guard let content = SocialRecipePageExtractor.extractRecipeContent(from: html) else {
             throw RecipeImportError.noRecipesDetected

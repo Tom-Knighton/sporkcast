@@ -268,6 +268,11 @@ enum SocialRecipePageExtractor {
             let line = cleanedCaptionLine(rawLine)
             guard !line.isEmpty else { continue }
 
+            if isRecipeStartHeading(line) {
+                section = .ingredients
+                continue
+            }
+
             if isIngredientHeading(line) {
                 section = .ingredients
                 continue
@@ -275,6 +280,10 @@ enum SocialRecipePageExtractor {
 
             if isInstructionHeading(line) {
                 section = .instructions
+                continue
+            }
+
+            if isSocialRecipeGroupLabel(line) {
                 continue
             }
 
@@ -420,7 +429,7 @@ enum SocialRecipePageExtractor {
 
     private static func strippedSocialListPrefix(from line: String) -> String {
         line
-            .replacingOccurrences(of: #"^[-*+]\s+"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"^[-*+]\s*"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"^\d+[.)]\s+"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -449,6 +458,11 @@ enum SocialRecipePageExtractor {
             || lowered.range(of: #"^for\s+(the\s+)?.+:\s*$"#, options: .regularExpression) != nil
     }
 
+    private static func isRecipeStartHeading(_ line: String) -> Bool {
+        let lowered = line.lowercased()
+        return lowered == "recipe" || lowered == "recipe:"
+    }
+
     private static func isInstructionHeading(_ line: String) -> Bool {
         let lowered = line.lowercased()
         return lowered == "## instructions"
@@ -457,6 +471,18 @@ enum SocialRecipePageExtractor {
             || lowered == "directions"
             || lowered == "steps"
             || lowered == "procedure"
+    }
+
+    private static func isSocialRecipeGroupLabel(_ line: String) -> Bool {
+        let stripped = strippedSocialListPrefix(from: line)
+        guard stripped.hasSuffix(":"),
+              stripped.count <= 60,
+              !looksLikeIngredientLine(stripped),
+              !looksLikeInstructionLine(stripped) else {
+            return false
+        }
+
+        return true
     }
 
     private static func looksLikeInstructionLine(_ line: String) -> Bool {

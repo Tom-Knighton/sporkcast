@@ -5,6 +5,7 @@ final class ShareViewController: UIViewController {
     private enum LaunchState {
         case preparing
         case opening
+        case blockedSocialImport
         case failed(String)
     }
 
@@ -16,8 +17,12 @@ final class ShareViewController: UIViewController {
     private var hasCompletedRequest = false
     private var importDeepLink: URL?
 
+    private let cardView = UIView()
+    private let heroIconView = UIImageView(image: UIImage(systemName: "sparkles"))
+    private let eyebrowLabel = UILabel()
     private let titleLabel = UILabel()
     private let statusLabel = UILabel()
+    private let benefitStack = UIStackView()
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let openButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
@@ -52,8 +57,9 @@ final class ShareViewController: UIViewController {
         }
 
         if isSupportedSocialRecipeURL(sharedURL) && !hasCachedSocialRecipeImportAccess {
-            importDeepLink = URL(string: "sporkcast://import-recipe")
-            applyState(.failed("Social recipe imports are included with Sporkast Pro. Open Sporkast to upgrade, then share this link again."))
+            persistSharedURL(sharedURL)
+            importDeepLink = makeImportDeepLink(for: sharedURL)
+            applyState(.blockedSocialImport)
             return
         }
 
@@ -203,71 +209,180 @@ final class ShareViewController: UIViewController {
     }
 
     private func configureUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
+
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        cardView.backgroundColor = .secondarySystemGroupedBackground
+        cardView.layer.cornerCurve = .continuous
+        cardView.layer.cornerRadius = 28
+        cardView.layer.shadowColor = UIColor.black.cgColor
+        cardView.layer.shadowOpacity = 0.10
+        cardView.layer.shadowRadius = 22
+        cardView.layer.shadowOffset = CGSize(width: 0, height: 12)
+
+        heroIconView.translatesAutoresizingMaskIntoConstraints = false
+        heroIconView.contentMode = .center
+        heroIconView.tintColor = .systemOrange
+        heroIconView.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.14)
+        heroIconView.layer.cornerCurve = .continuous
+        heroIconView.layer.cornerRadius = 24
+        heroIconView.preferredSymbolConfiguration = .init(pointSize: 28, weight: .semibold)
+
+        eyebrowLabel.translatesAutoresizingMaskIntoConstraints = false
+        eyebrowLabel.text = "Sporkast Pro"
+        eyebrowLabel.font = .preferredFont(forTextStyle: .caption1)
+        eyebrowLabel.textColor = .secondaryLabel
+        eyebrowLabel.textAlignment = .center
+        eyebrowLabel.adjustsFontForContentSizeCategory = true
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = "Add Recipe to Sporkast"
-        titleLabel.font = .preferredFont(forTextStyle: .title2)
+        titleLabel.font = UIFontMetrics(forTextStyle: .title2)
+            .scaledFont(for: .systemFont(ofSize: 22, weight: .bold))
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 0
+        titleLabel.adjustsFontForContentSizeCategory = true
 
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.font = .preferredFont(forTextStyle: .body)
         statusLabel.textColor = .secondaryLabel
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 0
+        statusLabel.adjustsFontForContentSizeCategory = true
+
+        benefitStack.translatesAutoresizingMaskIntoConstraints = false
+        benefitStack.axis = .vertical
+        benefitStack.spacing = 10
+        benefitStack.isHidden = true
+        benefitStack.addArrangedSubview(makeBenefitRow(symbol: "wand.and.sparkles", text: "Turn Reels and TikToks into editable recipes"))
+        benefitStack.addArrangedSubview(makeBenefitRow(symbol: "text.badge.checkmark", text: "Capture ingredients, method, and serving details"))
+        benefitStack.addArrangedSubview(makeBenefitRow(symbol: "photo.on.rectangle", text: "Save the original cover image with the recipe"))
 
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicator.hidesWhenStopped = true
 
         openButton.translatesAutoresizingMaskIntoConstraints = false
         openButton.configuration = .filled()
         openButton.configuration?.title = "Open Sporkast"
+        openButton.configuration?.cornerStyle = .large
         openButton.isHidden = true
         openButton.addTarget(self, action: #selector(didTapOpenSporkast), for: .touchUpInside)
 
         doneButton.translatesAutoresizingMaskIntoConstraints = false
         doneButton.configuration = .bordered()
         doneButton.configuration?.title = "Done"
+        doneButton.configuration?.cornerStyle = .large
         doneButton.isHidden = true
         doneButton.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [
+            heroIconView,
+            eyebrowLabel,
             titleLabel,
             activityIndicator,
             statusLabel,
+            benefitStack,
             openButton,
             doneButton,
         ])
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
-        stack.spacing = 16
-        stack.alignment = .fill
+        stack.spacing = 14
+        stack.alignment = .center
+        stack.setCustomSpacing(8, after: heroIconView)
+        stack.setCustomSpacing(4, after: eyebrowLabel)
+        stack.setCustomSpacing(18, after: statusLabel)
+        stack.setCustomSpacing(18, after: benefitStack)
 
-        view.addSubview(stack)
+        cardView.addSubview(stack)
+        view.addSubview(cardView)
 
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            cardView.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            cardView.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            cardView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+
+            stack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
+            stack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 28),
+            stack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -24),
+
+            heroIconView.widthAnchor.constraint(equalToConstant: 72),
+            heroIconView.heightAnchor.constraint(equalToConstant: 72),
+            openButton.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            doneButton.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            benefitStack.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
+    private func makeBenefitRow(symbol: String, text: String) -> UIView {
+        let imageView = UIImageView(image: UIImage(systemName: symbol))
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.tintColor = .systemOrange
+        imageView.contentMode = .center
+        imageView.preferredSymbolConfiguration = .init(pointSize: 17, weight: .semibold)
+
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = text
+        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.textColor = .label
+        label.numberOfLines = 0
+        label.adjustsFontForContentSizeCategory = true
+
+        let row = UIStackView(arrangedSubviews: [imageView, label])
+        row.axis = .horizontal
+        row.spacing = 10
+        row.alignment = .top
+
+        NSLayoutConstraint.activate([
+            imageView.widthAnchor.constraint(equalToConstant: 24),
+        ])
+
+        return row
+    }
+
     private func applyState(_ state: LaunchState) {
+        heroIconView.image = UIImage(systemName: "sparkles")
+        heroIconView.tintColor = .systemOrange
+        heroIconView.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.14)
+        eyebrowLabel.isHidden = true
+        benefitStack.isHidden = true
+        openButton.configuration?.title = "Open Sporkast"
+        doneButton.configuration?.title = "Done"
+
         switch state {
         case .preparing:
             activityIndicator.startAnimating()
+            titleLabel.text = "Add Recipe to Sporkast"
             statusLabel.text = "Preparing import…"
             openButton.isHidden = true
             doneButton.isHidden = true
 
         case .opening:
             activityIndicator.startAnimating()
+            titleLabel.text = "Add Recipe to Sporkast"
             statusLabel.text = "Opening Sporkast…"
             openButton.isHidden = true
             doneButton.isHidden = true
 
+        case .blockedSocialImport:
+            activityIndicator.stopAnimating()
+            eyebrowLabel.isHidden = false
+            benefitStack.isHidden = false
+            titleLabel.text = "Import reels with Pro"
+            statusLabel.text = "Save the recipe from this TikTok or Instagram Reel without copying ingredients by hand."
+            openButton.configuration?.title = "See Sporkast Pro"
+            doneButton.configuration?.title = "Not now"
+            openButton.isHidden = false
+            doneButton.isHidden = false
+
         case let .failed(message):
             activityIndicator.stopAnimating()
+            heroIconView.image = UIImage(systemName: "exclamationmark.triangle.fill")
+            heroIconView.tintColor = .systemRed
+            heroIconView.backgroundColor = UIColor.systemRed.withAlphaComponent(0.12)
+            titleLabel.text = "Import needs attention"
             statusLabel.text = message
             openButton.isHidden = false
             doneButton.isHidden = false
