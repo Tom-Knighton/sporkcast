@@ -18,6 +18,7 @@ struct MarkdownRecipeParser {
         var descriptionParts: [String] = []
         var ingredients: [String] = []
         var steps: [String] = []
+        var sawIngredientSection = false
 
         enum Section {
             case unknown
@@ -43,6 +44,7 @@ struct MarkdownRecipeParser {
 
                 if isIngredientHeading(heading) {
                     section = .ingredients
+                    sawIngredientSection = true
                 } else if isStepHeading(heading) {
                     section = .steps
                 } else {
@@ -71,7 +73,7 @@ struct MarkdownRecipeParser {
             }
         }
 
-        if steps.isEmpty {
+        if steps.isEmpty && !sawIngredientSection {
             steps = inferStepsFromParagraphs(markdown)
         }
 

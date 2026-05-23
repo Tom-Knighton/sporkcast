@@ -127,6 +127,7 @@ public struct RecipePage: View {
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
     @Environment(\.flagKit) private var flagKit
+    @Environment(\.proAccess) private var proAccess
     @Dependency(\.defaultDatabase) private var db
     
     @State private var viewModel: RecipeViewModel
@@ -141,6 +142,7 @@ public struct RecipePage: View {
     @State private var isReimporting = false
     @State private var reimportAlert: ReimportAlertContent?
     @State private var showReimportStatusSheet = false
+    @State private var isProPaywallPresented = false
     @State private var reimportFailureMessage: String?
     @State private var reimportSuccessFeedbackToken: Int = 0
     @State private var reimportFailureFeedbackToken: Int = 0
@@ -494,6 +496,9 @@ public struct RecipePage: View {
         .sheet(isPresented: $showingAddToShoppingSheet) {
             RecipeToShoppingListFlowView(recipe: viewModel.recipe)
         }
+        .sheet(isPresented: $isProPaywallPresented) {
+            ProPaywallView()
+        }
         .sheet(isPresented: $showReimportStatusSheet, onDismiss: dismissReimportStatusSheet) {
             RecipeReimportStatusSheet(
                 statusTitle: "Re-importing your recipe",
@@ -638,7 +643,11 @@ extension RecipePage {
     @MainActor
     private func presentReimportConfirmationDialog() {
         switch reimportPlan {
-        case .webURL:
+        case .webURL(let sourceURL):
+            if SocialRecipeSource.isSupported(sourceURL) && !hasSocialRecipeImportProAccess {
+                isProPaywallPresented = true
+                return
+            }
             showReimportConfirmation = true
         case .unavailable(let reason):
             reimportFailureFeedbackToken += 1
@@ -958,8 +967,12 @@ extension RecipePage {
     }
 
     private func mapReimportError(_ error: Error, sourceURL: URL) -> String {
-        if isLikelyVideoSourceURL(sourceURL) {
-            return "This looks like a video source link, which can fail to parse for re-import. Try re-importing from the original app export file (for example, a Pestle export)."
+        if SocialRecipeSource.isSupported(sourceURL) {
+            return "We couldn't re-import from that social link right now. Check the Reel or TikTok is still available, then try again."
+        }
+
+        if SocialRecipeSource.isLikelyVideo(sourceURL) {
+            return "This looks like a video source link, which can fail to parse for re-import. Try re-importing from the original app export file."
         }
 
         if error is DecodingError {
@@ -979,24 +992,12 @@ extension RecipePage {
         return description
     }
 
-    private func isLikelyVideoSourceURL(_ sourceURL: URL) -> Bool {
-        guard let host = sourceURL.host?.lowercased() else { return false }
-
-        let videoHosts = [
-            "youtube.com",
-            "youtu.be",
-            "tiktok.com",
-            "instagram.com",
-            "facebook.com",
-            "fb.watch",
-            "vimeo.com"
-        ]
-
-        return videoHosts.contains { host == $0 || host.hasSuffix(".\($0)") }
-    }
-    
     private var recipeChatEnabled: Bool {
         flagKit.isEnabled(.recipeChatEnabled, default: false)
+    }
+
+    private var hasSocialRecipeImportProAccess: Bool {
+        flagKit.isEnabled(.recipeSocialImportPro, default: proAccess.hasProAccess)
     }
     
     private var recipeChatSeperateTab: Bool {

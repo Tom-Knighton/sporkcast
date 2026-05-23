@@ -18,15 +18,21 @@ import Design
 struct WithNavigationDestinations<Content: View>: View {
     let namespace: Namespace.ID
     @Binding var pendingSharedImportURL: URL?
+    let recipeOrganizationFeatureAccessFallback: Bool
+    let socialRecipeImportFeatureAccessFallback: Bool
     let content: () -> Content
 
     init(
         namespace: Namespace.ID,
         pendingSharedImportURL: Binding<URL?> = .constant(nil),
+        recipeOrganizationFeatureAccessFallback: Bool = false,
+        socialRecipeImportFeatureAccessFallback: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.namespace = namespace
         self._pendingSharedImportURL = pendingSharedImportURL
+        self.recipeOrganizationFeatureAccessFallback = recipeOrganizationFeatureAccessFallback
+        self.socialRecipeImportFeatureAccessFallback = socialRecipeImportFeatureAccessFallback
         self.content = content
     }
 
@@ -38,7 +44,9 @@ struct WithNavigationDestinations<Content: View>: View {
                 case let .recipes(folderID):
                     RecipeListPage(
                         pendingSharedImportURL: $pendingSharedImportURL,
-                        initialFolderID: folderID
+                        initialFolderID: folderID,
+                        recipeOrganizationFeatureAccessFallback: recipeOrganizationFeatureAccessFallback,
+                        socialRecipeImportFeatureAccessFallback: socialRecipeImportFeatureAccessFallback
                     )
                 case let .recipe(recipe, suffix):
                     RecipePage(

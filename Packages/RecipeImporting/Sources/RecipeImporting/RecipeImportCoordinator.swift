@@ -25,7 +25,11 @@ public actor RecipeImportCoordinator: RecipeImporting {
 
         switch source {
         case .webURL(let url):
-            parsedRecords = try await parseFromWeb(url: url, homeId: homeId)
+            if SocialRecipeSource.isSupported(url) {
+                parsedRecords = try await parseFromSocialWeb(url: url, homeId: homeId)
+            } else {
+                parsedRecords = try await parseFromWeb(url: url, homeId: homeId)
+            }
         case .fileURL(let url, let vendorHint):
             parsedRecords = try fileParser.parse(fileURL: url, vendorHint: vendorHint)
         case .markdownText(let text):
@@ -154,6 +158,71 @@ public actor RecipeImportCoordinator: RecipeImporting {
             throw RecipeImportError.apiReturnedNoRecipe
         }
 
+        return parsedRecords(from: recipeDTO, homeId: homeId, sourceURL: url)
+    }
+
+    private func parseFromSocialWeb(url: URL, homeId: UUID?) async throws -> [ParsedImportRecord] {
+        do {
+            return try await parseFromWeb(url: url, homeId: homeId)
+        } catch {
+            return try await parseFromSocialPage(url: url, homeId: homeId)
+        }
+    }
+
+    private func parseFromSocialPage(url: URL, homeId: UUID?) async throws -> [ParsedImportRecord] {
+        let html = try await fetchSocialPageHTML(from: url)
+        guard let content = SocialRecipePageExtractor.extractRecipeContent(from: html) else {
+            throw RecipeImportError.noRecipesDetected
+        }
+        let recipeText = content.recipeText
+
+        let records = MarkdownRecipeParser().parse(recipeText)
+        if !records.isEmpty {
+            return records.map {
+                var record = $0
+                record.sourceURL = url.absoluteString
+                record.imageURL = content.imageURL
+
+                return ParsedImportRecord(
+                    record: record,
+                    provenance: RecipeImportProvenance(mode: .web, vendor: .web, sourceHint: url.absoluteString),
+                    rawText: recipeText
+                )
+            }
+        }
+
+        let recipeDTO: RecipeDTO? = try await client.post(Recipes.uploadFromText(text: recipeText, sourceHint: url.absoluteString))
+        guard let recipeDTO else {
+            throw RecipeImportError.apiReturnedNoRecipe
+        }
+
+        return parsedRecords(from: recipeDTO, homeId: homeId, sourceURL: url).map {
+            var parsed = $0
+            parsed.record.sourceURL = url.absoluteString
+            parsed.record.imageURL = parsed.record.imageURL ?? content.imageURL
+            return parsed
+        }
+    }
+
+    private func fetchSocialPageHTML(from url: URL) async throws -> String {
+        var request = URLRequest(url: url)
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode),
+              let html = String(data: data, encoding: .utf8) else {
+            throw RecipeImportError.unreadableFile
+        }
+
+        return html
+    }
+
+    private func parsedRecords(from recipeDTO: RecipeDTO, homeId: UUID?, sourceURL: URL) -> [ParsedImportRecord] {
         let recipe = recipeDTO.toImportedRecipe(homeId: homeId)
         let rawLines = [recipe.title]
             + recipe.ingredientSections.flatMap { $0.ingredients.map(\.ingredientText) }
@@ -187,7 +256,7 @@ public actor RecipeImportCoordinator: RecipeImporting {
         return [
             ParsedImportRecord(
                 record: record,
-                provenance: RecipeImportProvenance(mode: .web, vendor: .web, sourceHint: url.absoluteString),
+                provenance: RecipeImportProvenance(mode: .web, vendor: .web, sourceHint: sourceURL.absoluteString),
                 rawText: rawLines.joined(separator: "\n")
             )
         ]

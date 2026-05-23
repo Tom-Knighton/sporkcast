@@ -45,6 +45,278 @@ import Models
     #expect(descriptor?.key == "abc123")
 }
 
+@Test func socialRecipeSourceDetectsSupportedHosts() throws {
+    let instagramURL = try #require(URL(string: "https://www.instagram.com/reel/ABC123/"))
+    let tikTokURL = try #require(URL(string: "https://www.tiktok.com/@chef/video/123"))
+    let recipeURL = try #require(URL(string: "https://example.com/recipe"))
+
+    #expect(SocialRecipeSource.isSupported(instagramURL))
+    #expect(SocialRecipeSource.isSupported(tikTokURL))
+    #expect(SocialRecipeSource.isSupported(recipeURL) == false)
+}
+
+@Test func socialRecipePageExtractorReadsTikTokRecipeDescription() throws {
+    let html = """
+    <script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">
+    {
+      "__DEFAULT_SCOPE__": {
+        "webapp.video-detail": {
+          "itemInfo": {
+            "itemStruct": {
+              "desc": "LAZY GIRL DINNER Episode 8: one pot bacon & broccoli rigatoni Ingredients ∙ 5 rashers of bacon, diced ∙ 2 cloves garlic, minced ∙ 2 cups dry rigatoni pasta Instructions 1. Cook bacon until crispy. 2. Add garlic, pasta, cream, stock, salt, pepper, and chili flakes. 3. Add broccoli and cook until soft.",
+              "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-alisg-p-0037/sample~tplv-tiktokx-origin.image?x-expires=1779570000",
+              "coverLarge": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast2a-avt-0068-euttp/avatar~tplv-tiktokx-cropcenter:1080:1080.jpeg"
+            }
+          }
+        }
+      }
+    }
+    </script>
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+
+    #expect(text.contains("## Ingredients"))
+    #expect(text.contains("## Instructions"))
+    #expect(records.count == 1)
+    #expect(records[0].ingredientSections.flatMap(\.ingredients).contains("5 rashers of bacon, diced"))
+    #expect(records[0].stepSections.flatMap(\.steps).contains("Cook bacon until crispy."))
+    #expect(SocialRecipePageExtractor.extractImageURL(from: html) == "https://p16-common-sign.tiktokcdn-eu.com/tos-alisg-p-0037/sample~tplv-tiktokx-origin.image?x-expires=1779570000")
+}
+
+@Test func socialRecipePageExtractorStructuresInlineTikTokCaption() throws {
+    let html = """
+    <script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">
+    {
+      "__DEFAULT_SCOPE__": {
+        "webapp.reflow.video.detail": {
+          "itemInfo": {
+            "itemStruct": {
+              "desc": "Sausage, Feta & Red Onion Plait I know Sundays are for roast dinners, but every so often I fancy something a little bit different. I've written up the recipe below. Feeds 4-6 Oil for frying 1 large red onion finely sliced 1 tbsp caramel syrup (used in iced coffee) or maple syrup 450g lincolnshire or cumberland sausages 200g of feta crumbled 1 tbsp dried sage Ground black pepper A sheet of ready rolled puff pastry 1 egg beaten Heat a drizzle of oil in a large, non-stick pan. Add the onion and fry for 5 minutes on a medium heat, stirring regularly. Roll out the puff pastry. Place the filling lengthways down the centre of the pastry. Bake at 200C for 25-30 mins or until the sausage is cooked through. #recipes #roast",
+              "video": {
+                "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-no1a-p-0037-no/sample~tplv-tiktokx-origin.image?x-expires=1779656400"
+              }
+            }
+          }
+        }
+      }
+    }
+    </script>
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "Sausage, Feta & Red Onion Plait")
+    #expect(ingredients == [
+        "Oil for frying",
+        "1 large red onion finely sliced",
+        "1 tbsp caramel syrup (used in iced coffee) or maple syrup",
+        "450g lincolnshire or cumberland sausages",
+        "200g of feta crumbled",
+        "1 tbsp dried sage",
+        "Ground black pepper",
+        "A sheet of ready rolled puff pastry",
+        "1 egg beaten"
+    ])
+    #expect(steps.contains(where: { $0.hasPrefix("Heat a drizzle of oil") }))
+    #expect(steps.contains(where: { $0.hasPrefix("Bake at 200C") }))
+}
+
+@Test func socialRecipePageExtractorSeparatesInstagramRecipeParagraphFromIngredients() throws {
+    let html = """
+    <meta name="description" content="382K likes, 537 comments - foodiligence on December 6, 2025: &quot;New York Times Top 50 Recipes of 2025 | Hoisin Garlic Noodles&#xa0;by &#064;nytcooking &#064;hettymckinnon
+
+    Ingredients
+
+    &#x2022; 14 oz dried wheat or egg noodles
+    &#x2022; 3 tbsp hoisin sauce
+    &#x2022; 2 tbsp soy sauce
+    &#x2022; 1 tbsp toasted sesame oil
+    &#x2022; 1 tbsp maple syrup
+    &#x2022; 3 tbsp neutral oil
+    &#x2022; 8 garlic cloves, thinly sliced
+    &#x2022; 4 scallions, white and green parts separated
+    &#x2022; Sesame seeds
+    &#x2022; Salt &amp; pepper
+
+    Cook the noodles in salted boiling water until al dente, then drain and rinse to cool. Mix hoisin, soy sauce, sesame oil, and maple syrup in a small bowl. Heat oil in a large skillet, add the garlic and white scallion parts, and cook until fragrant, then quickly pour in the sauce and add the noodles, tossing to coat. Let the noodles cook undisturbed until the bottom turns crispy, 2 to 3 minutes, then season to taste. Serve topped with sesame seeds and the green scallion parts.&quot;. " />
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "New York Times Top 50 Recipes of 2025 | Hoisin Garlic Noodles by @nytcooking @hettymckinnon")
+    #expect(ingredients.contains("14 oz dried wheat or egg noodles"))
+    #expect(ingredients.contains("Salt & pepper"))
+    #expect(ingredients.contains(where: { $0.hasPrefix("Cook the noodles") }) == false)
+    #expect(steps.contains(where: { $0.hasPrefix("Cook the noodles") }))
+    #expect(steps.contains(where: { $0.hasPrefix("Serve topped") }))
+}
+
+@Test func socialRecipePageExtractorDetectsInstagramForTheSectionsAsIngredients() throws {
+    let html = """
+    <meta name="description" content="276K likes, 217 comments - zachs.foods on March 6, 2026: &quot;One Pot Creamy Cajun Sausage Pasta!
+
+    #pasta #onepotmeal #easyrecipe #recipe #dinneridea
+
+    For the Pasta:
+    1 lb cajun style sausage
+    1/2 yellow onion
+    1 red bell pepper
+    1 14oz can of fire roasted tomatoes
+    2 garlic cloves
+    2-3 cups beef broth
+    8-10 oz pasta
+    1/2 cup heavy cream
+    3 oz cream cheese
+
+    For the Cajun Seasoning:
+    1 tsp salt
+    1 tsp pepper
+    1 tsp paprika
+    1/2 tsp cumin
+    1/2 tsp thyme
+    1 tsp garlic powder
+    1 tsp onion powder
+    1/2 tsp cayenne&quot;. " />
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "One Pot Creamy Cajun Sausage Pasta!")
+    #expect(text.contains("## Ingredients"))
+    #expect(ingredients.count == 17)
+    #expect(ingredients.contains("1 lb cajun style sausage"))
+    #expect(ingredients.contains("1/2 tsp cayenne"))
+    #expect(steps.isEmpty)
+}
+
+@Test func socialRecipePageExtractorHandlesInstagramRecipeHeadingWithNamedIngredientBlocks() throws {
+    let html = """
+    <meta name="description" content="173K likes, 262 comments - lauras__bakery__ on February 25, 2026: &quot;Brownie batter stuffed banana bread &#x1f90e;&#x1f34c; and yes it&#x2019;s as good as it looks!
+
+    Recipe:
+
+    Fudgy Brownie Center:
+    (Thick enough so it doesn&#x2019;t disappear into the bread)
+
+    &#xbd; cup unsalted butter (melted)
+    &#xbd; cup granulated sugar
+    &#xbc; cup brown sugar
+    1 large egg
+    1 tsp vanilla
+    &#xbd; cup cocoa powder
+    &#x2153; cup all-purpose flour
+    &#xbc; tsp salt
+    &#xbd; cup chocolate chips
+
+    Banana Bread:
+    3 ripe bananas (mashed)
+    &#xbd; cup unsalted butter (melted) (or oil)
+    &#xbe; cup brown sugar
+    1 large egg
+    1 tsp vanilla
+    1 &#xbd; cups all-purpose flour
+    1 tsp baking soda
+    &#xbd; tsp salt
+
+    -Preheat oven to 350&#xb0;F. Line a 9x5 loaf pan with parchment paper or grease well.
+    Brownie center:
+    -Mix melted butter + sugars until well combined.
+    -Add egg + vanilla. Mix until smooth.
+    -Stir in flour, cocoa, and salt. Mix until just combined.
+    -Fold in chocolate chips.
+    -Place in the fridge while you make banana batter (this helps it stay thick and fudgy).
+
+    Banana batter:
+    -Mix mashed bananas, butter, sugar, egg, vanilla until well combined.
+    -Stir in flour, baking soda, and salt. Mix until just combined.
+    -Pour &#x2154; of banana batter into the pan.
+    -Spoon the chilled brownie batter in a thick line down the center (do not spread to edges).
+    -Cover with remaining banana batter.
+    -(Optional) sprinkle mini chocolate chips on top.
+    -Bake 55&#x2013;65 minutes. The top should be golden and set.
+    -Let cool at least 30&#x2013;45 minutes before slicing so the center sets slightly but stays gooey. Enjoy!!&quot;. " />
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "Brownie batter stuffed banana bread 🤎🍌 and yes it’s as good as it looks!")
+    #expect(ingredients.contains("½ cup unsalted butter (melted)"))
+    #expect(ingredients.contains("1 ½ cups all-purpose flour"))
+    #expect(ingredients.contains("Fudgy Brownie Center:") == false)
+    #expect(steps.contains(where: { $0.hasPrefix("Preheat oven to 350°F") }))
+    #expect(steps.contains(where: { $0.hasPrefix("Mix melted butter") }))
+    #expect(steps.contains("Brownie center:") == false)
+}
+
+@Test func socialRecipePageExtractorHandlesInstagramProcedureAndServingHeading() throws {
+    let html = """
+    <meta name="description" content="53K likes, 54 comments - gianlucaruggierichef on February 8, 2026: &quot;PASTA (square spaghetti) ALLA GRICIA
+
+    3 Ingredient Wonder Ep. 10
+
+    Back with another episode of the series where I make easy, delicious recipes with just 3 main ingredients (or less) plus pantry essentials!
+
+    This time, I’m making one of my all time favourite pastas!
+
+    INGREDIENTS (makes 1 portion)
+
+    Tonnarelli (or spaghetti/rigatoni) - 80g
+    Pecorino Romano - 5 spoonfuls
+    Guanciale - 100g
+    Black pepper - as needed
+
+    PROCEDURE
+
+    Start by cutting the guanciale into thin strips (remove the rind). In a pan over medium heat, render the guanciale until crispy and golden, letting the fat melt out (no added oil needed).
+
+    Once rendered, remove the crispy guanciale and set aside for topping later. Leave half of the fat in the pan and set half on the side.
+
+    Add some freshly ground black pepper in the pan with the remaining fat.
+
+    Meanwhile, cook your tonnarelli in lightly salted water.
+
+    In a bowl, mix the grated Pecorino Romano with some of the rendered guanciale fat and a splash of hot pasta water. Stir until it forms a smooth, creamy paste.
+
+    When the pasta is al dente, transfer it directly to the pan with the guanciale fat and pepper using tongs.
+
+    Turn off the heat, let it cool for a minute or two, then add the pecorino cream. Mix vigorously until the pasta is fully coated in the glossy sauce.&quot;. " />
+    """
+
+    let text = try #require(SocialRecipePageExtractor.extractRecipeText(from: html))
+    let records = MarkdownRecipeParser().parse(text)
+    let record = try #require(records.first)
+    let ingredients = record.ingredientSections.flatMap(\.ingredients)
+    let steps = record.stepSections.flatMap(\.steps)
+
+    #expect(record.title == "PASTA (square spaghetti) ALLA GRICIA")
+    #expect(ingredients == [
+        "Tonnarelli (or spaghetti/rigatoni) - 80g",
+        "Pecorino Romano - 5 spoonfuls",
+        "Guanciale - 100g",
+        "Black pepper - as needed"
+    ])
+    #expect(steps.contains(where: { $0.hasPrefix("Start by cutting the guanciale") }))
+    #expect(steps.contains(where: { $0.hasPrefix("Turn off the heat") }))
+}
+
 @Test func invalidSyntheticSourceURLDoesNotParse() {
     #expect(SyntheticSourceURL.parse("https://example.com") == nil)
     #expect(SyntheticSourceURL.parse("sporkcast://import") == nil)
@@ -105,6 +377,20 @@ import Models
     #expect((ratingInfo?.totalRatings ?? 0) > 0)
     #expect((ratingInfo?.ratings.count ?? 0) > 0)
     #expect(ratingInfo?.ratings.contains(where: { ($0.comment?.isEmpty == false) }) == true)
+}
+
+@Test func socialURLImportTriesURLParserBeforeLocalCaptionExtraction() async throws {
+    let client = RecordingClient()
+    let coordinator = RecipeImportCoordinator(client: client)
+
+    let sourceURL = try #require(URL(string: "https://www.instagram.com/reel/DVNBJSDEXgl/"))
+    let result = try await coordinator.prepareImport(from: .webURL(sourceURL), homeId: nil)
+
+    #expect(result.candidates.count == 1)
+
+    let paths = await client.paths()
+    #expect(paths.first == "Parser/Parse")
+    #expect(paths.contains("Parser/ParseText") == false)
 }
 
 @Test func pestleExtensionParsesWithPestleVendor() throws {

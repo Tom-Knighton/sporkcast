@@ -17,12 +17,15 @@ public struct RecipeFoldersPage: View {
 
     @State private var repository = RecipeOrganizationRepository()
     @State private var isProPaywallPresented = false
+    private let recipeOrganizationFeatureAccessFallback: Bool
 
     private var rootNodes: [RecipeFolderNode] {
         RecipeFolderNode.nodes(from: repository.folderSummaries(homeId: homes.home?.id))
     }
 
-    public init() {}
+    public init(recipeOrganizationFeatureAccessFallback: Bool = false) {
+        self.recipeOrganizationFeatureAccessFallback = recipeOrganizationFeatureAccessFallback
+    }
 
     public var body: some View {
         List {
@@ -76,7 +79,7 @@ public struct RecipeFoldersPage: View {
     }
 
     private var hasRecipeOrganizationProAccess: Bool {
-        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        flagKit.isEnabled(.recipeOrganizationPro, default: recipeOrganizationFeatureAccessFallback)
     }
 }
 

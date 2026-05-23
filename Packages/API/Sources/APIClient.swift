@@ -21,6 +21,7 @@ public final class APIClient: NetworkClient, Sendable {
     public enum ClientError: Error {
         case unexpectedError
         case invalidUrl
+        case httpError(statusCode: Int, message: String?)
     }
     
     private let host: String
@@ -90,12 +91,34 @@ public final class APIClient: NetworkClient, Sendable {
         let url = try makeURL(endpoint: endpoint)
         let request = makeURLRequest(url: url, endpoint: endpoint, httpMethod: method)
         let (data, httpResponse) = try await urlSession.data(for: request)
+        if let statusCode = (httpResponse as? HTTPURLResponse)?.statusCode,
+           !(200..<300).contains(statusCode) {
+            throw ClientError.httpError(statusCode: statusCode, message: errorMessage(from: data))
+        }
         
         if Entity.self is String.Type || Entity.self is Optional<String>.Type {
             return String(data: data, encoding: .utf8) as! Entity
         }
         
         return try decoder.decode(Entity.self, from: data)
+    }
+
+    private func errorMessage(from data: Data) -> String? {
+        guard !data.isEmpty else { return nil }
+
+        if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let error = payload["error"] as? String {
+                return error
+            }
+            if let message = payload["message"] as? String {
+                return message
+            }
+            if let title = payload["title"] as? String {
+                return title
+            }
+        }
+
+        return String(data: data, encoding: .utf8)
     }
     
     private func makeURL(endpoint: Endpoint) throws -> URL
@@ -128,5 +151,18 @@ public final class APIClient: NetworkClient, Sendable {
         }
         
         return request
+    }
+}
+
+extension APIClient.ClientError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .unexpectedError:
+            return "Something went wrong."
+        case .invalidUrl:
+            return "The API URL is invalid."
+        case .httpError(_, let message):
+            return message
+        }
     }
 }
