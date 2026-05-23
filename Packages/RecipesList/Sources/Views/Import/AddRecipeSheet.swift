@@ -73,10 +73,10 @@ enum AddRecipeAction: String, Identifiable, CaseIterable {
 
 struct AddRecipeSheet: View {
     let options: [AddRecipeAction]
+    let hasProAccess: Bool
     let onSelect: (AddRecipeAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.flagKit) private var flagKit
 
     private var addOptions: [AddRecipeAction] {
         options.filter { !$0.isImportAction }
@@ -107,6 +107,11 @@ struct AddRecipeSheet: View {
                             .padding(.top, addOptions.isEmpty ? 0 : 6)
 
                         optionStack(importOptions)
+                    }
+
+                    if !hasProAccess {
+                        SocialImportProHint()
+                            .padding(.top, 4)
                     }
                 }
                 .padding(16)
@@ -165,6 +170,31 @@ struct AddRecipeSheet: View {
                 .modifier(InteractiveGlassCard())
             }
         }
+    }
+}
+
+private struct SocialImportProHint: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "sparkles.tv")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Pro imports social recipes")
+                    .font(.footnote.weight(.semibold))
+
+                Text("Share Instagram Reels or TikToks to Sporkast, or paste their links as normal URLs.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -68,6 +68,7 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
     private static let apiKey = "appl_KQWYKmRLREkFTHMvhmyjqISPxKg"
     #endif
     
+    public static let entitlementIdentifier = "Sporkast Pro"
     public static let shared = ProAccessService(apiKey: apiKey)
 
     public private(set) var hasProAccess = false
@@ -77,7 +78,7 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
     public private(set) var errorMessage: String?
 
     @ObservationIgnored private let apiKey: String
-    @ObservationIgnored private let entitlementIdentifier = "Sporkast Pro"
+    @ObservationIgnored private let entitlementIdentifier = ProAccessService.entitlementIdentifier
     @ObservationIgnored private var hasConfigured = false
     @ObservationIgnored private var packagesByPlanID: [String: Package] = [:]
 

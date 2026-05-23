@@ -24,6 +24,8 @@ public struct RecipeListPage: View {
 
     @Binding private var pendingSharedImportURL: URL?
     private let initialFolderID: UUID?
+    private let recipeOrganizationFeatureAccessFallback: Bool
+    private let socialRecipeImportFeatureAccessFallback: Bool
     @State private var importState = RecipeListImportState()
     @State private var importSuccessFeedbackToken: Int = 0
     @State private var importFailureFeedbackToken: Int = 0
@@ -64,10 +66,14 @@ public struct RecipeListPage: View {
 
     public init(
         pendingSharedImportURL: Binding<URL?> = .constant(nil),
-        initialFolderID: UUID? = nil
+        initialFolderID: UUID? = nil,
+        recipeOrganizationFeatureAccessFallback: Bool = false,
+        socialRecipeImportFeatureAccessFallback: Bool = false
     ) {
         self._pendingSharedImportURL = pendingSharedImportURL
         self.initialFolderID = initialFolderID
+        self.recipeOrganizationFeatureAccessFallback = recipeOrganizationFeatureAccessFallback
+        self.socialRecipeImportFeatureAccessFallback = socialRecipeImportFeatureAccessFallback
         self._filters = State(initialValue: RecipeFilters(selectedFolderID: initialFolderID))
     }
 
@@ -102,10 +108,10 @@ public struct RecipeListPage: View {
         .toolbar { toolbarContent }
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search recipes, ingredients..."))
         .sheet(isPresented: $importState.isAddRecipeSheetPresented) {
-            AddRecipeSheet(options: addRecipeOptions) { action in
+            AddRecipeSheet(options: addRecipeOptions, hasProAccess: hasSocialRecipeImportProAccess) { action in
                 handleAddAction(action)
             }
-            .presentationDetents([.height(390)])
+            .presentationDetents([.height(hasSocialRecipeImportProAccess ? 340 : 430)])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $importState.isURLAddSheetPresented) {
@@ -168,6 +174,23 @@ public struct RecipeListPage: View {
                     }
                 }
             )
+        }
+        .sheet(isPresented: $importState.isPreviewEditSheetPresented) {
+            if let candidate = importState.previewCandidate {
+                RecipeImportPreviewEditSheet(
+                    candidate: candidate,
+                    onCancel: {
+                        importState.clearPreviewEdit()
+                    },
+                    onSave: { editedCandidate in
+                        importState.clearPreviewEdit()
+                        Task {
+                            await Task.yield()
+                            await processCandidates([editedCandidate])
+                        }
+                    }
+                )
+            }
         }
         .sheet(isPresented: $importState.isDuplicateResolutionPresented) {
             RecipeDuplicateResolutionSheet(
@@ -356,7 +379,11 @@ private extension RecipeListPage {
     }
 
     var hasRecipeOrganizationProAccess: Bool {
-        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        flagKit.isEnabled(.recipeOrganizationPro, default: recipeOrganizationFeatureAccessFallback)
+    }
+
+    var hasSocialRecipeImportProAccess: Bool {
+        flagKit.isEnabled(.recipeSocialImportPro, default: socialRecipeImportFeatureAccessFallback)
     }
 
     func sortedRecipes(_ recipes: [Recipe]) -> [Recipe] {
@@ -397,17 +424,27 @@ private extension RecipeListPage {
             return false
         }
 
-        startImport(from: .webURL(url))
-        return true
+        guard !isBlockedSocialImport(url) else {
+            importState.isURLAddSheetPresented = false
+            presentSocialImportPaywall()
+            return false
+        }
+
+        return startImport(from: .webURL(url))
     }
 
     @MainActor
-    func startImport(from source: RecipeImportSource) {
+    @discardableResult
+    func startImport(from source: RecipeImportSource) -> Bool {
+        guard canStartImport(from: source) else { return false }
+
         Task {
             await Task.yield()
             importState.beginImport(from: source)
             await runImportPreparation(from: source)
         }
+
+        return true
     }
 
     @MainActor
@@ -437,6 +474,8 @@ private extension RecipeListPage {
 
             if candidates.count > 1 {
                 importState.prepareSelection(with: candidates)
+            } else if shouldPreviewBeforeSaving(source: source), let candidate = candidates.first {
+                importState.preparePreviewEdit(with: candidate)
             } else {
                 await processCandidates(candidates)
             }
@@ -507,8 +546,39 @@ private extension RecipeListPage {
     @MainActor
     func importPendingSharedURLIfNeeded() {
         guard let sharedURL = pendingSharedImportURL else { return }
-        startImport(from: .webURL(sharedURL))
-        pendingSharedImportURL = nil
+        if startImport(from: .webURL(sharedURL)) {
+            pendingSharedImportURL = nil
+        }
+    }
+
+    func canStartImport(from source: RecipeImportSource) -> Bool {
+        switch source {
+        case .webURL(let url):
+            if isBlockedSocialImport(url) {
+                presentSocialImportPaywall()
+                return false
+            }
+            return true
+        case .fileURL, .markdownText, .webSelection, .ocrText:
+            return true
+        }
+    }
+
+    func shouldPreviewBeforeSaving(source: RecipeImportSource) -> Bool {
+        guard case .webURL(let url) = source else { return false }
+        return SocialRecipeSource.isSupported(url)
+    }
+
+    func isBlockedSocialImport(_ url: URL) -> Bool {
+        SocialRecipeSource.isSupported(url) && !hasSocialRecipeImportProAccess
+    }
+
+    @MainActor
+    func presentSocialImportPaywall() {
+        Task {
+            await Task.yield()
+            isProPaywallPresented = true
+        }
     }
 }
 

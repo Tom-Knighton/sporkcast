@@ -23,6 +23,8 @@ import ShoppingLists
 struct AppContent: View {
     private let appGroupSuiteName = "group.sporkcast"
     private let sharedImportURLDefaultsKey = "share.recipeImportURL.v1"
+    private static let recipeOrganizationFeatureAccessCacheKey = "features.recipeOrganizationPro.cached.v1"
+    private static let socialRecipeImportFeatureAccessCacheKey = "features.recipeSocialImportPro.cached.v1"
 
     @Namespace private var appRouterNamespace
     
@@ -43,12 +45,20 @@ struct AppContent: View {
     @State private var pendingSharedImportURL: URL?
     @State private var lastRoutedSharedImport: (url: String, at: Date)?
     @State private var didSeedRecipesStack = false
+    @State private var cachedRecipeOrganizationFeatureAccess: Bool
+    @State private var cachedSocialRecipeImportFeatureAccess: Bool
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
     
     public init() {
         self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
         self.flagKit = .init(mobileKey: "mob-0e75d9dd-fb2e-4080-b627-83dfaf403079", subscriptionTier: "free")
+        self._cachedRecipeOrganizationFeatureAccess = State(
+            initialValue: Self.cachedRecipeOrganizationFeatureAccess
+        )
+        self._cachedSocialRecipeImportFeatureAccess = State(
+            initialValue: Self.cachedSocialRecipeImportFeatureAccess
+        )
     }
     
     var body: some View {
@@ -56,22 +66,11 @@ struct AppContent: View {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(
                     namespace: appRouterNamespace,
-                    pendingSharedImportURL: $pendingSharedImportURL
+                    pendingSharedImportURL: $pendingSharedImportURL,
+                    recipeOrganizationFeatureAccessFallback: cachedRecipeOrganizationFeatureAccess,
+                    socialRecipeImportFeatureAccessFallback: cachedSocialRecipeImportFeatureAccess
                 ) {
-                    if hasRecipeOrganizationFeatureAccess {
-                        RecipeFoldersPage()
-                            .task {
-                                seedRecipesStackIfNeeded()
-                            }
-                            .onChange(of: appRouter.selectedTab) { _, _ in
-                                seedRecipesStackIfNeeded()
-                            }
-                    } else {
-                        RecipeListPage(pendingSharedImportURL: $pendingSharedImportURL)
-                            .onAppear {
-                                didSeedRecipesStack = false
-                            }
-                    }
+                    recipesRoot
                 }
             }
         } mealplans: {
@@ -172,6 +171,9 @@ struct AppContent: View {
         .onChange(of: proAccess.subscriptionTier, initial: true) { _, tier in
             flagKit.updateSubscriptionTier(tier)
         }
+        .onChange(of: flagKit.contextVersion, initial: true) { _, _ in
+            updateProFeatureAccessCachesIfNeeded()
+        }
     }
     
     @ViewBuilder
@@ -187,7 +189,29 @@ struct AppContent: View {
     }
 
     private var hasRecipeOrganizationFeatureAccess: Bool {
-        flagKit.isEnabled(.recipeOrganizationPro, default: false)
+        flagKit.isEnabled(.recipeOrganizationPro, default: cachedRecipeOrganizationFeatureAccess)
+    }
+
+    @ViewBuilder
+    private var recipesRoot: some View {
+        if hasRecipeOrganizationFeatureAccess {
+            RecipeFoldersPage(recipeOrganizationFeatureAccessFallback: cachedRecipeOrganizationFeatureAccess)
+                .task {
+                    seedRecipesStackIfNeeded()
+                }
+                .onChange(of: appRouter.selectedTab) { _, _ in
+                    seedRecipesStackIfNeeded()
+                }
+        } else {
+            RecipeListPage(
+                pendingSharedImportURL: $pendingSharedImportURL,
+                recipeOrganizationFeatureAccessFallback: cachedRecipeOrganizationFeatureAccess,
+                socialRecipeImportFeatureAccessFallback: cachedSocialRecipeImportFeatureAccess
+            )
+                .onAppear {
+                    didSeedRecipesStack = false
+                }
+        }
     }
 
     private func seedRecipesStackIfNeeded() {
@@ -197,7 +221,47 @@ struct AppContent: View {
         }
 
         didSeedRecipesStack = true
-        appRouter.navigateTo(.recipes())
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            appRouter.navigateTo(.recipes())
+        }
+    }
+
+    private static var cachedRecipeOrganizationFeatureAccess: Bool {
+        UserDefaults.appGroup.object(forKey: recipeOrganizationFeatureAccessCacheKey) as? Bool ?? false
+    }
+
+    private static var cachedSocialRecipeImportFeatureAccess: Bool {
+        UserDefaults.appGroup.object(forKey: socialRecipeImportFeatureAccessCacheKey) as? Bool ?? false
+    }
+
+    private func updateProFeatureAccessCachesIfNeeded() {
+        guard flagKit.hasStarted else { return }
+        updateRecipeOrganizationFeatureAccessCacheIfNeeded()
+        updateSocialRecipeImportFeatureAccessCacheIfNeeded()
+    }
+
+    private func updateRecipeOrganizationFeatureAccessCacheIfNeeded() {
+        let latestValue = flagKit.isEnabled(
+            .recipeOrganizationPro,
+            default: cachedRecipeOrganizationFeatureAccess
+        )
+        guard latestValue != cachedRecipeOrganizationFeatureAccess else { return }
+
+        cachedRecipeOrganizationFeatureAccess = latestValue
+        UserDefaults.appGroup.set(latestValue, forKey: Self.recipeOrganizationFeatureAccessCacheKey)
+    }
+
+    private func updateSocialRecipeImportFeatureAccessCacheIfNeeded() {
+        let latestValue = flagKit.isEnabled(
+            .recipeSocialImportPro,
+            default: cachedSocialRecipeImportFeatureAccess
+        )
+        guard latestValue != cachedSocialRecipeImportFeatureAccess else { return }
+
+        cachedSocialRecipeImportFeatureAccess = latestValue
+        UserDefaults.appGroup.set(latestValue, forKey: Self.socialRecipeImportFeatureAccessCacheKey)
     }
 }
 
@@ -243,7 +307,19 @@ extension AppContent {
 
         lastRoutedSharedImport = (absoluteURL, Date())
         appRouter.selectedTab = .recipes
+        showRecipesImportHostIfNeeded()
         pendingSharedImportURL = url
+    }
+
+    private func showRecipesImportHostIfNeeded() {
+        guard hasRecipeOrganizationFeatureAccess else { return }
+
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            appRouter[.recipes] = [.recipes()]
+        }
+        didSeedRecipesStack = true
     }
 
     private func consumePendingSharedImportURLFromDefaults() -> URL? {

@@ -10,6 +10,7 @@ final class ShareViewController: UIViewController {
 
     private let appGroupSuiteName = "group.sporkcast"
     private let sharedImportURLDefaultsKey = "share.recipeImportURL.v1"
+    private let socialRecipeImportFeatureAccessCacheKey = "features.recipeSocialImportPro.cached.v1"
 
     private var hasProcessedShare = false
     private var hasCompletedRequest = false
@@ -47,6 +48,12 @@ final class ShareViewController: UIViewController {
 
         guard let sharedURL = await firstSharedURL(in: items) else {
             applyState(.failed("Couldn't find a webpage URL to import."))
+            return
+        }
+
+        if isSupportedSocialRecipeURL(sharedURL) && !hasCachedSocialRecipeImportAccess {
+            importDeepLink = URL(string: "sporkcast://import-recipe")
+            applyState(.failed("Social recipe imports are included with Sporkast Pro. Open Sporkast to upgrade, then share this link again."))
             return
         }
 
@@ -91,10 +98,15 @@ final class ShareViewController: UIViewController {
 
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
            let value = await loadItem(from: provider, typeIdentifier: UTType.plainText.identifier),
-           let string = value as? String,
-           let url = URL(string: string.trimmingCharacters(in: .whitespacesAndNewlines)),
-           isWebURL(url) {
-            return url
+           let string = value as? String {
+            if let url = URL(string: string.trimmingCharacters(in: .whitespacesAndNewlines)),
+               isWebURL(url) {
+                return url
+            }
+
+            if let url = extractFirstWebURL(from: string) {
+                return url
+            }
         }
 
         return nil
@@ -119,6 +131,40 @@ final class ShareViewController: UIViewController {
     private func isWebURL(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
         return scheme == "http" || scheme == "https"
+    }
+
+    private func extractFirstWebURL(from text: String) -> URL? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return nil
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return detector
+            .matches(in: text, options: [], range: range)
+            .compactMap(\.url)
+            .first(where: isWebURL)
+    }
+
+    private var hasCachedSocialRecipeImportAccess: Bool {
+        UserDefaults(suiteName: appGroupSuiteName)?
+            .object(forKey: socialRecipeImportFeatureAccessCacheKey) as? Bool ?? false
+    }
+
+    private func isSupportedSocialRecipeURL(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        return isInstagram(host) || isTikTok(host)
+    }
+
+    private func isInstagram(_ host: String) -> Bool {
+        host == "instagram.com"
+            || host == "www.instagram.com"
+            || host.hasSuffix(".instagram.com")
+    }
+
+    private func isTikTok(_ host: String) -> Bool {
+        host == "tiktok.com"
+            || host == "www.tiktok.com"
+            || host.hasSuffix(".tiktok.com")
     }
 
     private func persistSharedURL(_ sharedURL: URL) {

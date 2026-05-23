@@ -22,6 +22,7 @@ struct RecipeListImportState {
 
     var isSelectionSheetPresented = false
     var isDuplicateResolutionPresented = false
+    var isPreviewEditSheetPresented = false
 
     var webURLInput = ""
     var markdownInput = ""
@@ -35,6 +36,7 @@ struct RecipeListImportState {
     var selectedImportAppSource: ImportAppSource?
 
     var preparedCandidates: [RecipeImportCandidate] = []
+    var previewCandidate: RecipeImportCandidate?
     var selectedCandidateIDs: Set<UUID> = []
     var duplicateMatches: [UUID: DuplicateMatch] = [:]
 
@@ -55,6 +57,8 @@ struct RecipeListImportState {
         isImportStatusSheetPresented = true
         isSelectionSheetPresented = false
         isDuplicateResolutionPresented = false
+        isPreviewEditSheetPresented = false
+        previewCandidate = nil
     }
 
     mutating func presentFailure(_ message: String) {
@@ -95,6 +99,16 @@ struct RecipeListImportState {
         isSelectionSheetPresented = true
     }
 
+    mutating func preparePreviewEdit(with candidate: RecipeImportCandidate) {
+        previewCandidate = candidate
+        isPreviewEditSheetPresented = true
+    }
+
+    mutating func clearPreviewEdit() {
+        isPreviewEditSheetPresented = false
+        previewCandidate = nil
+    }
+
     mutating func prepareDuplicateResolution(
         candidates: [RecipeImportCandidate],
         duplicates: [UUID: DuplicateMatch]
@@ -107,12 +121,14 @@ struct RecipeListImportState {
     mutating func clearImportArtifactsAfterSuccess() {
         isSelectionSheetPresented = false
         isDuplicateResolutionPresented = false
+        isPreviewEditSheetPresented = false
         webURLInput = ""
         markdownInput = ""
         webSelectionInput = ""
         activeImportSource = nil
         selectedImportAppSource = nil
         preparedCandidates = []
+        previewCandidate = nil
         selectedCandidateIDs = []
         duplicateMatches = [:]
     }

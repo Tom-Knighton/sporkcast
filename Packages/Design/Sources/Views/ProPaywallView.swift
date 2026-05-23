@@ -28,7 +28,7 @@ public struct ProPaywallView: View {
             NavigationStack {
                 if let completion {
                     ScrollView {
-                        ProThankYouView(completion: completion, done: dismiss.callAsFunction)
+                        ProThankYouView(completion: completion, done: finish)
                             .frame(maxWidth: .infinity)
                     }
                     .background(Color.layer1.ignoresSafeArea())
@@ -40,10 +40,17 @@ public struct ProPaywallView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(completion == nil ? "Close" : "Done", action: dismiss.callAsFunction)
+                    Button(completion == nil ? "Close" : "Done") {
+                        if completion == nil {
+                            dismiss()
+                        } else {
+                            finish()
+                        }
+                    }
                 }
             }
         }
+        .interactiveDismissDisabled(completion != nil)
         .task {
             await proAccess.refresh()
         }
@@ -56,26 +63,35 @@ public struct ProPaywallView: View {
 
     private var revenueCatPaywall: some View {
         PaywallView(displayCloseButton: false)
-            .onPurchaseCompleted { _ in
-                complete(.purchase)
+            .onPurchaseCompleted { customerInfo in
+                complete(.purchase, customerInfo: customerInfo)
             }
-            .onRestoreCompleted { _ in
-                complete(.restore)
+            .onRestoreCompleted { customerInfo in
+                complete(.restore, customerInfo: customerInfo)
             }
     }
 
-    private func complete(_ completion: ProPaywallCompletion) {
+    private func complete(_ completion: ProPaywallCompletion, customerInfo: CustomerInfo) {
+        guard customerInfo.entitlements[ProAccessService.entitlementIdentifier]?.isActive == true else {
+            presentCompletionOrError(completion, hasProAccess: false)
+            return
+        }
+
+        presentCompletionOrError(completion, hasProAccess: true)
+    }
+
+    private func finish() {
         Task {
             await proAccess.refresh()
             flagKit.updateSubscriptionTier(proAccess.subscriptionTier)
             await MainActor.run {
-                presentCompletionOrError(completion)
+                dismiss()
             }
         }
     }
 
-    private func presentCompletionOrError(_ completion: ProPaywallCompletion) {
-        if proAccess.hasProAccess {
+    private func presentCompletionOrError(_ completion: ProPaywallCompletion, hasProAccess: Bool) {
+        if hasProAccess {
             withAnimation(.spring(duration: 0.45)) {
                 self.completion = completion
             }
@@ -106,9 +122,9 @@ private enum ProPaywallCompletion {
     var message: String {
         switch self {
         case .purchase:
-            return "Thanks for supporting Sporkast. Folders, subfolders, tags, and pro search are ready on this device."
+            return "Thanks for supporting Sporkast. Folders, subfolders, tags, social recipe imports, and pro search are ready on this device."
         case .restore:
-            return "Your Pro access is active again. Folders, subfolders, tags, and pro search are ready on this device."
+            return "Your Pro access is active again. Folders, subfolders, tags, social recipe imports, and pro search are ready on this device."
         }
     }
 }

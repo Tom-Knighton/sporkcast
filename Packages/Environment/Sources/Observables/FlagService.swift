@@ -28,6 +28,7 @@ public enum FeatureFlag: String, Sendable {
     case recipeChatSeperateTab = "recipe_chat_seperate_tab"
     case appCollapseTabBar = "app-collapse-tab-bar"
     case recipeOrganizationPro = "recipe-organization-pro"
+    case recipeSocialImportPro = "pro-social-imports"
 }
 
 public protocol FlagServiceProtocol: Sendable {
