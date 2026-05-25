@@ -61,7 +61,10 @@ public final class RecipeOrganizationRepository {
     @FetchAll(DBRecipeTagAssignment.all) private var dbTagAssignments: [DBRecipeTagAssignment]
 
     public var folders: [RecipeFolder] {
-        let parentIDsByChildID = Dictionary(uniqueKeysWithValues: dbFolderHierarchy.map { ($0.childFolderId, $0.parentFolderId) })
+        let parentIDsByChildID = Dictionary(
+            dbFolderHierarchy.map { ($0.childFolderId, $0.parentFolderId) },
+            uniquingKeysWith: { existing, _ in existing }
+        )
         return dbFolders
             .map { $0.toDomainModel(parentFolderId: parentIDsByChildID[$0.id]) }
             .sorted {

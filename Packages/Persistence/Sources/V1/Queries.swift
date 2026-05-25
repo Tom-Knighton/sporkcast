@@ -230,6 +230,27 @@ public extension DBMealplanEntry {
         
         return query
     }
+
+    static var full: FullSelect {
+        let base = DBMealplanEntry
+            .group(by: \.id)
+            .order(by: \.date)
+
+        let withRecipe = base.leftJoin(DBRecipe.all) {
+            $0.recipeId.eq($1.id)
+        }
+
+        let withImage = withRecipe.leftJoin(DBRecipeImage.all) {
+            $0.recipeId.eq($2.recipeId)
+        }
+
+        let query = withImage
+            .select {
+                return FullDBMealplanEntry.Columns(mealplanEntry: $0, recipe: $1, image: $2)
+            }
+
+        return query
+    }
 }
 
 public extension DBShoppingList {

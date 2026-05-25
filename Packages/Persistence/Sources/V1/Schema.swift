@@ -472,6 +472,30 @@ public struct DBShoppingListItemReminderLink: Codable, Identifiable, Sendable, E
     }
 }
 
+@Table("MealplanEntryCalendarEventLinks")
+public struct DBMealplanEntryCalendarEventLink: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let mealplanEntryId: UUID
+    public let eventIdentifier: String
+    public let eventExternalIdentifier: String?
+    public let lastSyncedAt: Date
+
+    public init(
+        id: UUID,
+        mealplanEntryId: UUID,
+        eventIdentifier: String,
+        eventExternalIdentifier: String?,
+        lastSyncedAt: Date
+    ) {
+        self.id = id
+        self.mealplanEntryId = mealplanEntryId
+        self.eventIdentifier = eventIdentifier
+        self.eventExternalIdentifier = eventExternalIdentifier
+        self.lastSyncedAt = lastSyncedAt
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -704,6 +728,106 @@ public struct SchemaV1 {
                 e.column("parentFolderId", .text).notNull().references("RecipeFolders", onDelete: .cascade).indexed()
                 e.column("childFolderId", .text).notNull().references("RecipeFolders", onDelete: .cascade).indexed()
             }
+        }
+
+        migrator.registerMigration("Create Mealplan Calendar Sync Tables") { db in
+            try db.create(table: "MealplanEntryCalendarEventLinks") { e in
+                e.primaryKey("id", .text)
+                e.column("mealplanEntryId", .text)
+                    .notNull()
+                    .indexed()
+                e.column("eventIdentifier", .text).notNull().indexed()
+                e.column("eventExternalIdentifier", .text).indexed()
+                e.column("lastSyncedAt", .date).notNull()
+            }
+        }
+
+        migrator.registerMigration("Repair Mealplan Calendar Sync Table") { db in
+            try db.execute(sql: """
+                CREATE TABLE MealplanEntryCalendarEventLinks_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    mealplanEntryId TEXT NOT NULL,
+                    eventIdentifier TEXT NOT NULL,
+                    eventExternalIdentifier TEXT,
+                    lastSyncedAt DATE NOT NULL
+                )
+                """)
+
+            try db.execute(sql: """
+                INSERT INTO MealplanEntryCalendarEventLinks_repaired (
+                    id,
+                    mealplanEntryId,
+                    eventIdentifier,
+                    eventExternalIdentifier,
+                    lastSyncedAt
+                )
+                SELECT
+                    id,
+                    mealplanEntryId,
+                    eventIdentifier,
+                    eventExternalIdentifier,
+                    lastSyncedAt
+                FROM MealplanEntryCalendarEventLinks
+                """)
+
+            try db.execute(sql: "DROP TABLE MealplanEntryCalendarEventLinks")
+            try db.execute(sql: "ALTER TABLE MealplanEntryCalendarEventLinks_repaired RENAME TO MealplanEntryCalendarEventLinks")
+            try db.execute(sql: "CREATE INDEX MealplanEntryCalendarEventLinks_on_mealplanEntryId ON MealplanEntryCalendarEventLinks(mealplanEntryId)")
+            try db.execute(sql: "CREATE INDEX MealplanEntryCalendarEventLinks_on_eventIdentifier ON MealplanEntryCalendarEventLinks(eventIdentifier)")
+            try db.execute(sql: "CREATE INDEX MealplanEntryCalendarEventLinks_on_eventExternalIdentifier ON MealplanEntryCalendarEventLinks(eventExternalIdentifier)")
+        }
+
+        migrator.registerMigration("Repair Recipe Folders Self Reference") { db in
+            try db.execute(sql: """
+                CREATE TABLE RecipeFolders_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    homeId TEXT REFERENCES Homes(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    symbolName TEXT NOT NULL DEFAULT 'folder',
+                    colorHex TEXT NOT NULL DEFAULT '#F59E0B',
+                    sortIndex INTEGER NOT NULL DEFAULT 0,
+                    createdAt DATE NOT NULL,
+                    modifiedAt DATE NOT NULL
+                )
+                """)
+
+            try db.execute(sql: """
+                INSERT INTO RecipeFolders_repaired (
+                    id,
+                    homeId,
+                    name,
+                    symbolName,
+                    colorHex,
+                    sortIndex,
+                    createdAt,
+                    modifiedAt
+                )
+                SELECT
+                    id,
+                    homeId,
+                    name,
+                    symbolName,
+                    colorHex,
+                    sortIndex,
+                    createdAt,
+                    modifiedAt
+                FROM RecipeFolders
+                """)
+
+            try db.execute(sql: "DROP TABLE RecipeFolders")
+            try db.execute(sql: "ALTER TABLE RecipeFolders_repaired RENAME TO RecipeFolders")
+            try db.execute(sql: "CREATE INDEX RecipeFolders_on_homeId ON RecipeFolders(homeId)")
+        }
+
+        migrator.registerMigration("Repair Duplicate Recipe Folder Hierarchy") { db in
+            try db.execute(sql: """
+                DELETE FROM RecipeFolderHierarchy
+                WHERE rowid NOT IN (
+                    SELECT MIN(rowid)
+                    FROM RecipeFolderHierarchy
+                    GROUP BY childFolderId
+                )
+                """)
         }
     }
 }

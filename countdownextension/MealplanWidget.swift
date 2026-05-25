@@ -242,7 +242,7 @@ private struct MealplanAccessoryInlineContent: View {
         if hasProAccess {
             Label(accessoryText, systemImage: "fork.knife")
         } else {
-            Label("Sporkast Pro needed", systemImage: "lock.fill")
+            Label("Pro mealplan widget", systemImage: "lock.fill")
         }
     }
 
@@ -277,7 +277,7 @@ private struct MealplanAccessoryRectangularContent: View {
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Text("This widget needs Sporkast Pro")
+                Text("Pro mealplan widget")
                     .font(.body)
                     .lineLimit(2)
             }
@@ -316,12 +316,12 @@ private struct MealplanLockedView: View {
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
 
-            Text("This widget needs Sporkast Pro")
+            Text("Pro mealplan widget")
                 .font(.headline)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
 
-            Text("Open Sporkast to upgrade and show your mealplan here.")
+            Text("Upgrade to show mealplans here, plus unlock Calendar sync, weather, discovery, social imports, and folders.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)

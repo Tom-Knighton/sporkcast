@@ -371,7 +371,7 @@ final class ShareViewController: UIViewController {
             eyebrowLabel.isHidden = false
             benefitStack.isHidden = false
             titleLabel.text = "Import reels with Pro"
-            statusLabel.text = "Save the recipe from this TikTok or Instagram Reel without copying ingredients by hand."
+            statusLabel.text = "Save the recipe from this TikTok or Instagram Reel without copying ingredients by hand, plus unlock organization, discovery, weather, widgets, and Calendar sync."
             openButton.configuration?.title = "See Sporkast Pro"
             doneButton.configuration?.title = "Not now"
             openButton.isHidden = false

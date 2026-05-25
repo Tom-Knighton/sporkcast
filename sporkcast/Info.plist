@@ -21,6 +21,10 @@
 	<string>Set timers for recipe steps</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Show local weather in meal planning and improve recipe discovery suggestions.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Sync your mealplans with Apple Calendar.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Sync your mealplans with Apple Calendar.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

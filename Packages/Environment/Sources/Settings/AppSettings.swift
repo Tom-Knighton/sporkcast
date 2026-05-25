@@ -15,6 +15,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var remindersSyncEnabled: Bool = false
     public var remindersCalendarIdentifier: String?
     public var remindersNeedsGroceriesSetupPrompt: Bool = false
+    public var mealplanCalendarSyncEnabled: Bool = false
+    public var mealplanCalendarIdentifier: String?
     public var enableWebSelectionImport: Bool = false
     public var enableOcrImport: Bool = false
     public var showMealplanWeather: Bool = false
@@ -40,6 +42,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case remindersSyncEnabled
         case remindersCalendarIdentifier
         case remindersNeedsGroceriesSetupPrompt
+        case mealplanCalendarSyncEnabled
+        case mealplanCalendarIdentifier
         case enableWebSelectionImport
         case enableOcrImport
         case showMealplanWeather
@@ -63,6 +67,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
         remindersSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .remindersSyncEnabled) ?? false
         remindersCalendarIdentifier = try container.decodeIfPresent(String.self, forKey: .remindersCalendarIdentifier)
         remindersNeedsGroceriesSetupPrompt = try container.decodeIfPresent(Bool.self, forKey: .remindersNeedsGroceriesSetupPrompt) ?? false
+        mealplanCalendarSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .mealplanCalendarSyncEnabled) ?? false
+        mealplanCalendarIdentifier = try container.decodeIfPresent(String.self, forKey: .mealplanCalendarIdentifier)
         enableWebSelectionImport = try container.decodeIfPresent(Bool.self, forKey: .enableWebSelectionImport) ?? false
         enableOcrImport = try container.decodeIfPresent(Bool.self, forKey: .enableOcrImport) ?? false
         showMealplanWeather = try container.decodeIfPresent(Bool.self, forKey: .showMealplanWeather) ?? false

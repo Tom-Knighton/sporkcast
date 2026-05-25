@@ -440,7 +440,7 @@ private struct RecipeDiscoveryHeader: View {
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(hasAccess ? .yellow : .secondary)
                 .accessibilityHidden(true)
-            Text(hasAccess ? "New ideas from sources that fit your cookbook." : "Available with Sporkast Pro.")
+            Text(hasAccess ? "New ideas from sources that fit your cookbook." : "Recipe discovery is included with Sporkast Pro.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -512,7 +512,7 @@ private struct RecipeDiscoveryLockedView: View {
                 Text("Fresh ideas for your cookbook")
                     .font(.title2.bold())
 
-                Text("Discover recipes from trusted sources, add them in one tap, and keep your feed tuned as you cook.")
+                Text("Discover recipes from trusted sources, add them in one tap, and use weather context when it helps. Pro also includes organization, social imports, widgets, and Calendar sync.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
