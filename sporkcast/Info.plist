@@ -19,6 +19,8 @@
 	<true/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Set timers for recipe steps</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Show local weather in meal planning and improve recipe discovery suggestions.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

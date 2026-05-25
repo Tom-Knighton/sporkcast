@@ -37,15 +37,23 @@ public struct MealplanRowView: View {
     public let day: Date
     public let entries: [MealplanEntry]
     public let currentDate: Date
+    public let weather: MealplanWeatherForecast?
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
     }
     
-    public init(for day: Date, with entries: [MealplanEntry], currentDate: Date, isDraggingEntry: Binding<Bool>) {
+    public init(
+        for day: Date,
+        with entries: [MealplanEntry],
+        currentDate: Date,
+        weather: MealplanWeatherForecast? = nil,
+        isDraggingEntry: Binding<Bool>
+    ) {
         self.day = day
         self.entries = entries
         self.currentDate = currentDate
+        self.weather = weather
         self._isDragging = isDraggingEntry
     }
     
@@ -57,8 +65,13 @@ public struct MealplanRowView: View {
                 .allowsHitTesting(false)
             VStack(spacing: 0) {
                 HStack {
-                    Text(dayTitle(for: day))
-                        .bold()
+                    HStack(spacing: 8) {
+                        Text(dayTitle(for: day))
+                            .bold()
+                        if let weather {
+                            MealplanWeatherBadge(weather: weather)
+                        }
+                    }
                     Spacer()
                     
                     if !isInPast {
@@ -332,6 +345,22 @@ public struct MealplanRowView: View {
         } catch {
             print(error)
         }
+    }
+}
+
+private struct MealplanWeatherBadge: View {
+    let weather: MealplanWeatherForecast
+
+    var body: some View {
+        Label {
+            Text("\(Int(weather.temperatureC.rounded()))°")
+        } icon: {
+            Image(systemName: weather.symbolName)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .labelStyle(.titleAndIcon)
+        .accessibilityLabel("\(weather.condition), \(Int(weather.temperatureC.rounded())) degrees")
     }
 }
 

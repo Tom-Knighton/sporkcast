@@ -15,6 +15,7 @@ public struct RecipeDiscoveryPage: View {
     @Environment(\.homeServices) private var homes
     @Environment(\.flagKit) private var flagKit
     @Environment(\.proAccess) private var proAccess
+    @Environment(\.calendar) private var calendar
     @Environment(\.openURL) private var openURL
 
     @State private var repository = RecipesRepository()
@@ -24,6 +25,7 @@ public struct RecipeDiscoveryPage: View {
     @State private var identity: DiscoveryIdentity?
     @State private var activeImportContext: RecipeDiscoveryImportContext?
     @State private var isProPaywallPresented = false
+    @State private var mealplanWeather = MealplanWeatherService.shared
     @State private var importSuccessFeedbackToken = 0
     @State private var importFailureFeedbackToken = 0
 
@@ -33,6 +35,10 @@ public struct RecipeDiscoveryPage: View {
 
     private var hasDiscoveryAccess: Bool {
         flagKit.isEnabled(.recipeDiscoveryPro, default: proAccess.hasProAccess)
+    }
+
+    private var hasWeatherAccess: Bool {
+        flagKit.isEnabled(.mealplanWeatherPro, default: proAccess.hasProAccess)
     }
 
     private var visibleSections: [DiscoveryFeedSection] {
@@ -175,6 +181,9 @@ private extension RecipeDiscoveryPage {
             self.identity = identity
 
             let signals = RecipeDiscoverySourceSignalBuilder.build(from: repository.recipes)
+            let weather = hasWeatherAccess
+                ? await mealplanWeather.discoveryWeatherContext(calendar: calendar)
+                : DiscoveryWeatherContext(season: RecipeDiscoverySeason.current())
             let response = try await discoveryRepository.feed(
                 DiscoveryFeedRequest(
                     installationId: identity.installationId,
@@ -182,7 +191,7 @@ private extension RecipeDiscoveryPage {
                     locale: Locale.current.identifier,
                     sourceDomains: signals.sourceDomains,
                     existingRecipeUrls: signals.existingRecipeUrls,
-                    weather: DiscoveryWeatherContext(season: RecipeDiscoverySeason.current()),
+                    weather: weather,
                     iCloudUserRecordNameHash: identity.iCloudUserRecordNameHash,
                     limit: 36
                 )

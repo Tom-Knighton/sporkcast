@@ -13,11 +13,16 @@ struct GeneralSettingsPage: View {
     
     @Environment(\.appSettings) private var store
     @Environment(\.flagKit) private var flagKit
+    @Environment(\.proAccess) private var proAccess
 
     private var visibleTabs: [AppTab] {
         AppTab.allCases.filter { tab in
             tab != .discovery || flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
         }
+    }
+
+    private var hasMealplanWeatherAccess: Bool {
+        flagKit.isEnabled(.mealplanWeatherPro, default: proAccess.hasProAccess)
     }
     
     var body: some View {
@@ -39,6 +44,12 @@ struct GeneralSettingsPage: View {
             Section("Import Features") {
                 Toggle("Enable Web Selection Import", isOn: store.binding(\.enableWebSelectionImport))
                 Toggle("Enable OCR Import", isOn: store.binding(\.enableOcrImport))
+            }
+
+            if hasMealplanWeatherAccess {
+                Section("Mealplan") {
+                    Toggle("Show Weather", isOn: store.binding(\.showMealplanWeather))
+                }
             }
         }
         .listStyle(.insetGrouped)

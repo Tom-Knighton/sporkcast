@@ -14,6 +14,9 @@ import Models
 public struct MealplanPage: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
+    @Environment(\.appSettings) private var appSettings
+    @Environment(\.flagKit) private var flagKit
+    @Environment(\.proAccess) private var proAccess
     
     @State private var startDate = MealplanPage.currentWeekRange(containing: .now).lowerBound
     @State private var endDate = MealplanPage.currentWeekRange(containing: .now).upperBound
@@ -21,6 +24,7 @@ public struct MealplanPage: View {
     @State private var scrollPosition: ScrollPosition = .init(id: 1)
     @State private var isDraggingEntry: Bool = false
     @State private var repository = MealplanRepository()
+    @State private var mealplanWeather = MealplanWeatherService.shared
     @State private var showingShoppingListFlow = false
     
     public init() {}
@@ -34,6 +38,11 @@ public struct MealplanPage: View {
         }
         return result
     }
+
+    private var shouldShowWeather: Bool {
+        appSettings.settings.showMealplanWeather
+            && flagKit.isEnabled(.mealplanWeatherPro, default: proAccess.hasProAccess)
+    }
     
     public var body: some View {
         ZStack {
@@ -45,7 +54,13 @@ public struct MealplanPage: View {
                             let mealplanEntries = repository.entries
                                 .filter { calendar.isDate($0.date, inSameDayAs: day)}
                                 .sorted(by: { $0.index < $1.index })
-                            MealplanRowView(for: day, with: mealplanEntries, currentDate: now, isDraggingEntry: $isDraggingEntry)
+                            MealplanRowView(
+                                for: day,
+                                with: mealplanEntries,
+                                currentDate: now,
+                                weather: shouldShowWeather ? mealplanWeather.forecast(for: day, calendar: calendar) : nil,
+                                isDraggingEntry: $isDraggingEntry
+                            )
                                 .id(day.formatted(date: .numeric, time: .omitted))
                                 .onAppear {
                                     extendDaysIfNeeded(currentDay: day)
@@ -83,6 +98,10 @@ public struct MealplanPage: View {
         }
         .task(id: [startDate, endDate]) {
             await updateQuery()
+            await updateWeatherIfNeeded()
+        }
+        .task(id: shouldShowWeather) {
+            await updateWeatherIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -94,6 +113,7 @@ public struct MealplanPage: View {
                 }
                 Task {
                     await updateQuery()
+                    await updateWeatherIfNeeded()
                 }
             }
         }
@@ -106,6 +126,7 @@ public struct MealplanPage: View {
             }
             Task {
                 await updateQuery()
+                await updateWeatherIfNeeded()
             }
         }
     }
@@ -125,6 +146,11 @@ public struct MealplanPage: View {
         } catch {
             print(error.localizedDescription)
         }
+    }
+
+    private func updateWeatherIfNeeded() async {
+        guard shouldShowWeather else { return }
+        await mealplanWeather.loadDailyForecasts(startDate: startDate, endDate: endDate, calendar: calendar)
     }
 
     private static func currentWeekRange(containing date: Date, calendar: Calendar = .current) -> ClosedRange<Date> {
