@@ -21,15 +21,18 @@ public struct RecipeStepsView: View {
     public let tint: Color
     public let completedIngredientIDs: Set<UUID>
     public let showMealplanShoppingTicks: Bool
+    public let showIngredientEmojis: Bool
     
     public init(
         tint: Color,
         completedIngredientIDs: Set<UUID> = [],
-        showMealplanShoppingTicks: Bool = false
+        showMealplanShoppingTicks: Bool = false,
+        showIngredientEmojis: Bool = true
     ) {
         self.tint = tint
         self.completedIngredientIDs = completedIngredientIDs
         self.showMealplanShoppingTicks = showMealplanShoppingTicks
+        self.showIngredientEmojis = showIngredientEmojis
     }
     
     public var body: some View {
@@ -111,7 +114,7 @@ public struct RecipeStepsView: View {
         HStack(spacing: 2) {
             if showCompletionTick {
                 Image(systemName: "checkmark")
-            } else if let emoji = ingredient.emoji {
+            } else if showIngredientEmojis, let emoji = ingredient.emoji {
                 Text(emoji)
             }
             
@@ -161,4 +164,3 @@ extension RecipeStepsView {
         }
     }
 }
-

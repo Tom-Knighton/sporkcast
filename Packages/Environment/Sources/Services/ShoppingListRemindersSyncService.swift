@@ -49,10 +49,24 @@ public struct ShoppingListRemindersSyncSnapshot: Sendable, Equatable {
     }
 }
 
+public struct ReminderListOption: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let title: String
+    public let sourceTitle: String
+
+    public init(id: String, title: String, sourceTitle: String) {
+        self.id = id
+        self.title = title
+        self.sourceTitle = sourceTitle
+    }
+}
+
 public protocol ShoppingListRemindersSyncing: Sendable {
     func start() async
     func snapshot() async -> ShoppingListRemindersSyncSnapshot
+    func availableReminderLists() async -> [ReminderListOption]
     func connect() async
+    func connect(to calendarIdentifier: String) async
     func disconnect() async
     func syncNow() async
     func scheduleSync(trigger: ShoppingListRemindersSyncTrigger) async
@@ -116,6 +130,33 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
         currentSnapshot
     }
 
+    public func availableReminderLists() async -> [ReminderListOption] {
+        do {
+            guard try await requestReminderAccess() else { return [] }
+            return eventStore
+                .calendars(for: .reminder)
+                .filter { $0.allowsContentModifications }
+                .filter { calendar in
+                    calendar.source.sourceType == .calDAV
+                        || calendar.source.title.localizedCaseInsensitiveContains("icloud")
+                }
+                .map {
+                    ReminderListOption(
+                        id: $0.calendarIdentifier,
+                        title: $0.title,
+                        sourceTitle: $0.source.title
+                    )
+                }
+                .sorted { lhs, rhs in
+                    lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+        } catch {
+            currentSnapshot.lastError = "Failed to load Reminders lists: \(error.localizedDescription)"
+            publishSnapshot()
+            return []
+        }
+    }
+
     public func connect() async {
         currentSnapshot.connectionState = .connecting
         currentSnapshot.lastError = nil
@@ -135,6 +176,54 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
             }
 
             let calendar = try ensureManagedCalendar()
+            await updateSettings { settings in
+                settings.remindersSyncEnabled = true
+                settings.remindersCalendarIdentifier = calendar.calendarIdentifier
+                settings.remindersNeedsGroceriesSetupPrompt = true
+            }
+
+            currentSnapshot.isEnabled = true
+            currentSnapshot.connectionState = .connected
+            currentSnapshot.linkedCalendarTitle = calendar.title
+            currentSnapshot.needsGroceriesSetupPrompt = true
+            currentSnapshot.lastError = nil
+            publishSnapshot()
+
+            await enqueueSync()
+        } catch {
+            currentSnapshot.isEnabled = false
+            currentSnapshot.connectionState = .failed
+            currentSnapshot.lastError = "Failed to connect Reminders: \(error.localizedDescription)"
+            publishSnapshot()
+        }
+    }
+
+    public func connect(to calendarIdentifier: String) async {
+        currentSnapshot.connectionState = .connecting
+        currentSnapshot.lastError = nil
+        publishSnapshot()
+
+        do {
+            let granted = try await requestReminderAccess()
+            guard granted else {
+                await updateSettings { settings in
+                    settings.remindersSyncEnabled = false
+                }
+                currentSnapshot.connectionState = .permissionDenied
+                currentSnapshot.isEnabled = false
+                currentSnapshot.lastError = "Reminders access was denied."
+                publishSnapshot()
+                return
+            }
+
+            guard let calendar = eventStore.calendar(withIdentifier: calendarIdentifier),
+                  calendar.allowsContentModifications else {
+                currentSnapshot.connectionState = .failed
+                currentSnapshot.lastError = "Unable to find the selected Reminders list."
+                publishSnapshot()
+                return
+            }
+
             await updateSettings { settings in
                 settings.remindersSyncEnabled = true
                 settings.remindersCalendarIdentifier = calendar.calendarIdentifier

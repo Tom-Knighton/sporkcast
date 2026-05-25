@@ -18,8 +18,8 @@ public struct MealplanPage: View {
     @Environment(\.flagKit) private var flagKit
     @Environment(\.proAccess) private var proAccess
     
-    @State private var startDate = MealplanPage.currentWeekRange(containing: .now).lowerBound
-    @State private var endDate = MealplanPage.currentWeekRange(containing: .now).upperBound
+    @State private var startDate = MealplanPage.currentWeekRange(containing: .now, firstWeekday: 2).lowerBound
+    @State private var endDate = MealplanPage.currentWeekRange(containing: .now, firstWeekday: 2).upperBound
     @State private var now = Date()
     @State private var scrollPosition: ScrollPosition = .init(id: 1)
     @State private var isDraggingEntry: Bool = false
@@ -43,6 +43,10 @@ public struct MealplanPage: View {
         appSettings.settings.showMealplanWeather
             && flagKit.isEnabled(.mealplanWeatherPro, default: proAccess.hasProAccess)
     }
+
+    private var weekStartWeekday: Int {
+        min(max(appSettings.settings.mealplanWeekStartWeekday, 1), 7)
+    }
     
     public var body: some View {
         ZStack {
@@ -59,6 +63,7 @@ public struct MealplanPage: View {
                                 with: mealplanEntries,
                                 currentDate: now,
                                 weather: shouldShowWeather ? mealplanWeather.forecast(for: day, calendar: calendar) : nil,
+                                shouldGreyOutPastDays: appSettings.settings.greyOutPastMealplanDays,
                                 isDraggingEntry: $isDraggingEntry
                             )
                                 .id(day.formatted(date: .numeric, time: .omitted))
@@ -90,7 +95,7 @@ public struct MealplanPage: View {
             }
         }
         .sheet(isPresented: $showingShoppingListFlow) {
-            let defaultRange = Self.currentWeekRange(containing: now, calendar: calendar)
+            let defaultRange = Self.currentWeekRange(containing: now, calendar: calendar, firstWeekday: weekStartWeekday)
             MealplanToShoppingListFlowView(
                 initialStartDate: defaultRange.lowerBound,
                 initialEndDate: defaultRange.upperBound
@@ -100,13 +105,16 @@ public struct MealplanPage: View {
             await updateQuery()
             await updateWeatherIfNeeded()
         }
+        .task(id: weekStartWeekday) {
+            syncVisibleWeekToSettings()
+        }
         .task(id: shouldShowWeather) {
             await updateWeatherIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 now = Date()
-                let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar)
+                let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar, firstWeekday: weekStartWeekday)
                 if currentWeek.lowerBound != startDate {
                     startDate = currentWeek.lowerBound
                     endDate = currentWeek.upperBound
@@ -119,7 +127,7 @@ public struct MealplanPage: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
             now = Date()
-            let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar)
+            let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar, firstWeekday: weekStartWeekday)
             if currentWeek.lowerBound != startDate {
                 startDate = currentWeek.lowerBound
                 endDate = currentWeek.upperBound
@@ -153,11 +161,17 @@ public struct MealplanPage: View {
         await mealplanWeather.loadDailyForecasts(startDate: startDate, endDate: endDate, calendar: calendar)
     }
 
-    private static func currentWeekRange(containing date: Date, calendar: Calendar = .current) -> ClosedRange<Date> {
+    private func syncVisibleWeekToSettings() {
+        let currentWeek = Self.currentWeekRange(containing: now, calendar: calendar, firstWeekday: weekStartWeekday)
+        startDate = currentWeek.lowerBound
+        endDate = currentWeek.upperBound
+    }
+
+    private static func currentWeekRange(containing date: Date, calendar: Calendar = .current, firstWeekday: Int) -> ClosedRange<Date> {
         let startOfDay = calendar.startOfDay(for: date)
         let weekday = calendar.component(.weekday, from: startOfDay)
-        let daysFromMonday = (weekday + 5) % 7
-        let weekStart = calendar.date(byAdding: .day, value: -daysFromMonday, to: startOfDay) ?? startOfDay
+        let daysFromStart = (weekday - firstWeekday + 7) % 7
+        let weekStart = calendar.date(byAdding: .day, value: -daysFromStart, to: startOfDay) ?? startOfDay
         let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
         return weekStart...weekEnd
     }

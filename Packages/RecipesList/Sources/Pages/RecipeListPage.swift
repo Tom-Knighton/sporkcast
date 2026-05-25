@@ -288,7 +288,7 @@ private extension RecipeListPage {
         
         ToolbarSpacer(.fixed)
 
-        if !isRecipeDiscoverySeparateTabEnabled {
+        if appSettings.settings.showDiscoveryPage && !isRecipeDiscoverySeparateTabEnabled {
             ToolbarItem {
                 NavigationLink {
                     RecipeDiscoveryPage()

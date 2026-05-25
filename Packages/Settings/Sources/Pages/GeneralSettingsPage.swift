@@ -13,18 +13,22 @@ struct GeneralSettingsPage: View {
     
     @Environment(\.appSettings) private var store
     @Environment(\.flagKit) private var flagKit
-    @Environment(\.proAccess) private var proAccess
 
     private var visibleTabs: [AppTab] {
         AppTab.allCases.filter { tab in
-            tab != .discovery || flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
+            switch tab {
+            case .discovery:
+                return store.settings.showDiscoveryPage && flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
+            case .mealplan:
+                return store.settings.showMealplanPage
+            case .shoppingLists:
+                return store.settings.showGroceriesPage
+            case .recipes, .settings:
+                return true
+            }
         }
     }
 
-    private var hasMealplanWeatherAccess: Bool {
-        flagKit.isEnabled(.mealplanWeatherPro, default: proAccess.hasProAccess)
-    }
-    
     var body: some View {
 
         List {
@@ -41,16 +45,6 @@ struct GeneralSettingsPage: View {
                 }
             }
 
-            Section("Import Features") {
-                Toggle("Enable Web Selection Import", isOn: store.binding(\.enableWebSelectionImport))
-                Toggle("Enable OCR Import", isOn: store.binding(\.enableOcrImport))
-            }
-
-            if hasMealplanWeatherAccess {
-                Section("Mealplan") {
-                    Toggle("Show Weather", isOn: store.binding(\.showMealplanWeather))
-                }
-            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("General")
@@ -60,10 +54,7 @@ struct GeneralSettingsPage: View {
     }
 
     private func normalizePreferredLaunchTab() {
-        guard store.settings.preferredLaunchTab == .discovery,
-              !flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false) else {
-            return
-        }
+        guard !visibleTabs.contains(store.settings.preferredLaunchTab) else { return }
 
         store.update { settings in
             settings.preferredLaunchTab = .recipes

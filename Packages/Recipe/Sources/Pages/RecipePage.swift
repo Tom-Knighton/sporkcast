@@ -128,6 +128,7 @@ public struct RecipePage: View {
     @Environment(\.displayScale) private var displayScale
     @Environment(\.flagKit) private var flagKit
     @Environment(\.proAccess) private var proAccess
+    @Environment(\.appSettings) private var appSettings
     @Dependency(\.defaultDatabase) private var db
     
     @State private var viewModel: RecipeViewModel
@@ -303,14 +304,16 @@ public struct RecipePage: View {
                             RecipeIngredientsListView(
                                 tint: viewModel.dominantColour,
                                 completedIngredientIDs: completedMealplanIngredientIDs,
-                                showMealplanShoppingTicks: mealplanEntryId != nil
+                                showMealplanShoppingTicks: mealplanEntryId != nil,
+                                showIngredientEmojis: appSettings.settings.showIngredientEmojis
                             )
                             .tint(viewModel.dominantColour)
                         case 2:
                             RecipeStepsView(
                                 tint: viewModel.dominantColour,
                                 completedIngredientIDs: completedMealplanIngredientIDs,
-                                showMealplanShoppingTicks: mealplanEntryId != nil
+                                showMealplanShoppingTicks: mealplanEntryId != nil,
+                                showIngredientEmojis: appSettings.settings.showIngredientEmojis
                             )
                         case 3:
                             RecipeCommentsView(showRecipeChat: shouldShowRecipeChatInline)
@@ -474,7 +477,9 @@ public struct RecipePage: View {
             summary: viewModel.recipe.summarisedTip
         )) {
             guard scenePhase == .active else { return }
-            try? await viewModel.generateEmojis()
+            if appSettings.settings.showIngredientEmojis {
+                try? await viewModel.generateEmojis()
+            }
             try? await viewModel.generateTipsAndSummary()
         }
         .task(id: viewModel.recipe.summarisedTip) {

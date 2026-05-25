@@ -64,7 +64,9 @@ struct AppContent: View {
     var body: some View {
         TabScaffold(
             selection: $appRouter.selectedTab,
-            isDiscoveryTabEnabled: isRecipeDiscoverySeparateTabEnabled
+            isDiscoveryTabEnabled: isDiscoveryTabEnabled,
+            isMealplanTabEnabled: appSettings.settings.showMealplanPage,
+            isGroceriesTabEnabled: appSettings.settings.showGroceriesPage
         ) {
             NavigationStack(path: $appRouter[.recipes]) {
                 WithNavigationDestinations(
@@ -187,6 +189,15 @@ struct AppContent: View {
         .onChange(of: appRouter.selectedTab, initial: true) { _, _ in
             moveOffDiscoveryTabIfNeeded()
         }
+        .onChange(of: appSettings.settings.showDiscoveryPage) { _, _ in
+            moveOffDiscoveryTabIfNeeded()
+        }
+        .onChange(of: appSettings.settings.showMealplanPage) { _, _ in
+            moveOffDiscoveryTabIfNeeded()
+        }
+        .onChange(of: appSettings.settings.showGroceriesPage) { _, _ in
+            moveOffDiscoveryTabIfNeeded()
+        }
     }
     
     @ViewBuilder
@@ -207,6 +218,10 @@ struct AppContent: View {
 
     private var isRecipeDiscoverySeparateTabEnabled: Bool {
         flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
+    }
+
+    private var isDiscoveryTabEnabled: Bool {
+        appSettings.settings.showDiscoveryPage && isRecipeDiscoverySeparateTabEnabled
     }
 
     @ViewBuilder
@@ -246,12 +261,14 @@ struct AppContent: View {
     }
 
     private func moveOffDiscoveryTabIfNeeded() {
-        guard appRouter.selectedTab == .discovery,
-              !isRecipeDiscoverySeparateTabEnabled else {
-            return
+        switch appRouter.selectedTab {
+        case .discovery where !isDiscoveryTabEnabled,
+             .mealplan where !appSettings.settings.showMealplanPage,
+             .shoppingLists where !appSettings.settings.showGroceriesPage:
+            appRouter.selectedTab = .recipes
+        default:
+            break
         }
-
-        appRouter.selectedTab = .recipes
     }
 
     private static var cachedRecipeOrganizationFeatureAccess: Bool {

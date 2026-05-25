@@ -15,15 +15,18 @@ public struct RecipeIngredientsListView: View {
     public let tint: Color
     public let completedIngredientIDs: Set<UUID>
     public let showMealplanShoppingTicks: Bool
+    public let showIngredientEmojis: Bool
 
     public init(
         tint: Color,
         completedIngredientIDs: Set<UUID> = [],
-        showMealplanShoppingTicks: Bool = false
+        showMealplanShoppingTicks: Bool = false,
+        showIngredientEmojis: Bool = true
     ) {
         self.tint = tint
         self.completedIngredientIDs = completedIngredientIDs
         self.showMealplanShoppingTicks = showMealplanShoppingTicks
+        self.showIngredientEmojis = showIngredientEmojis
     }
         
     public var body: some View {
@@ -32,19 +35,19 @@ public struct RecipeIngredientsListView: View {
                 let showCompletionTick = showMealplanShoppingTicks && completedIngredientIDs.contains(ingredient.id)
                 HStack {
                     ZStack {
-                        if viewModel.ingredientsGenerating || ingredient.emoji != nil || showCompletionTick {
+                        if isGeneratingIngredientEmoji || displayedEmoji(for: ingredient) != nil || showCompletionTick {
                             Circle()
                                 .frame(width: 25, height: 25)
                         }
                         
-                        if viewModel.ingredientsGenerating {
+                        if isGeneratingIngredientEmoji {
                             ProgressView()
                         } else if showCompletionTick {
                             Image(systemName: "checkmark")
                                 .font(.caption.weight(.bold))
                         }
 
-                        if !showCompletionTick, let emoji = ingredient.emoji {
+                        if !showCompletionTick, let emoji = displayedEmoji(for: ingredient) {
                             Text(emoji)
                                 .font(.caption)
                         }
@@ -69,6 +72,14 @@ public struct RecipeIngredientsListView: View {
             
             Spacer().frame(height: 8)
         }
+    }
+
+    private var isGeneratingIngredientEmoji: Bool {
+        showIngredientEmojis && viewModel.ingredientsGenerating
+    }
+
+    private func displayedEmoji(for ingredient: RecipeIngredient) -> String? {
+        showIngredientEmojis ? ingredient.emoji : nil
     }
 }
 

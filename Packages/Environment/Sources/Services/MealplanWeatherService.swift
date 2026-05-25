@@ -162,6 +162,10 @@ public final class MealplanWeatherService: NSObject, MealplanWeatherProviding, @
     }
 
     private func currentLocation() async -> CLLocation? {
+        if let override = locationOverride() {
+            return override
+        }
+
         if let location = locationManager.location,
            abs(location.timestamp.timeIntervalSinceNow) < 60 * 60 {
             return location
@@ -182,6 +186,20 @@ public final class MealplanWeatherService: NSObject, MealplanWeatherProviding, @
                 completeLocationRequest(id, with: nil)
             }
         }
+    }
+
+    private func locationOverride() -> CLLocation? {
+        let defaults = UserDefaults.appGroup
+        let key = "app.settings.v1"
+
+        guard let data = defaults.data(forKey: key),
+              let settings = try? decoder.decode(AppSettings.self, from: data),
+              let latitude = settings.weatherLocationOverrideLatitude,
+              let longitude = settings.weatherLocationOverrideLongitude else {
+            return nil
+        }
+
+        return CLLocation(latitude: latitude, longitude: longitude)
     }
 
     private func completeLocationRequests(with location: CLLocation?) {
