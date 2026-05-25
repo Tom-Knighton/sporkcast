@@ -15,6 +15,7 @@ import ActivityKit
 @main
 struct countdownextensionBundle: WidgetBundle {
     var body: some Widget {
+        MealplanWidget()
         CountdownTimerLiveActivity()
     }
 }

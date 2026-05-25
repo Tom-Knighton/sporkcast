@@ -19,6 +19,7 @@ import Models
 import Settings
 import CloudKit
 import ShoppingLists
+import WidgetKit
 
 struct AppContent: View {
     private let appGroupSuiteName = "group.sporkcast"
@@ -33,6 +34,7 @@ struct AppContent: View {
     @State private var alertManager = AlertManager.shared
     @State private var households = HouseholdService.shared
     @State private var shoppingMutations = ShoppingListMutationRepository()
+    @State private var widgetMealplanRepository = MealplanRepository()
     @State private var flagKit: FlagService
     @State private var proAccess = ProAccessService.shared
     
@@ -171,6 +173,8 @@ struct AppContent: View {
         .task {
             proAccess.configure()
             await proAccess.refresh()
+            syncMealplanWidgetProAccess()
+            await refreshMealplanWidgets()
             flagKit.start()
             flagKit.updateSubscriptionTier(proAccess.subscriptionTier)
             await shoppingListRemindersSync.start()
@@ -181,6 +185,10 @@ struct AppContent: View {
         }
         .onChange(of: proAccess.subscriptionTier, initial: true) { _, tier in
             flagKit.updateSubscriptionTier(tier)
+            syncMealplanWidgetProAccess()
+        }
+        .onChange(of: proAccess.hasProAccess, initial: true) { _, _ in
+            syncMealplanWidgetProAccess()
         }
         .onChange(of: flagKit.contextVersion, initial: true) { _, _ in
             updateProFeatureAccessCachesIfNeeded()
@@ -197,6 +205,12 @@ struct AppContent: View {
         }
         .onChange(of: appSettings.settings.showGroceriesPage) { _, _ in
             moveOffDiscoveryTabIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await refreshMealplanWidgets()
+            }
         }
     }
     
@@ -271,6 +285,17 @@ struct AppContent: View {
         }
     }
 
+    private func refreshMealplanWidgets() async {
+        syncMealplanWidgetProAccess()
+        await widgetMealplanRepository.refreshWidgetSnapshot()
+    }
+
+    private func syncMealplanWidgetProAccess() {
+        let hasWidgetAccess = proAccess.hasProAccess || proAccess.subscriptionTier != "free"
+        MealplanWidgetSnapshotStore.setHasProAccess(hasWidgetAccess)
+        WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
+    }
+
     private static var cachedRecipeOrganizationFeatureAccess: Bool {
         UserDefaults.appGroup.object(forKey: recipeOrganizationFeatureAccessCacheKey) as? Bool ?? false
     }
@@ -322,7 +347,12 @@ extension AppContent {
 
     private func handleIncomingURL(_ incomingURL: URL) {
         guard incomingURL.scheme?.lowercased() == "sporkcast",
-              incomingURL.host == "import-recipe" else {
+              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" else {
+            return
+        }
+
+        if incomingURL.host == "mealplan" {
+            appRouter.selectedTab = .mealplan
             return
         }
 
