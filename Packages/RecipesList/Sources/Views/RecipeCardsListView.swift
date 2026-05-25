@@ -56,7 +56,7 @@ struct RecipeCardsListView: View {
                                         }
                                     } else if canShowOrganizeUpsell {
                                         Button(action: onOrganizeUpsell) {
-                                            Label("Unlock Folders & Tags", systemImage: "lock.fill")
+                                            Label("Folders & Tags", systemImage: "folder.badge.plus")
                                         }
                                     }
                                     

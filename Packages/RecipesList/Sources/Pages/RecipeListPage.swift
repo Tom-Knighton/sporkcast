@@ -260,21 +260,11 @@ private extension RecipeListPage {
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
         ToolbarItem {
-            Button {
-                importState.isAddRecipeSheetPresented = true
-            } label: {
-                Label("Add Recipe", systemImage: "plus")
-            }
-        }
-
-         ToolbarSpacer(.fixed)
-
-        ToolbarItem {
             Button(action: presentFilters) {
                 Image(systemName: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
             }
         }
-
+        
         if hasRecipeOrganizationProAccess {
             ToolbarItem {
                 NavigationLink {
@@ -288,11 +278,31 @@ private extension RecipeListPage {
             }
         } else {
             ToolbarItem {
-                Button {
-                    isProPaywallPresented = true
+                NavigationLink {
+                    RecipeOrganizationLockedPage()
                 } label: {
-                    Label("Unlock Folders & Tags", systemImage: "lock.fill")
+                    Label("Folders & Tags", systemImage: "folder.badge.gearshape")
                 }
+            }
+        }
+        
+        ToolbarSpacer(.fixed)
+
+        if !isRecipeDiscoverySeparateTabEnabled {
+            ToolbarItem {
+                NavigationLink {
+                    RecipeDiscoveryPage()
+                } label: {
+                    Label("Discover Recipes", systemImage: "sparkles")
+                }
+            }
+        }
+
+        ToolbarItem {
+            Button {
+                importState.isAddRecipeSheetPresented = true
+            } label: {
+                Label("Add Recipe", systemImage: "plus")
             }
         }
     }
@@ -384,6 +394,10 @@ private extension RecipeListPage {
 
     var hasSocialRecipeImportProAccess: Bool {
         flagKit.isEnabled(.recipeSocialImportPro, default: socialRecipeImportFeatureAccessFallback)
+    }
+
+    var isRecipeDiscoverySeparateTabEnabled: Bool {
+        flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
     }
 
     func sortedRecipes(_ recipes: [Recipe]) -> [Recipe] {

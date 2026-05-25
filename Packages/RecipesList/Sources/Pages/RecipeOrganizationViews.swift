@@ -11,12 +11,10 @@ import Models
 import SwiftUI
 
 public struct RecipeFoldersPage: View {
-    @Environment(AppRouter.self) private var router
     @Environment(\.homeServices) private var homes
     @Environment(\.flagKit) private var flagKit
 
     @State private var repository = RecipeOrganizationRepository()
-    @State private var isProPaywallPresented = false
     private let recipeOrganizationFeatureAccessFallback: Bool
 
     private var rootNodes: [RecipeFolderNode] {
@@ -28,28 +26,34 @@ public struct RecipeFoldersPage: View {
     }
 
     public var body: some View {
-        List {
-            Section {
-                NavigationLink(value: AppDestination.recipes()) {
-                    Label("All Recipes", systemImage: "square.stack")
-                }
+        Group {
+            if hasRecipeOrganizationProAccess {
+                List {
+                    Section {
+                        if !isRecipeDiscoverySeparateTabEnabled {
+                            NavigationLink {
+                                RecipeDiscoveryPage()
+                            } label: {
+                                Label("Discover Recipes", systemImage: "sparkles")
+                            }
+                        }
 
-                if hasRecipeOrganizationProAccess {
-                    ForEach(rootNodes) { node in
-                        RecipeFolderTreeNavigationRow(node: node)
-                    }
-                } else {
-                    Button {
-                        isProPaywallPresented = true
-                    } label: {
-                        Label("Unlock Folders & Tags", systemImage: "lock.fill")
+                        NavigationLink(value: AppDestination.recipes()) {
+                            Label("All Recipes", systemImage: "square.stack")
+                        }
+
+                        ForEach(rootNodes) { node in
+                            RecipeFolderTreeNavigationRow(node: node)
+                        }
                     }
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+            } else {
+                RecipeOrganizationLockedPage()
             }
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Cookbook")
-        .scrollContentBackground(.hidden)
+        .navigationTitle(hasRecipeOrganizationProAccess ? "Cookbook" : "Folders & Tags")
         .background(Color.layer1)
         .toolbar {
             if hasRecipeOrganizationProAccess {
@@ -63,23 +67,16 @@ public struct RecipeFoldersPage: View {
                         Label("Manage Folders & Tags", systemImage: "folder.badge.gearshape")
                     }
                 }
-            } else {
-                ToolbarItem {
-                    Button {
-                        isProPaywallPresented = true
-                    } label: {
-                        Label("Unlock Folders & Tags", systemImage: "lock.fill")
-                    }
-                }
             }
-        }
-        .sheet(isPresented: $isProPaywallPresented) {
-            ProPaywallView()
         }
     }
 
     private var hasRecipeOrganizationProAccess: Bool {
         flagKit.isEnabled(.recipeOrganizationPro, default: recipeOrganizationFeatureAccessFallback)
+    }
+
+    private var isRecipeDiscoverySeparateTabEnabled: Bool {
+        flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
     }
 }
 

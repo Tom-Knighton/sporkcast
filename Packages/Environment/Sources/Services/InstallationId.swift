@@ -9,11 +9,11 @@
 import Foundation
 import Security
 
-enum InstallationId {
+public enum InstallationId {
     private static let service = "online.tomk.sporkast"
     private static let account = "launchdarkly-installation-id"
 
-    static func get() -> String {
+    public static func get() -> String {
         if let existing = read() {
             return existing
         }

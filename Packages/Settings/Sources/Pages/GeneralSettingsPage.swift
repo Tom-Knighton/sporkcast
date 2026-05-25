@@ -12,6 +12,13 @@ import Environment
 struct GeneralSettingsPage: View {
     
     @Environment(\.appSettings) private var store
+    @Environment(\.flagKit) private var flagKit
+
+    private var visibleTabs: [AppTab] {
+        AppTab.allCases.filter { tab in
+            tab != .discovery || flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false)
+        }
+    }
     
     var body: some View {
 
@@ -23,7 +30,7 @@ struct GeneralSettingsPage: View {
                     }
                 }
                 Picker("Default Tab", selection: store.binding(\.preferredLaunchTab)) {
-                    ForEach(AppTab.allCases, id: \.self) {
+                    ForEach(visibleTabs, id: \.self) {
                         Text(String(describing: $0).capitalized).tag($0)
                     }
                 }
@@ -38,5 +45,17 @@ struct GeneralSettingsPage: View {
         .navigationTitle("General")
         .scrollContentBackground(.hidden)
         .background(Color.layer1)
+        .onAppear(perform: normalizePreferredLaunchTab)
+    }
+
+    private func normalizePreferredLaunchTab() {
+        guard store.settings.preferredLaunchTab == .discovery,
+              !flagKit.isEnabled(.recipeDiscoverySeparateTab, default: false) else {
+            return
+        }
+
+        store.update { settings in
+            settings.preferredLaunchTab = .recipes
+        }
     }
 }
