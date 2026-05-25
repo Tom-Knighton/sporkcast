@@ -17,6 +17,15 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var remindersNeedsGroceriesSetupPrompt: Bool = false
     public var enableWebSelectionImport: Bool = false
     public var enableOcrImport: Bool = false
+    public var showMealplanWeather: Bool = false
+    public var weatherLocationOverrideLatitude: Double?
+    public var weatherLocationOverrideLongitude: Double?
+    public var showMealplanPage: Bool = true
+    public var greyOutPastMealplanDays: Bool = true
+    public var mealplanWeekStartWeekday: Int = 2
+    public var showDiscoveryPage: Bool = true
+    public var showGroceriesPage: Bool = true
+    public var showIngredientEmojis: Bool = true
     
     public enum Theme: String, Codable, CaseIterable, Identifiable, Sendable {
         public var id: String { String(describing: self) }
@@ -33,6 +42,15 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case remindersNeedsGroceriesSetupPrompt
         case enableWebSelectionImport
         case enableOcrImport
+        case showMealplanWeather
+        case weatherLocationOverrideLatitude
+        case weatherLocationOverrideLongitude
+        case showMealplanPage
+        case greyOutPastMealplanDays
+        case mealplanWeekStartWeekday
+        case showDiscoveryPage
+        case showGroceriesPage
+        case showIngredientEmojis
     }
 
     public init() {}
@@ -47,5 +65,14 @@ public struct AppSettings: Codable, Equatable, Sendable {
         remindersNeedsGroceriesSetupPrompt = try container.decodeIfPresent(Bool.self, forKey: .remindersNeedsGroceriesSetupPrompt) ?? false
         enableWebSelectionImport = try container.decodeIfPresent(Bool.self, forKey: .enableWebSelectionImport) ?? false
         enableOcrImport = try container.decodeIfPresent(Bool.self, forKey: .enableOcrImport) ?? false
+        showMealplanWeather = try container.decodeIfPresent(Bool.self, forKey: .showMealplanWeather) ?? false
+        weatherLocationOverrideLatitude = try container.decodeIfPresent(Double.self, forKey: .weatherLocationOverrideLatitude)
+        weatherLocationOverrideLongitude = try container.decodeIfPresent(Double.self, forKey: .weatherLocationOverrideLongitude)
+        showMealplanPage = try container.decodeIfPresent(Bool.self, forKey: .showMealplanPage) ?? true
+        greyOutPastMealplanDays = try container.decodeIfPresent(Bool.self, forKey: .greyOutPastMealplanDays) ?? true
+        mealplanWeekStartWeekday = try container.decodeIfPresent(Int.self, forKey: .mealplanWeekStartWeekday) ?? 2
+        showDiscoveryPage = try container.decodeIfPresent(Bool.self, forKey: .showDiscoveryPage) ?? true
+        showGroceriesPage = try container.decodeIfPresent(Bool.self, forKey: .showGroceriesPage) ?? true
+        showIngredientEmojis = try container.decodeIfPresent(Bool.self, forKey: .showIngredientEmojis) ?? true
     }
 }

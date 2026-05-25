@@ -33,6 +33,22 @@ public struct SettingsPage: View {
                 NavigationLink(destination: RecipesSettingsPage()) {
                     Label("Recipes", systemImage: "book.closed.fill")
                 }
+
+                NavigationLink(destination: MealplanSettingsPage()) {
+                    Label("Mealplan", systemImage: "calendar")
+                }
+
+                NavigationLink(destination: DiscoverySettingsPage()) {
+                    Label("Discovery", systemImage: "sparkles")
+                }
+
+                NavigationLink(destination: GroceriesSettingsPage()) {
+                    Label("Groceries", systemImage: "cart")
+                }
+
+                NavigationLink(destination: WeatherSettingsPage()) {
+                    Label("Weather", systemImage: "cloud.sun.fill")
+                }
             }
 
             Section {

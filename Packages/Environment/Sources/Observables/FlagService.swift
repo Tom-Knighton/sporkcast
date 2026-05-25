@@ -31,6 +31,7 @@ public enum FeatureFlag: String, Sendable {
     case recipeSocialImportPro = "pro-social-imports"
     case recipeDiscoveryPro = "recipe-discovery-pro"
     case recipeDiscoverySeparateTab = "recipe-discovery-separate-tab"
+    case mealplanWeatherPro = "mealplan-weather-pro"
 }
 
 public protocol FlagServiceProtocol: Sendable {

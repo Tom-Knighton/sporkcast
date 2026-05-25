@@ -1,29 +1,67 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.88065,1.00000,0.90969,1.00000",
-      "display-p3:0.96783,0.56434,0.32619,1.00000"
-    ]
+      "display-p3:0.98291,0.95801,0.90381,1.00000",
+      "display-p3:0.96777,0.94629,0.89600,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
   },
   "groups" : [
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : {
-            "linear-gradient" : [
-              "display-p3:0.81395,0.81378,0.84838,1.00000",
-              "display-p3:0.86153,0.88118,0.92451,1.00000"
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.90820,0.43994,0.29297,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : "automatic"
+            }
+          ],
+          "glass" : false,
+          "image-name" : "output-onlinepngtools.png",
+          "name" : "output-onlinepngtools",
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              0,
+              0
             ]
-          },
-          "glass" : true,
-          "image-name" : "spork_12890649.png",
-          "name" : "spork_12890649",
+          }
+        },
+        {
+          "glass" : false,
+          "image-name" : "02_plate_arc 2.svg",
+          "name" : "02_plate_arc 2",
           "position" : {
             "scale" : 1,
             "translation-in-points" : [
-              -0.12548883749924244,
-              -20.617586176652047
+              0,
+              -62
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "image-name" : "01_sun_disk.svg",
+          "name" : "01_sun_disk",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              -43
             ]
           }
         }

@@ -37,15 +37,26 @@ public struct MealplanRowView: View {
     public let day: Date
     public let entries: [MealplanEntry]
     public let currentDate: Date
+    public let weather: MealplanWeatherForecast?
+    public let shouldGreyOutPastDays: Bool
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
     }
     
-    public init(for day: Date, with entries: [MealplanEntry], currentDate: Date, isDraggingEntry: Binding<Bool>) {
+    public init(
+        for day: Date,
+        with entries: [MealplanEntry],
+        currentDate: Date,
+        weather: MealplanWeatherForecast? = nil,
+        shouldGreyOutPastDays: Bool = true,
+        isDraggingEntry: Binding<Bool>
+    ) {
         self.day = day
         self.entries = entries
         self.currentDate = currentDate
+        self.weather = weather
+        self.shouldGreyOutPastDays = shouldGreyOutPastDays
         self._isDragging = isDraggingEntry
     }
     
@@ -57,8 +68,13 @@ public struct MealplanRowView: View {
                 .allowsHitTesting(false)
             VStack(spacing: 0) {
                 HStack {
-                    Text(dayTitle(for: day))
-                        .bold()
+                    HStack(spacing: 8) {
+                        Text(dayTitle(for: day))
+                            .bold()
+                        if let weather {
+                            MealplanWeatherBadge(weather: weather)
+                        }
+                    }
                     Spacer()
                     
                     if !isInPast {
@@ -128,11 +144,11 @@ public struct MealplanRowView: View {
             .frame(minHeight: 50)
             .background {
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(style: .init(lineWidth: isInPast ? 2 : 4, dash: isInPast ? [5] : []))
-                    .fill(isInPast ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
+                    .stroke(style: .init(lineWidth: isGreyedPastDay ? 2 : 4, dash: isGreyedPastDay ? [5] : []))
+                    .fill(isGreyedPastDay ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
             }
             .overlay {
-                if isInPast {
+                if isGreyedPastDay {
                     Color.gray.opacity(0.25).allowsHitTesting(false)
                 }
             }
@@ -307,6 +323,10 @@ public struct MealplanRowView: View {
         let day = components.day
         return day ?? 0
     }
+
+    private var isGreyedPastDay: Bool {
+        shouldGreyOutPastDays && isInPast
+    }
     
     func insertRandomMeal() async throws {
         try await repository.insertRandomMeal(date: day, index: entries.count, homeId: homes.home?.id)
@@ -332,6 +352,22 @@ public struct MealplanRowView: View {
         } catch {
             print(error)
         }
+    }
+}
+
+private struct MealplanWeatherBadge: View {
+    let weather: MealplanWeatherForecast
+
+    var body: some View {
+        Label {
+            Text("\(Int(weather.temperatureC.rounded()))°")
+        } icon: {
+            Image(systemName: weather.symbolName)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .labelStyle(.titleAndIcon)
+        .accessibilityLabel("\(weather.condition), \(Int(weather.temperatureC.rounded())) degrees")
     }
 }
 

@@ -17,12 +17,16 @@ struct TabScaffold<Recipes: View, Discovery: View, Mealplans: View, ShoppingList
     let shoppingLists: () -> ShoppingLists
     let settings: () -> Settings
     let isDiscoveryTabEnabled: Bool
+    let isMealplanTabEnabled: Bool
+    let isGroceriesTabEnabled: Bool
     @Binding var selection: AppTab
     
 
     init(
         selection: Binding<AppTab>,
         isDiscoveryTabEnabled: Bool,
+        isMealplanTabEnabled: Bool,
+        isGroceriesTabEnabled: Bool,
         @ViewBuilder recipes: @escaping () -> Recipes,
         @ViewBuilder discovery: @escaping () -> Discovery,
         @ViewBuilder mealplans: @escaping () -> Mealplans,
@@ -35,6 +39,8 @@ struct TabScaffold<Recipes: View, Discovery: View, Mealplans: View, ShoppingList
         self.shoppingLists = shoppingLists
         self.settings = settings
         self.isDiscoveryTabEnabled = isDiscoveryTabEnabled
+        self.isMealplanTabEnabled = isMealplanTabEnabled
+        self.isGroceriesTabEnabled = isGroceriesTabEnabled
         self._selection = selection
     }
 
@@ -54,16 +60,20 @@ struct TabScaffold<Recipes: View, Discovery: View, Mealplans: View, ShoppingList
                 }
             }
             
-            Tab(value: AppTab.mealplan) {
-                mealplans()
-            } label: {
-                Label(AppTab.mealplan.title, systemImage: AppTab.mealplan.icon)
+            if isMealplanTabEnabled {
+                Tab(value: AppTab.mealplan) {
+                    mealplans()
+                } label: {
+                    Label(AppTab.mealplan.title, systemImage: AppTab.mealplan.icon)
+                }
             }
             
-            Tab(value: AppTab.shoppingLists) {
-                shoppingLists()
-            } label: {
-                Label(AppTab.shoppingLists.title, systemImage: AppTab.shoppingLists.icon)
+            if isGroceriesTabEnabled {
+                Tab(value: AppTab.shoppingLists) {
+                    shoppingLists()
+                } label: {
+                    Label(AppTab.shoppingLists.title, systemImage: AppTab.shoppingLists.icon)
+                }
             }
         
             Tab(value: AppTab.settings) {

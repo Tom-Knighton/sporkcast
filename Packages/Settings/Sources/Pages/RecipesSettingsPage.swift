@@ -12,6 +12,8 @@ import Environment
 
 struct RecipesSettingsPage: View {
 
+    @Environment(\.appSettings) private var store
+
     @State private var repository = SettingsRepository()
     @State private var isExporting = false
     @State private var shareItems: [Any] = []
@@ -23,6 +25,12 @@ struct RecipesSettingsPage: View {
 
     var body: some View {
         List {
+            SwiftUI.Section {
+                Toggle("Show Ingredient Emojis", isOn: store.binding(\.showIngredientEmojis))
+            } footer: {
+                Text("Ingredient emojis only appear after they have been generated on a device that supports Apple Intelligence, or by someone in the same household using an Apple Intelligence device.")
+            }
+
             SwiftUI.Section {
                 Button(action: presentExportOptions) {
                     HStack(spacing: 12) {
