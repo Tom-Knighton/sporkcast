@@ -8,6 +8,7 @@
 import Foundation
 import Observation
 import RevenueCat
+import WidgetKit
 
 public struct ProPlan: Identifiable, Hashable, Sendable {
     public let id: String
@@ -168,6 +169,8 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
         let entitlement = customerInfo.entitlements[entitlementIdentifier]
         hasProAccess = entitlement?.isActive == true
         subscriptionTier = subscriptionTier(for: entitlement)
+        MealplanWidgetSnapshotStore.setHasProAccess(hasProAccess)
+        WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
     }
 
     private func subscriptionTier(for entitlement: EntitlementInfo?) -> String {
@@ -234,5 +237,7 @@ public final class MockProAccessService: ProAccessServiceProtocol, @unchecked Se
     public func restorePurchases() async {
         hasProAccess = true
         subscriptionTier = "pro"
+        MealplanWidgetSnapshotStore.setHasProAccess(true)
+        WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
     }
 }

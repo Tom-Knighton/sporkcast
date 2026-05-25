@@ -11,6 +11,7 @@ import Observation
 import SQLiteData
 import Persistence
 import Foundation
+import WidgetKit
 
 @Observable
 @MainActor
@@ -30,6 +31,7 @@ public final class MealplanRepository {
 
     public func loadEntries(startDate: Date, endDate: Date) async throws {
         try await $dbMealplanEntries.load(DBMealplanEntry.full(startDate: startDate, endDate: endDate))
+        updateWidgetSnapshot()
     }
 
     public func addRecipeEntry(date: Date, index: Int, recipeId: UUID, homeId: UUID?) async throws {
@@ -37,6 +39,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        await refreshWidgetSnapshot()
     }
 
     public func addNoteEntry(date: Date, index: Int, text: String, homeId: UUID?) async throws {
@@ -44,18 +47,21 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        await refreshWidgetSnapshot()
     }
 
     public func updateNote(id: UUID, text: String) async throws {
         try await database.write { db in
             try DBMealplanEntry.find(id).update { $0.noteText = #bind(text) }.execute(db)
         }
+        await refreshWidgetSnapshot()
     }
 
     public func deleteEntry(id: UUID) async throws {
         try await database.write { db in
             try DBMealplanEntry.find(id).delete().execute(db)
         }
+        await refreshWidgetSnapshot()
     }
 
     public func insertRandomMeal(date: Date, index: Int, homeId: UUID?) async throws {
@@ -71,6 +77,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        await refreshWidgetSnapshot()
     }
 
     public func moveEntry(entryId: UUID, to date: Date, index: Int, existingEntries: [MealplanEntry]) async throws {
@@ -90,5 +97,21 @@ public final class MealplanRepository {
                     .execute(db)
             }
         }
+        await refreshWidgetSnapshot()
+    }
+
+    public func refreshWidgetSnapshot(now: Date = .now, calendar: Calendar = .current) async {
+        let range = MealplanWidgetSnapshotStore.dateRange(now: now, calendar: calendar)
+
+        do {
+            try await loadEntries(startDate: range.lowerBound, endDate: range.upperBound)
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+
+    private func updateWidgetSnapshot(now: Date = .now, calendar: Calendar = .current) {
+        MealplanWidgetSnapshotStore.write(entries: entries, now: now, calendar: calendar)
+        WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
     }
 }
