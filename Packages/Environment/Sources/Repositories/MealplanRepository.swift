@@ -40,6 +40,7 @@ public final class MealplanRepository {
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func addNoteEntry(date: Date, index: Int, text: String, homeId: UUID?) async throws {
@@ -48,6 +49,7 @@ public final class MealplanRepository {
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func updateNote(id: UUID, text: String) async throws {
@@ -55,13 +57,16 @@ public final class MealplanRepository {
             try DBMealplanEntry.find(id).update { $0.noteText = #bind(text) }.execute(db)
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func deleteEntry(id: UUID) async throws {
+        try await MealplanCalendarSyncService.shared.prepareForLocalEntryDeletion(entryIDs: [id])
         try await database.write { db in
             try DBMealplanEntry.find(id).delete().execute(db)
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func insertRandomMeal(date: Date, index: Int, homeId: UUID?) async throws {
@@ -78,6 +83,7 @@ public final class MealplanRepository {
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func moveEntry(entryId: UUID, to date: Date, index: Int, existingEntries: [MealplanEntry]) async throws {
@@ -98,6 +104,7 @@ public final class MealplanRepository {
             }
         }
         await refreshWidgetSnapshot()
+        await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
     }
 
     public func refreshWidgetSnapshot(now: Date = .now, calendar: Calendar = .current) async {

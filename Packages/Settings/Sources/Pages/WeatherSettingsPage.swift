@@ -74,6 +74,7 @@ struct WeatherSettingsPage: View {
                     Label("Weather in Mealplan", systemImage: "cloud.sun.fill")
                     Label("Weather-aware discovery", systemImage: "sparkles")
                     Label("Manual location override", systemImage: "mappin.and.ellipse")
+                    Label("Plus all Sporkast Pro features", systemImage: "checkmark.seal.fill")
 
                     Button("Unlock Weather", systemImage: "sparkles") {
                         isPaywallPresented = true
@@ -81,7 +82,7 @@ struct WeatherSettingsPage: View {
                 } header: {
                     Text("Pro Weather")
                 } footer: {
-                    Text("Weather is a Sporkast Pro feature. Unlock it to show forecasts in meal planning and send local weather context to recipe discovery.")
+                    Text("Unlock weather for mealplan forecasts and weather-aware discovery. Sporkast Pro also includes organization, social imports, widgets, and Calendar sync.")
                 }
             }
         }

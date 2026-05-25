@@ -45,6 +45,11 @@ public struct ProSettingsPage: View {
                 Label("Recipe tags and suggestions", systemImage: "tag.fill")
                 Label("Search by folder and tag names", systemImage: "magnifyingglass")
                 Label("Manage organization from recipe editing", systemImage: "slider.horizontal.3")
+                Label("Social recipe imports from Reels and TikToks", systemImage: "sparkles.tv")
+                Label("Recipe discovery from trusted sources", systemImage: "sparkles.rectangle.stack.fill")
+                Label("Weather forecasts in meal planning", systemImage: "cloud.sun.fill")
+                Label("Mealplan widgets", systemImage: "rectangle.inset.filled.and.person.filled")
+                Label("Mealplans in iCloud Calendar", systemImage: "calendar.badge.checkmark")
             }
         }
         .listStyle(.insetGrouped)
@@ -94,7 +99,7 @@ public struct ProSettingsPage: View {
         case "pro_yearly": return "Yearly plan"
         case "pro_lifetime": return "Lifetime plan"
         case "pro": return "Pro access"
-        default: return "Unlock folders, subfolders, tags, and pro search"
+        default: return "Unlock organization, imports, discovery, weather, widgets, and Calendar sync"
         }
     }
 

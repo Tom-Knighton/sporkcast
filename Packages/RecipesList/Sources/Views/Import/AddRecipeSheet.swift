@@ -185,7 +185,7 @@ private struct SocialImportProHint: View {
                 Text("Pro imports social recipes")
                     .font(.footnote.weight(.semibold))
 
-                Text("Share Instagram Reels or TikToks to Sporkast, or paste their links as normal URLs.")
+                Text("Share Instagram Reels or TikToks to Sporkast, or paste their links as normal URLs. Pro also includes folders, discovery, weather, widgets, and Calendar sync.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

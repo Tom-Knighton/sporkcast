@@ -125,9 +125,9 @@ private enum ProPaywallCompletion {
     var message: String {
         switch self {
         case .purchase:
-            return "Thanks for supporting Sporkast. Folders, subfolders, tags, social recipe imports, and pro search are ready on this device."
+            return "Thanks for supporting Sporkast. Folders, tags, social imports, discovery, weather, widgets, and Calendar sync are ready on this device."
         case .restore:
-            return "Your Pro access is active again. Folders, subfolders, tags, social recipe imports, and pro search are ready on this device."
+            return "Your Pro access is active again. Folders, tags, social imports, discovery, weather, widgets, and Calendar sync are ready on this device."
         }
     }
 }

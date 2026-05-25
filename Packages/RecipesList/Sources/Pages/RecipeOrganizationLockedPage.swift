@@ -71,6 +71,12 @@ struct RecipeOrganizationLockedPage: View {
                 subtitle: "Find the recipe you meant to cook without scrolling through everything.",
                 systemImage: "line.3.horizontal.decrease.circle"
             )
+
+            RecipeOrganizationLockedFeatureRow(
+                title: "More Pro tools for planning",
+                subtitle: "Also includes social imports, discovery, weather, mealplan widgets, and Calendar sync.",
+                systemImage: "sparkles"
+            )
         }
     }
 

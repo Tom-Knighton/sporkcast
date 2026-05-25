@@ -323,6 +323,10 @@ extension EditRecipePage {
                         Text("Add this recipe to folders, subfolders, and tags with Sporkast Pro.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+
+                        Text("Also includes social imports, discovery, weather, mealplan widgets, and Calendar sync.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
 
                     Spacer()

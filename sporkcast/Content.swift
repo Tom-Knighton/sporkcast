@@ -51,6 +51,7 @@ struct AppContent: View {
     @State private var cachedSocialRecipeImportFeatureAccess: Bool
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.shoppingListRemindersSync) private var shoppingListRemindersSync
+    @Environment(\.mealplanCalendarSync) private var mealplanCalendarSync
     
     public init() {
         self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
@@ -173,6 +174,7 @@ struct AppContent: View {
         .task {
             proAccess.configure()
             await proAccess.refresh()
+            syncMealplanCalendarProAccess()
             syncMealplanWidgetProAccess()
             await refreshMealplanWidgets()
             flagKit.start()
@@ -182,12 +184,19 @@ struct AppContent: View {
             if syncSnapshot.isEnabled {
                 await shoppingListRemindersSync.scheduleSync(trigger: .appLaunch)
             }
+            await mealplanCalendarSync.start()
+            let calendarSyncSnapshot = await mealplanCalendarSync.snapshot()
+            if calendarSyncSnapshot.isEnabled {
+                await mealplanCalendarSync.scheduleSync(trigger: .appLaunch)
+            }
         }
         .onChange(of: proAccess.subscriptionTier, initial: true) { _, tier in
             flagKit.updateSubscriptionTier(tier)
+            syncMealplanCalendarProAccess()
             syncMealplanWidgetProAccess()
         }
         .onChange(of: proAccess.hasProAccess, initial: true) { _, _ in
+            syncMealplanCalendarProAccess()
             syncMealplanWidgetProAccess()
         }
         .onChange(of: flagKit.contextVersion, initial: true) { _, _ in
@@ -294,6 +303,11 @@ struct AppContent: View {
         let hasWidgetAccess = proAccess.hasProAccess || proAccess.subscriptionTier != "free"
         MealplanWidgetSnapshotStore.setHasProAccess(hasWidgetAccess)
         WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
+    }
+
+    private func syncMealplanCalendarProAccess() {
+        let hasCalendarSyncAccess = proAccess.hasProAccess || proAccess.subscriptionTier != "free"
+        MealplanCalendarSyncService.setProAccess(hasCalendarSyncAccess)
     }
 
     private static var cachedRecipeOrganizationFeatureAccess: Bool {
