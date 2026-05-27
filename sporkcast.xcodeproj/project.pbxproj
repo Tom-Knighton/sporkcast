@@ -24,6 +24,7 @@
 		E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */ = {isa = PBXBuildFile; productRef = E2BBA9152E5B2D8600846D3E /* Recipe */; };
 		E2DE194E2E92852F00A712BD /* RecipeTimersList in Frameworks */ = {isa = PBXBuildFile; productRef = E2DE194D2E92852F00A712BD /* RecipeTimersList */; };
 		E2ED82532EC8A1CF000E0318 /* Mealplans in Frameworks */ = {isa = PBXBuildFile; productRef = E2ED82522EC8A1CF000E0318 /* Mealplans */; };
+		E2F371A02FC78D4B00477F2B /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2F3719F2FC78D4B00477F2B /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +80,7 @@
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
 		E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tomja.xcodeproj; sourceTree = "<group>"; };
+		E2F3719F2FC78D4B00477F2B /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -209,6 +211,7 @@
 				E254D73D2E7E01FF00CDE935 /* RecipesList in Frameworks */,
 				E2BBA9142E5B2D8600846D3E /* Design in Frameworks */,
 				E237994A2F427A050072EF1A /* ShoppingLists in Frameworks */,
+				E2F371A02FC78D4B00477F2B /* CloudKit.framework in Frameworks */,
 				E2BBA9162E5B2D8600846D3E /* Recipe in Frameworks */,
 				E2ED82532EC8A1CF000E0318 /* Mealplans in Frameworks */,
 				E2BBA9122E5B2D8600846D3E /* API in Frameworks */,
@@ -250,6 +253,7 @@
 		E2BBA9102E5B2D8600846D3E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E2F3719F2FC78D4B00477F2B /* CloudKit.framework */,
 				E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */,
 				E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */,
 			);
@@ -894,9 +898,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
@@ -941,9 +945,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
