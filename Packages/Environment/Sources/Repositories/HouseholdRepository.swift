@@ -85,7 +85,7 @@ public final class HouseholdRepository {
         
         try? await database.write { db in
             try DBRecipe
-                .where { $0.id.neq(_dbHome.id) }
+                .where { $0.homeId.is(nil) }
                 .update(set: { r in
                     r.homeId = #bind(_dbHome.id)
                 })
@@ -94,7 +94,7 @@ public final class HouseholdRepository {
 
         try? await database.write { db in
             try DBMealplanEntry
-                .where { $0.id.neq(_dbHome.id) }
+                .where { $0.homeId.is(nil) }
                 .update { $0.homeId = #bind(_dbHome.id) }
                 .execute(db)
         }

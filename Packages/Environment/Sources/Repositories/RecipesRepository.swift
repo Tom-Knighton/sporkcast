@@ -106,18 +106,13 @@ public final class RecipesRepository {
     public func saveImportedRecipes(_ entityBatch: [ImportedRecipeEntities]) async throws {
         guard !entityBatch.isEmpty else { return }
 
-        let shouldPauseSync = entityBatch.count > 1
-        if shouldPauseSync {
-            syncEngine.stop()
-        }
+        syncEngine.stop()
         defer {
-            if shouldPauseSync {
-                Task {
-                    do {
-                        try await syncEngine.start()
-                    } catch {
-                        print("Error restarting sync after recipe import: \(error)")
-                    }
+            Task {
+                do {
+                    try await syncEngine.start()
+                } catch {
+                    print("Error restarting sync after recipe import: \(error)")
                 }
             }
         }
@@ -194,6 +189,17 @@ public final class RecipesRepository {
         let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings, newLinkedIngredients) = entities
         let shouldReplaceIngredients = !newIngGroups.isEmpty && !newIngs.isEmpty
         let shouldReplaceSteps = !newStepGroups.isEmpty && !newSteps.isEmpty
+
+        syncEngine.stop()
+        defer {
+            Task {
+                do {
+                    try await syncEngine.start()
+                } catch {
+                    print("Error restarting sync after recipe replacement: \(error)")
+                }
+            }
+        }
 
         try await database.write { db in
             try DBRecipe
