@@ -32,6 +32,7 @@ public enum FeatureFlag: String, Sendable {
     case recipeDiscoveryPro = "recipe-discovery-pro"
     case recipeDiscoverySeparateTab = "recipe-discovery-separate-tab"
     case mealplanWeatherPro = "mealplan-weather-pro"
+    case recipeDiagnosticsExport = "recipe-diagnostics-export"
 }
 
 public protocol FlagServiceProtocol: Sendable {

@@ -49,9 +49,17 @@ struct GeneralSettingsPage: View {
                 }
             }
             
-            Section("Diagnostics") {
-                Button(action: exportRecipeDebugLogs) {
-                    Label("Export Recipe Debug Logs", systemImage: "doc.text")
+            Section("Getting Started") {
+                Button(action: showOnboarding) {
+                    Label("Show Onboarding", systemImage: "sparkles.rectangle.stack.fill")
+                }
+            }
+
+            if flagKit.isEnabled(.recipeDiagnosticsExport, default: false) {
+                Section("Diagnostics") {
+                    Button(action: exportRecipeDebugLogs) {
+                        Label("Export Recipe Debug Logs", systemImage: "doc.text")
+                    }
                 }
             }
 
@@ -82,6 +90,12 @@ struct GeneralSettingsPage: View {
             } catch {
                 print(error)
             }
+        }
+    }
+
+    private func showOnboarding() {
+        store.update { settings in
+            settings.hasCompletedOnboarding = false
         }
     }
     

@@ -61,9 +61,21 @@ public struct SettingsPage: View {
                 }
             }
 
+            Section {
+                Link(destination: Self.helpURL) {
+                    Label("Help", systemImage: "questionmark.circle")
+                }
+
+                Link(destination: Self.privacyPolicyURL) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
+            }
+
             #if DEBUG
             debugSection
             #endif
+
+            footerSection
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
@@ -77,6 +89,28 @@ public struct SettingsPage: View {
         }, message: {
             Text(errorMessage ?? "An unknown error occurred.")
         })
+    }
+
+    private var footerSection: some View {
+        Section {
+            HStack {
+                Spacer()
+                VStack(spacing: 4) {
+                    Text("Tom Knighton - v\(Self.appVersion)")
+                        .font(.footnote)
+
+                    Text("Device ID: \(Self.deviceID)")
+                        .font(.caption2)
+                        .textSelection(.enabled)
+                }
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .accessibilityElement(children: .combine)
+        }
     }
 
     #if DEBUG
@@ -140,6 +174,19 @@ public struct SettingsPage: View {
     private func presentError(_ error: Error) {
         errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         isErrorPresented = true
+    }
+
+    private static let helpURL = URL(string: "https://sporkast.tom-knighton.com/help")!
+    private static let privacyPolicyURL = URL(string: "https://sporkast.tom-knighton.com/privacy")!
+
+    private static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            ?? "0.0"
+    }
+
+    private static var deviceID: String {
+        InstallationId.get()
     }
 
 }

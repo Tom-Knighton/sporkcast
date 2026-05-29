@@ -46,6 +46,7 @@ struct AppContent: View {
     @State private var cloudKitGate = CloudKitGate()
     @State private var pendingSharedImportURL: URL?
     @State private var lastRoutedSharedImport: (url: String, at: Date)?
+    @State private var isOnboardingPresented = false
     @State private var didSeedRecipesStack = false
     @State private var cachedRecipeOrganizationFeatureAccess: Bool
     @State private var cachedSocialRecipeImportFeatureAccess: Bool
@@ -147,6 +148,11 @@ struct AppContent: View {
         .fullScreenCover(item: $households.pendingInvite, content: { invite in
             HomeInvitePage(for: invite)
         })
+        .fullScreenCover(isPresented: $isOnboardingPresented) {
+            OnboardingPage(complete: completeOnboarding)
+                .environment(\.proAccess, proAccess)
+                .environment(\.flagKit, flagKit)
+        }
         .alert(alertManager.title, isPresented: $alertManager.isShowingAlert, actions: {
             Button(role: .cancel) {} label: {
                 Text("OK")
@@ -214,6 +220,10 @@ struct AppContent: View {
         }
         .onChange(of: appSettings.settings.showGroceriesPage) { _, _ in
             moveOffDiscoveryTabIfNeeded()
+        }
+        .onChange(of: appSettings.settings.hasCompletedOnboarding, initial: true) { _, hasCompletedOnboarding in
+            guard !hasCompletedOnboarding else { return }
+            isOnboardingPresented = true
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -292,6 +302,13 @@ struct AppContent: View {
         default:
             break
         }
+    }
+
+    private func completeOnboarding() {
+        appSettings.update { settings in
+            settings.hasCompletedOnboarding = true
+        }
+        isOnboardingPresented = false
     }
 
     private func refreshMealplanWidgets() async {
