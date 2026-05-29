@@ -19,9 +19,11 @@ struct RecipesSettingsPage: View {
     @State private var shareItems: [Any] = []
     @State private var cleanupURLs: [URL] = []
     @State private var isShareSheetPresented = false
-    @State private var exportErrorMessage: String?
-    @State private var isExportErrorPresented = false
+    @State private var errorMessage: String?
+    @State private var isErrorPresented = false
     @State private var isExportFormatDialogPresented = false
+    @State private var isDeleteAllRecipesDialogPresented = false
+    @State private var isDeletingAllRecipes = false
 
     var body: some View {
         List {
@@ -50,6 +52,26 @@ struct RecipesSettingsPage: View {
             } footer: {
                 Text("This will generate a ZIP file containing all of your exported recipes.")
             }
+
+            SwiftUI.Section {
+                Button(role: .destructive, action: presentDeleteAllRecipesConfirmation) {
+                    HStack(spacing: 12) {
+                        Label("Delete All Recipes", systemImage: "trash")
+
+                        Spacer()
+
+                        if isDeletingAllRecipes {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                .disabled(isDeletingAllRecipes)
+            } header: {
+                Text("Danger Zone")
+            } footer: {
+                Text("This removes every recipe and its recipe-linked data from this device and iCloud sync.")
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Recipes")
@@ -73,19 +95,34 @@ struct RecipesSettingsPage: View {
                 + "Markdown: Exports each recipe as a RecipeMD markdown file."
             )
         }
+        .confirmationDialog(
+            "Delete All Recipes?",
+            isPresented: $isDeleteAllRecipesDialogPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Delete All Recipes", role: .destructive, action: deleteAllRecipes)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone. Export your recipes first if you may need them later.")
+        }
         .sheet(isPresented: $isShareSheetPresented, onDismiss: cleanupSharedArtifacts) {
             ExportShareSheet(items: shareItems)
         }
-        .alert("Export Failed", isPresented: $isExportErrorPresented, actions: {
+        .alert("Recipes Action Failed", isPresented: $isErrorPresented, actions: {
             Button("OK", role: .cancel) {}
         }, message: {
-            Text(exportErrorMessage ?? "An unknown error occurred.")
+            Text(errorMessage ?? "An unknown error occurred.")
         })
     }
 
     private func presentExportOptions() {
         guard !isExporting else { return }
         isExportFormatDialogPresented = true
+    }
+
+    private func presentDeleteAllRecipesConfirmation() {
+        guard !isDeletingAllRecipes else { return }
+        isDeleteAllRecipesDialogPresented = true
     }
 
     private func startExport(as format: RecipeExportFormat) {
@@ -101,8 +138,8 @@ struct RecipesSettingsPage: View {
                 cleanupURLs = exportPackage.cleanupURLs
                 isShareSheetPresented = true
             } catch {
-                exportErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                isExportErrorPresented = true
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                isErrorPresented = true
             }
         }
     }
@@ -114,6 +151,22 @@ struct RecipesSettingsPage: View {
         }
         cleanupURLs = []
         shareItems = []
+    }
+
+    private func deleteAllRecipes() {
+        guard !isDeletingAllRecipes else { return }
+        isDeletingAllRecipes = true
+
+        Task {
+            defer { isDeletingAllRecipes = false }
+
+            do {
+                try await repository.deleteAllRecipes()
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                isErrorPresented = true
+            }
+        }
     }
 }
 

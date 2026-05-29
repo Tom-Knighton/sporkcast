@@ -13,7 +13,11 @@ struct GeneralSettingsPage: View {
     
     @Environment(\.appSettings) private var store
     @Environment(\.flagKit) private var flagKit
-
+    @State private var repository = SettingsRepository()
+    @State private var shareItems: [Any] = []
+    @State private var cleanupURLs: [URL] = []
+    @State private var isShareSheetPresented = false
+    
     private var visibleTabs: [AppTab] {
         AppTab.allCases.filter { tab in
             switch tab {
@@ -44,6 +48,12 @@ struct GeneralSettingsPage: View {
                     }
                 }
             }
+            
+            Section("Diagnostics") {
+                Button(action: exportRecipeDebugLogs) {
+                    Label("Export Recipe Debug Logs", systemImage: "doc.text")
+                }
+            }
 
         }
         .listStyle(.insetGrouped)
@@ -51,6 +61,9 @@ struct GeneralSettingsPage: View {
         .scrollContentBackground(.hidden)
         .background(Color.layer1)
         .onAppear(perform: normalizePreferredLaunchTab)
+        .sheet(isPresented: $isShareSheetPresented, onDismiss: cleanupSharedArtifacts) {
+            ShareSheet(items: shareItems)
+        }
     }
 
     private func normalizePreferredLaunchTab() {
@@ -60,4 +73,31 @@ struct GeneralSettingsPage: View {
             settings.preferredLaunchTab = .recipes
         }
     }
+    
+    private func exportRecipeDebugLogs() {
+        Task {
+            do {
+                let url = try await repository.exportRecipeDebugLogs()
+                presentShareSheet(items: [url], cleanupURLs: [url])
+            } catch {
+                print(error)
+            }
+        }
+    }
+    
+    private func presentShareSheet(items: [Any], cleanupURLs: [URL]) {
+        shareItems = items
+        self.cleanupURLs = cleanupURLs
+        isShareSheetPresented = true
+    }
+    
+    private func cleanupSharedArtifacts() {
+        let fileManager = FileManager.default
+        for url in cleanupURLs {
+            try? fileManager.removeItem(at: url)
+        }
+        cleanupURLs = []
+        shareItems = []
+    }
+
 }

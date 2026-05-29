@@ -60,17 +60,22 @@ public final class RecipesRepository {
     public init() {}
 
     public func deleteAll() async throws {
+        RecipeDebugDiagnostics.logAppEvent("deleteAllRecipes requested")
+        await RecipeDebugDiagnostics.logRecipeCounts("before deleteAllRecipes", database: database)
         try await database.write { db in
             try DBRecipe.delete().execute(db)
         }
+        await RecipeDebugDiagnostics.logRecipeCounts("after deleteAllRecipes", database: database)
     }
     
     public func delete(_ id: Recipe.ID) async throws  {
-        print(id)
+        RecipeDebugDiagnostics.logAppEvent("deleteRecipe requested recipeId=\(id)")
+        await RecipeDebugDiagnostics.logRecipeCounts("before deleteRecipe recipeId=\(id)", database: database)
         try await database.write { db in
             try DBRecipe.find(id).delete().execute(db)
             try DBMealplanEntry.where { $0.recipeId.eq(id) }.delete().execute(db)
         }
+        await RecipeDebugDiagnostics.logRecipeCounts("after deleteRecipe recipeId=\(id)", database: database)
     }
 
     public func saveImportedRecipe(_ entities: ImportedRecipeEntities) async throws {
@@ -83,6 +88,9 @@ public final class RecipesRepository {
 
     public func saveImportedRecipes(_ recipes: [Recipe]) async throws {
         guard !recipes.isEmpty else { return }
+
+        RecipeDebugDiagnostics.logAppEvent("saveImportedRecipes domainCount=\(recipes.count) ids=\(recipes.map(\.id).map(\.uuidString).joined(separator: ","))")
+        await RecipeDebugDiagnostics.logRecipeCounts("before saveImportedRecipes domainCount=\(recipes.count)", database: database)
 
         var entityBatch: [ImportedRecipeEntities] = []
         entityBatch.reserveCapacity(recipes.count)
@@ -100,18 +108,27 @@ public final class RecipesRepository {
         }
 
         try await saveImportedRecipes(entityBatch)
+        await RecipeDebugDiagnostics.logRecipeCounts("after saveImportedRecipes domainCount=\(recipes.count)", database: database)
         scheduleImportedImageHydration(for: recipes)
     }
 
     public func saveImportedRecipes(_ entityBatch: [ImportedRecipeEntities]) async throws {
         guard !entityBatch.isEmpty else { return }
 
+        let recipeIDs = entityBatch.map { $0.0.id.uuidString }.joined(separator: ",")
+        RecipeDebugDiagnostics.logAppEvent("saveImportedRecipeEntities count=\(entityBatch.count) ids=\(recipeIDs)")
+        await RecipeDebugDiagnostics.logRecipeCounts("before saveImportedRecipeEntities count=\(entityBatch.count)", database: database)
+
         syncEngine.stop()
+        RecipeDebugDiagnostics.logAppEvent("syncEngine.stop for recipe import count=\(entityBatch.count)")
         defer {
             Task {
                 do {
                     try await syncEngine.start()
+                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start after recipe import count=\(entityBatch.count)")
+                    await RecipeDebugDiagnostics.logRecipeCounts("after syncEngine.start recipe import count=\(entityBatch.count)", database: database)
                 } catch {
+                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start failed after recipe import error=\(error)")
                     print("Error restarting sync after recipe import: \(error)")
                 }
             }
@@ -121,7 +138,9 @@ public final class RecipesRepository {
         while startIndex < entityBatch.count {
             let endIndex = min(startIndex + Self.importWriteBatchSize, entityBatch.count)
             let chunk = entityBatch[startIndex..<endIndex]
+            RecipeDebugDiagnostics.logAppEvent("insertImportedEntityBatch range=\(startIndex)..<\(endIndex) count=\(chunk.count)")
             try await insertImportedEntityBatch(chunk)
+            await RecipeDebugDiagnostics.logRecipeCounts("after insertImportedEntityBatch range=\(startIndex)..<\(endIndex)", database: database)
             startIndex = endIndex
         }
     }
@@ -183,6 +202,9 @@ public final class RecipesRepository {
     }
 
     public func replaceImportedRecipe(existingRecipeId: UUID, with importedRecipe: Recipe) async throws {
+        RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe requested recipeId=\(existingRecipeId)")
+        await RecipeDebugDiagnostics.logRecipeCounts("before replaceImportedRecipe recipeId=\(existingRecipeId)", database: database)
+
         let recipe = importedRecipe.copy(id: existingRecipeId)
         let entities = await Recipe.entites(from: recipe)
 
@@ -191,11 +213,15 @@ public final class RecipesRepository {
         let shouldReplaceSteps = !newStepGroups.isEmpty && !newSteps.isEmpty
 
         syncEngine.stop()
+        RecipeDebugDiagnostics.logAppEvent("syncEngine.stop for recipe replacement recipeId=\(existingRecipeId)")
         defer {
             Task {
                 do {
                     try await syncEngine.start()
+                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start after recipe replacement recipeId=\(existingRecipeId)")
+                    await RecipeDebugDiagnostics.logRecipeCounts("after syncEngine.start recipe replacement recipeId=\(existingRecipeId)", database: database)
                 } catch {
+                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start failed after recipe replacement recipeId=\(existingRecipeId) error=\(error)")
                     print("Error restarting sync after recipe replacement: \(error)")
                 }
             }
@@ -215,6 +241,7 @@ public final class RecipesRepository {
                     .where { $0.recipeId.eq(existingRecipeId) }
                     .fetchAll(db)
                     .map(\.id)
+                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting ingredients recipeId=\(existingRecipeId) ingredientGroupCount=\(existingIngredientGroups.count)")
 
                 if !existingIngredientGroups.isEmpty {
                     try DBRecipeIngredient
@@ -236,6 +263,7 @@ public final class RecipesRepository {
                     .where { $0.recipeId.eq(existingRecipeId) }
                     .fetchAll(db)
                     .map(\.id)
+                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting steps recipeId=\(existingRecipeId) stepGroupCount=\(existingStepGroups.count)")
 
                 if !existingStepGroups.isEmpty {
                     let existingSteps = try DBRecipeStep
@@ -314,6 +342,7 @@ public final class RecipesRepository {
                 .execute(db)
         }
 
+        await RecipeDebugDiagnostics.logRecipeCounts("after replaceImportedRecipe recipeId=\(existingRecipeId)", database: database)
         scheduleImportedImageHydration(for: [recipe])
     }
 
@@ -340,6 +369,7 @@ public final class RecipesRepository {
 
         guard !pending.isEmpty else { return }
 
+        RecipeDebugDiagnostics.logAppEvent("scheduleImportedImageHydration count=\(pending.count) recipeIds=\(pending.map(\.recipeId).map(\.uuidString).joined(separator: ","))")
         Task(priority: .utility) { [weak self, pending] in
             await self?.hydrateImportedImages(pending)
         }
@@ -406,6 +436,7 @@ public final class RecipesRepository {
         guard !batch.isEmpty else { return }
 
         do {
+            RecipeDebugDiagnostics.logAppEvent("persistHydratedImageBatch count=\(batch.count) recipeIds=\(batch.map(\.recipeId).map(\.uuidString).joined(separator: ","))")
             try await database.write { db in
                 for image in batch {
                     try DBRecipeImage
@@ -413,7 +444,9 @@ public final class RecipesRepository {
                         .execute(db)
                 }
             }
+            await RecipeDebugDiagnostics.logRecipeCounts("after persistHydratedImageBatch count=\(batch.count)", database: database)
         } catch {
+            RecipeDebugDiagnostics.logAppEvent("persistHydratedImageBatch failed count=\(batch.count) error=\(error)")
             print("Error hydrating imported images: \(error)")
         }
     }

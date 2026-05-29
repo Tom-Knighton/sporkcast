@@ -24,13 +24,11 @@ public enum AppDatabaseFactory {
                 try db.attachMetadatabase()
             }
 
-            #if DEBUG
             if let tracer {
                 db.trace(options: .profile) { [tracer] in
                     tracer($0.expandedDescription)
                 }
             }
-            #endif
         }
 
         let database = try defaultDatabase(configuration: config)

@@ -20,12 +20,15 @@ struct SporkcastApp: App {
     @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     init() {
+        var appDatabase: (any DatabaseWriter)!
         prepareDependencies {
-            $0.defaultDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
+            appDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
 #if DEBUG
                 print(description)
 #endif
+                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
             })
+            $0.defaultDatabase = appDatabase
             
             $0.defaultSyncEngine = try! SyncEngine(
                 for: $0.defaultDatabase,
@@ -53,6 +56,11 @@ struct SporkcastApp: App {
                 DBShoppingListItemReminderLink.self,
                 DBShoppingListItemMealplanLink.self,
             )
+        }
+
+        RecipeDebugDiagnostics.logAppEvent("app init completed")
+        Task {
+            await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
         }
     }
     

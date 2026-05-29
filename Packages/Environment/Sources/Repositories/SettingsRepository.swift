@@ -22,12 +22,27 @@ public final class SettingsRepository {
     public init() {}
 
     public func deleteAllData() async throws {
+        RecipeDebugDiagnostics.logAppEvent("settings deleteAllData requested")
         try await database.write { db in
             try DBHome.delete().execute(db)
             try DBRecipe.delete().execute(db)
             try SyncMetadata.delete().execute(db)
             try DBMealplanEntry.delete().execute(db)
         }
+        await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllData", database: database)
+    }
+
+    public func deleteAllRecipes() async throws {
+        RecipeDebugDiagnostics.logAppEvent("settings deleteAllRecipes requested")
+        await RecipeDebugDiagnostics.logRecipeCounts("before settings deleteAllRecipes", database: database)
+        try await database.write { db in
+            try DBRecipe.delete().execute(db)
+            try DBMealplanEntry
+                .where { $0.recipeId.isNot(nil) }
+                .delete()
+                .execute(db)
+        }
+        await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllRecipes", database: database)
     }
 
     public func exportDatabase() async throws -> URL {
@@ -39,6 +54,12 @@ public final class SettingsRepository {
 
         try await database.vacuum(into: exportURL.path)
         return exportURL
+    }
+
+    public func exportRecipeDebugLogs() async throws -> URL {
+        RecipeDebugDiagnostics.logAppEvent("settings exportRecipeDebugLogs requested")
+        await RecipeDebugDiagnostics.logRecipeCounts("before settings exportRecipeDebugLogs", database: database)
+        return try RecipeDebugLogStore.shared.makeExportFile()
     }
 
     public func exportRecipes(as format: RecipeExportFormat = .sporkast) async throws -> RecipeExportPackage {
