@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if DEBUG
+import OSLog
+#endif
 
 public final class RecipeDebugLogStore: @unchecked Sendable {
     public static let shared = RecipeDebugLogStore()
@@ -64,6 +67,7 @@ public final class RecipeDebugLogStore: @unchecked Sendable {
             if fileManager.fileExists(atPath: logFileURL.path) {
                 data.append(try Data(contentsOf: logFileURL))
             }
+            data.append(debugCloudKitLogExportData())
             if data.isEmpty {
                 data.append(Data("No recipe debug logs have been recorded yet.\n".utf8))
             }
@@ -122,7 +126,53 @@ public final class RecipeDebugLogStore: @unchecked Sendable {
         Data("\n\n--- rotated log ---\n\n".utf8)
     }
 
+    private static var debugOSLogSeparatorData: Data {
+        Data("\n\n--- SQLiteData CloudKit OSLog entries (Debug builds only) ---\n\n".utf8)
+    }
+
     private static func timestamp() -> String {
         ISO8601DateFormatter().string(from: Date())
+    }
+
+    private func debugCloudKitLogExportData() -> Data {
+        #if DEBUG
+        do {
+            let store = try OSLogStore(scope: .currentProcessIdentifier)
+            let startDate = Date().addingTimeInterval(-6 * 60 * 60)
+            let position = store.position(date: startDate)
+            let predicate = NSPredicate(
+                format: "subsystem == %@ AND category == %@",
+                "SQLiteData",
+                "CloudKit"
+            )
+            let entries = try store
+                .getEntries(at: position, matching: predicate)
+                .compactMap { entry -> String? in
+                    guard let logEntry = entry as? OSLogEntryLog else { return nil }
+                    return [
+                        "[\(Self.timestamp(logEntry.date))]",
+                        "OSLOG",
+                        logEntry.subsystem,
+                        logEntry.category,
+                        "level=\(String(describing: logEntry.level))",
+                        logEntry.composedMessage
+                    ].joined(separator: " ")
+                }
+
+            guard !entries.isEmpty else {
+                return Data("\n\n--- SQLiteData CloudKit OSLog entries (Debug builds only) ---\n\nNo SQLiteData CloudKit OSLog entries found for the last 6 hours.\n".utf8)
+            }
+
+            return Self.debugOSLogSeparatorData + Data((entries.joined(separator: "\n") + "\n").utf8)
+        } catch {
+            return Data("\n\n--- SQLiteData CloudKit OSLog entries (Debug builds only) ---\n\nFailed to export SQLiteData CloudKit OSLog entries: \(error)\n".utf8)
+        }
+        #else
+        return Data()
+        #endif
+    }
+
+    private static func timestamp(_ date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
     }
 }

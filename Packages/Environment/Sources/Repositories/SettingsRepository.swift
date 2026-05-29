@@ -24,10 +24,11 @@ public final class SettingsRepository {
     public func deleteAllData() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllData requested")
         try await database.write { db in
-            try DBHome.delete().execute(db)
+            try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
-            try SyncMetadata.delete().execute(db)
             try DBMealplanEntry.delete().execute(db)
+            try DBHome.delete().execute(db)
+            try SyncMetadata.delete().execute(db)
         }
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllData", database: database)
     }
@@ -36,6 +37,7 @@ public final class SettingsRepository {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllRecipes requested")
         await RecipeDebugDiagnostics.logRecipeCounts("before settings deleteAllRecipes", database: database)
         try await database.write { db in
+            try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
             try DBMealplanEntry
                 .where { $0.recipeId.isNot(nil) }

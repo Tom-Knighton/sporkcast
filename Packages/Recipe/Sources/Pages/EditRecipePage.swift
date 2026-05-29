@@ -455,7 +455,7 @@ extension EditRecipePage {
             
             let (newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings, newLinkedIngredients) = await Recipe.entites(from: editingRecipe)
 
-            try await db.write { [newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings] db in
+            try await db.write { [newRecipe, newImage, newIngGroups, newIngs, newStepGroups, newSteps, newStepTimings, newStepTemps, newRatings, newLinkedIngredients] db in
                 
                 try DBRecipe
                     .upsert { newRecipe }
@@ -465,20 +465,14 @@ extension EditRecipePage {
                     .execute(db)
                 
                 // Remove & Reinsert ingredients & temps
-                try DBRecipeIngredientGroup
-                    .where { $0.recipeId.eq(newRecipe.id) }
-                    .delete()
-                    .execute(db)
+                try RecipeManualCascade.deleteIngredientLinkedData(for: newRecipe.id, in: db)
                 try DBRecipeIngredientGroup
                     .insert { newIngGroups }
                     .execute(db)
                 try DBRecipeIngredient
                     .insert { newIngs}
                     .execute(db)
-                try DBRecipeStepGroup
-                    .where { $0.recipeId.eq(newRecipe.id) }
-                    .delete()
-                    .execute(db)
+                try RecipeManualCascade.deleteStepLinkedData(for: newRecipe.id, in: db)
                 try DBRecipeStepGroup
                     .insert { newStepGroups }
                     .execute(db)

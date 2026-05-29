@@ -829,5 +829,193 @@ public struct SchemaV1 {
                 )
                 """)
         }
+
+        migrator.registerMigration("Remove Recipe Detail Cascade Constraints") { db in
+            try db.execute(sql: """
+                CREATE TABLE RecipeStepLinkedIngredients_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeStepId TEXT,
+                    ingredientId TEXT,
+                    sortIndex INTEGER
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeStepLinkedIngredients_repaired (id, recipeStepId, ingredientId, sortIndex)
+                SELECT id, recipeStepId, ingredientId, sortIndex
+                FROM RecipeStepLinkedIngredients
+                """)
+            try db.execute(sql: "DROP TABLE RecipeStepLinkedIngredients")
+            try db.execute(sql: "ALTER TABLE RecipeStepLinkedIngredients_repaired RENAME TO RecipeStepLinkedIngredients")
+            try db.execute(sql: "CREATE INDEX RecipeStepLinkedIngredients_on_recipeStepId ON RecipeStepLinkedIngredients(recipeStepId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeStepTemperatures_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeStepId TEXT,
+                    temperature DOUBLE NOT NULL,
+                    temperatureText TEXT NOT NULL,
+                    temperatureUnitText TEXT NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeStepTemperatures_repaired (id, recipeStepId, temperature, temperatureText, temperatureUnitText)
+                SELECT id, recipeStepId, temperature, temperatureText, temperatureUnitText
+                FROM RecipeStepTemperatures
+                """)
+            try db.execute(sql: "DROP TABLE RecipeStepTemperatures")
+            try db.execute(sql: "ALTER TABLE RecipeStepTemperatures_repaired RENAME TO RecipeStepTemperatures")
+            try db.execute(sql: "CREATE INDEX RecipeStepTemperatures_on_recipeStepId ON RecipeStepTemperatures(recipeStepId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeStepTimings_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeStepId TEXT,
+                    timeInSeconds DOUBLE NOT NULL,
+                    timeText TEXT NOT NULL,
+                    timeUnitText TEXT NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeStepTimings_repaired (id, recipeStepId, timeInSeconds, timeText, timeUnitText)
+                SELECT id, recipeStepId, timeInSeconds, timeText, timeUnitText
+                FROM RecipeStepTimings
+                """)
+            try db.execute(sql: "DROP TABLE RecipeStepTimings")
+            try db.execute(sql: "ALTER TABLE RecipeStepTimings_repaired RENAME TO RecipeStepTimings")
+            try db.execute(sql: "CREATE INDEX RecipeStepTimings_on_recipeStepId ON RecipeStepTimings(recipeStepId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeSteps_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    groupId TEXT NOT NULL,
+                    sortIndex INTEGER NOT NULL,
+                    instruction TEXT NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeSteps_repaired (id, groupId, sortIndex, instruction)
+                SELECT id, groupId, sortIndex, instruction
+                FROM RecipeSteps
+                """)
+            try db.execute(sql: "DROP TABLE RecipeSteps")
+            try db.execute(sql: "ALTER TABLE RecipeSteps_repaired RENAME TO RecipeSteps")
+            try db.execute(sql: "CREATE INDEX RecipeSteps_on_groupId ON RecipeSteps(groupId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeStepGroups_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeId TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    sortIndex INTEGER NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeStepGroups_repaired (id, recipeId, title, sortIndex)
+                SELECT id, recipeId, title, sortIndex
+                FROM RecipeStepGroups
+                """)
+            try db.execute(sql: "DROP TABLE RecipeStepGroups")
+            try db.execute(sql: "ALTER TABLE RecipeStepGroups_repaired RENAME TO RecipeStepGroups")
+            try db.execute(sql: "CREATE INDEX RecipeStepGroups_on_recipeId ON RecipeStepGroups(recipeId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeIngredients_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    ingredientGroupId TEXT NOT NULL,
+                    sortIndex INTEGER NOT NULL,
+                    rawIngredient TEXT NOT NULL,
+                    quantity INTEGER,
+                    quantityText TEXT,
+                    unit TEXT,
+                    unitText TEXT,
+                    ingredient TEXT,
+                    extra TEXT,
+                    emojiDescriptor TEXT,
+                    owned BOOLEAN
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeIngredients_repaired (
+                    id,
+                    ingredientGroupId,
+                    sortIndex,
+                    rawIngredient,
+                    quantity,
+                    quantityText,
+                    unit,
+                    unitText,
+                    ingredient,
+                    extra,
+                    emojiDescriptor,
+                    owned
+                )
+                SELECT
+                    id,
+                    ingredientGroupId,
+                    sortIndex,
+                    rawIngredient,
+                    quantity,
+                    quantityText,
+                    unit,
+                    unitText,
+                    ingredient,
+                    extra,
+                    emojiDescriptor,
+                    owned
+                FROM RecipeIngredients
+                """)
+            try db.execute(sql: "DROP TABLE RecipeIngredients")
+            try db.execute(sql: "ALTER TABLE RecipeIngredients_repaired RENAME TO RecipeIngredients")
+            try db.execute(sql: "CREATE INDEX RecipeIngredients_on_ingredientGroupId ON RecipeIngredients(ingredientGroupId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeIngredientGroups_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeId TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    sortIndex INTEGER NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeIngredientGroups_repaired (id, recipeId, title, sortIndex)
+                SELECT id, recipeId, title, sortIndex
+                FROM RecipeIngredientGroups
+                """)
+            try db.execute(sql: "DROP TABLE RecipeIngredientGroups")
+            try db.execute(sql: "ALTER TABLE RecipeIngredientGroups_repaired RENAME TO RecipeIngredientGroups")
+            try db.execute(sql: "CREATE INDEX RecipeIngredientGroups_on_recipeId ON RecipeIngredientGroups(recipeId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeRatings_repaired (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    recipeId TEXT,
+                    rating INTEGER,
+                    comment TEXT
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeRatings_repaired (id, recipeId, rating, comment)
+                SELECT id, recipeId, rating, comment
+                FROM RecipeRatings
+                """)
+            try db.execute(sql: "DROP TABLE RecipeRatings")
+            try db.execute(sql: "ALTER TABLE RecipeRatings_repaired RENAME TO RecipeRatings")
+            try db.execute(sql: "CREATE INDEX RecipeRatings_on_recipeId ON RecipeRatings(recipeId)")
+
+            try db.execute(sql: """
+                CREATE TABLE RecipeImages_repaired (
+                    recipeId TEXT PRIMARY KEY NOT NULL,
+                    imageData BLOB,
+                    imageSourceUrl TEXT
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO RecipeImages_repaired (recipeId, imageData, imageSourceUrl)
+                SELECT recipeId, imageData, imageSourceUrl
+                FROM RecipeImages
+                """)
+            try db.execute(sql: "DROP TABLE RecipeImages")
+            try db.execute(sql: "ALTER TABLE RecipeImages_repaired RENAME TO RecipeImages")
+        }
     }
 }

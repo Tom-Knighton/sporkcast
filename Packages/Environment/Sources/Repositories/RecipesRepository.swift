@@ -63,6 +63,7 @@ public final class RecipesRepository {
         RecipeDebugDiagnostics.logAppEvent("deleteAllRecipes requested")
         await RecipeDebugDiagnostics.logRecipeCounts("before deleteAllRecipes", database: database)
         try await database.write { db in
+            try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
         }
         await RecipeDebugDiagnostics.logRecipeCounts("after deleteAllRecipes", database: database)
@@ -72,6 +73,7 @@ public final class RecipesRepository {
         RecipeDebugDiagnostics.logAppEvent("deleteRecipe requested recipeId=\(id)")
         await RecipeDebugDiagnostics.logRecipeCounts("before deleteRecipe recipeId=\(id)", database: database)
         try await database.write { db in
+            try RecipeManualCascade.deleteRecipeLinkedData(for: id, in: db)
             try DBRecipe.find(id).delete().execute(db)
             try DBMealplanEntry.where { $0.recipeId.eq(id) }.delete().execute(db)
         }
@@ -237,65 +239,15 @@ public final class RecipesRepository {
                 .execute(db)
 
             if shouldReplaceIngredients {
-                let existingIngredientGroups = try DBRecipeIngredientGroup
-                    .where { $0.recipeId.eq(existingRecipeId) }
-                    .fetchAll(db)
-                    .map(\.id)
-                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting ingredients recipeId=\(existingRecipeId) ingredientGroupCount=\(existingIngredientGroups.count)")
-
-                if !existingIngredientGroups.isEmpty {
-                    try DBRecipeIngredient
-                        .where { existingIngredientGroups.contains($0.ingredientGroupId) }
-                        .delete()
-                        .execute(db)
-                }
-
-                try DBRecipeIngredientGroup
-                    .where { $0.recipeId.eq(existingRecipeId) }
-                    .delete()
-                    .execute(db)
+                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting ingredients recipeId=\(existingRecipeId)")
+                try RecipeManualCascade.deleteIngredientLinkedData(for: existingRecipeId, in: db)
             } else {
                 print("Skipping ingredient replacement for \(existingRecipeId) due to incomplete import payload")
             }
 
             if shouldReplaceSteps {
-                let existingStepGroups = try DBRecipeStepGroup
-                    .where { $0.recipeId.eq(existingRecipeId) }
-                    .fetchAll(db)
-                    .map(\.id)
-                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting steps recipeId=\(existingRecipeId) stepGroupCount=\(existingStepGroups.count)")
-
-                if !existingStepGroups.isEmpty {
-                    let existingSteps = try DBRecipeStep
-                        .where { existingStepGroups.contains($0.groupId) }
-                        .fetchAll(db)
-                        .map(\.id)
-
-                    if !existingSteps.isEmpty {
-                        try DBRecipeStepTiming
-                            .where { existingSteps.contains($0.recipeStepId) }
-                            .delete()
-                            .execute(db)
-                        try DBRecipeStepTemperature
-                            .where { existingSteps.contains($0.recipeStepId) }
-                            .delete()
-                            .execute(db)
-                        try DBRecipeStepLinkedIngredient
-                            .where { existingSteps.contains($0.recipeStepId) }
-                            .delete()
-                            .execute(db)
-                    }
-
-                    try DBRecipeStep
-                        .where { existingStepGroups.contains($0.groupId) }
-                        .delete()
-                        .execute(db)
-                }
-
-                try DBRecipeStepGroup
-                    .where { $0.recipeId.eq(existingRecipeId) }
-                    .delete()
-                    .execute(db)
+                RecipeDebugDiagnostics.logAppEvent("replaceImportedRecipe deleting steps recipeId=\(existingRecipeId)")
+                try RecipeManualCascade.deleteStepLinkedData(for: existingRecipeId, in: db)
             } else {
                 print("Skipping step replacement for \(existingRecipeId) due to incomplete import payload")
             }
