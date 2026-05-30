@@ -433,7 +433,6 @@ private extension ShoppingListRemindersSyncService {
             remoteByExternalIdentifier[external, default: []].append(reminder)
         }
 
-        var localDeletes: Set<UUID> = []
         var localUpdates: [LocalItemUpdate] = []
         var localInserts: [DBShoppingListItem] = []
 
@@ -455,8 +454,6 @@ private extension ShoppingListRemindersSyncService {
         }
 
         for localItem in localState.items {
-            if localDeletes.contains(localItem.id) { continue }
-
             guard let link = linksByLocalID[localItem.id] else {
                 let reminder = EKReminder(eventStore: eventStore)
                 reminder.calendar = calendar
@@ -484,8 +481,22 @@ private extension ShoppingListRemindersSyncService {
             )
 
             guard let reminder = linkedReminder else {
-                localDeletes.insert(localItem.id)
-                linkDeletes.insert(link.id)
+                let replacement = EKReminder(eventStore: eventStore)
+                replacement.calendar = calendar
+                replacement.title = localItem.title
+                replacement.isCompleted = localItem.isComplete
+                try eventStore.save(replacement, commit: true)
+
+                linkUpdates.append(
+                    LinkUpdate(
+                        id: link.id,
+                        reminderIdentifier: replacement.calendarItemIdentifier,
+                        reminderExternalIdentifier: replacement.calendarItemExternalIdentifier,
+                        lastSyncedAt: now
+                    )
+                )
+                linksByReminderID[replacement.calendarItemIdentifier] = link
+                matchedReminderIdentifiers.insert(replacement.calendarItemIdentifier)
                 continue
             }
 
@@ -624,12 +635,11 @@ private extension ShoppingListRemindersSyncService {
             linksByLocalID[itemID] = link
         }
 
-        let hadLocalMutations = !localDeletes.isEmpty || !localUpdates.isEmpty || !localInserts.isEmpty
+        let hadLocalMutations = !localUpdates.isEmpty || !localInserts.isEmpty
         let hadLinkMutations = !linkDeletes.isEmpty || !linkUpdates.isEmpty || !linkInserts.isEmpty
 
         guard hadLocalMutations || hadLinkMutations else { return }
 
-        let localDeletesSnapshot = localDeletes
         let localUpdatesSnapshot = localUpdates
         let localInsertsSnapshot = localInserts
         let linkDeletesSnapshot = linkDeletes
@@ -638,10 +648,6 @@ private extension ShoppingListRemindersSyncService {
         let listID = localState.list.id
 
         try await database.write { db in
-            for localID in localDeletesSnapshot {
-                try DBShoppingListItem.find(localID).delete().execute(db)
-            }
-
             for update in localUpdatesSnapshot {
                 try DBShoppingListItem.find(update.id).update {
                     $0.title = update.title
