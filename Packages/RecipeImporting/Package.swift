@@ -23,7 +23,7 @@ let package = Package(
         ),
         .testTarget(
             name: "RecipeImportingTests",
-            dependencies: ["RecipeImporting", "ZIPFoundation"]
+            dependencies: ["RecipeImporting", "API", "ZIPFoundation"]
         ),
     ]
 )

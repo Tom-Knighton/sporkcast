@@ -980,21 +980,11 @@ extension RecipePage {
             return "This looks like a video source link, which can fail to parse for re-import. Try re-importing from the original app export file."
         }
 
-        if error is DecodingError {
-            return "The source returned recipe data in an unexpected format. Please try re-importing later."
-        }
-
-        if let importError = error as? RecipeImportError,
-           let message = importError.errorDescription {
-            return message
-        }
-
-        let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "We couldn't re-import this recipe right now. Please try again."
-        }
-
-        return description
+        return RecipeImportError.customerFacingMessage(
+            for: error,
+            fallbackMessage: "We couldn't re-import this recipe right now. Please try again.",
+            decodingMessage: "The source returned recipe data in an unexpected format. Please try re-importing later."
+        )
     }
 
     private var recipeChatEnabled: Bool {

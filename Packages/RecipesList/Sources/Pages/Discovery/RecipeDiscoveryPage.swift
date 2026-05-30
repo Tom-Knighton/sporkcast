@@ -408,20 +408,11 @@ private extension RecipeDiscoveryPage {
     }
 
     func mapImportError(_ error: Error) -> String {
-        if error is DecodingError {
-            return "The recipe data was returned in an unexpected format. Try opening the source or choose another card."
-        }
-
-        if let importError = error as? RecipeImportError,
-           let message = importError.errorDescription {
-            return message
-        }
-
-        let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "We couldn't import that recipe right now. Please try another card."
-        }
-        return description
+        RecipeImportError.customerFacingMessage(
+            for: error,
+            fallbackMessage: "We couldn't import that recipe right now. Please try another card.",
+            decodingMessage: "The recipe data came back in an unexpected format. Try opening the source or choose another card."
+        )
     }
 }
 
