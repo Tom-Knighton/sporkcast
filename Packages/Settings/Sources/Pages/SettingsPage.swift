@@ -20,6 +20,9 @@ public struct SettingsPage: View {
     @State private var isShareSheetPresented = false
     @State private var errorMessage: String?
     @State private var isErrorPresented = false
+    #if DEBUG
+    @State private var isSeedingCloudKitSchema = false
+    #endif
 
     public init() {}
 
@@ -127,6 +130,15 @@ public struct SettingsPage: View {
             Button(action: exportDatabase) {
                 Text("Export DB")
             }
+
+            Button(action: seedCloudKitSchema) {
+                if isSeedingCloudKitSchema {
+                    Label("Seeding CloudKit Schema", systemImage: "icloud.and.arrow.up")
+                } else {
+                    Label("Seed CloudKit Schema", systemImage: "icloud.and.arrow.up")
+                }
+            }
+            .disabled(isSeedingCloudKitSchema)
         }
     }
     #endif
@@ -155,6 +167,21 @@ public struct SettingsPage: View {
             }
         }
     }
+
+    #if DEBUG
+    private func seedCloudKitSchema() {
+        guard !isSeedingCloudKitSchema else { return }
+        isSeedingCloudKitSchema = true
+        Task {
+            defer { isSeedingCloudKitSchema = false }
+            do {
+                try await CloudKitSchemaSeedRepository().seedAllSyncedEntities()
+            } catch {
+                presentError(error)
+            }
+        }
+    }
+    #endif
 
     private func presentShareSheet(items: [Any], cleanupURLs: [URL]) {
         shareItems = items
