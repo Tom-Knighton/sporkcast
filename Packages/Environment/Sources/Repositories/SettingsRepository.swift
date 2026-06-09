@@ -23,19 +23,32 @@ public final class SettingsRepository {
 
     public func deleteAllData() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllData requested")
+        let syncScopes = try await currentSyncScopes()
+        try await leaveSupabaseHomesIfEnabled(homeIds: syncScopes.compactMap { $0 })
         try await database.write { db in
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
             try DBMealplanEntry.delete().execute(db)
+            try DBShoppingListItemIngredientLink.delete().execute(db)
+            try DBShoppingListItemMealplanLink.delete().execute(db)
+            try DBShoppingListItemReminderLink.delete().execute(db)
+            try DBShoppingListItem.delete().execute(db)
+            try DBShoppingList.delete().execute(db)
+            try DBRecipeFolderHierarchy.delete().execute(db)
+            try DBRecipeFolder.delete().execute(db)
+            try DBRecipeTag.delete().execute(db)
             try DBHome.delete().execute(db)
             try SyncMetadata.delete().execute(db)
         }
+        await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
+        await syncSupabaseSnapshotsIfEnabled(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllData", database: database)
     }
 
     public func deleteAllRecipes() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllRecipes requested")
         await RecipeDebugDiagnostics.logRecipeCounts("before settings deleteAllRecipes", database: database)
+        let syncScopes = try await recipeSyncScopes()
         try await database.write { db in
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
@@ -44,7 +57,54 @@ public final class SettingsRepository {
                 .delete()
                 .execute(db)
         }
+        await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
+        await syncSupabaseSnapshotsIfEnabled(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllRecipes", database: database)
+    }
+
+    private func currentSyncScopes() async throws -> Set<UUID?> {
+        try await database.read { db in
+            var scopes = Set<UUID?>()
+            scopes.formUnion(try DBHome.all.fetchAll(db).map { Optional($0.id) })
+            scopes.formUnion(try DBRecipe.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBMealplanEntry.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBShoppingList.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBRecipeFolder.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBRecipeTag.all.fetchAll(db).map(\.homeId))
+            scopes.insert(nil)
+            return scopes
+        }
+    }
+
+    private func recipeSyncScopes() async throws -> Set<UUID?> {
+        try await database.read { db in
+            var scopes = Set<UUID?>()
+            scopes.formUnion(try DBRecipe.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(
+                try DBMealplanEntry.all.fetchAll(db)
+                    .filter { $0.recipeId != nil }
+                    .map(\.homeId)
+            )
+            scopes.insert(nil)
+            return scopes
+        }
+    }
+
+    private func syncSupabaseSnapshotsIfEnabled(scopes: Set<UUID?>) async {
+        guard SupabaseSyncFeature.isEnabled else { return }
+        for scope in scopes {
+            await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: scope)
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: scope)
+            await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: scope)
+        }
+        await SupabaseSyncService.shared.drainOutbox(limit: max(20, scopes.count * 3))
+    }
+
+    private func leaveSupabaseHomesIfEnabled(homeIds: [UUID]) async throws {
+        guard SupabaseSyncFeature.isEnabled else { return }
+        for homeId in Set(homeIds) {
+            try await SupabaseSyncService.shared.leaveHome(homeId: homeId, disbandIfOwner: true)
+        }
     }
 
     public func exportDatabase() async throws -> URL {

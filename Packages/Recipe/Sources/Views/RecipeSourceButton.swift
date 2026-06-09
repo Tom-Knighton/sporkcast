@@ -13,24 +13,32 @@ import RecipeImporting
 
 public struct RecipeSourceButton<RecipeImage: View>: View {
     
-    @Environment(RecipeViewModel.self) private var vm
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openUrl
+    private let sourceUrl: String
+    private let recipeTitle: String
     private let color: Color
     private let image: RecipeImage
     
-    public init (with color: Color = .clear, @ViewBuilder image: () -> RecipeImage) {
+    public init(
+        sourceUrl: String,
+        recipeTitle: String,
+        color: Color = .clear,
+        @ViewBuilder image: () -> RecipeImage
+    ) {
+        self.sourceUrl = sourceUrl
+        self.recipeTitle = recipeTitle
         self.color = color
         self.image = image()
     }
     
     public var body: some View {
         Group {
-            if let sourceURL = URL(string: vm.recipe.sourceUrl), SyntheticSourceURL.isExternalWebURL(vm.recipe.sourceUrl) {
+            if let sourceURL = URL(string: sourceUrl), SyntheticSourceURL.isExternalWebURL(sourceUrl) {
                 Button(action: {
                     self.openUrl(sourceURL)
                 }) {
-                    sourceRow(title: "View Recipe Source", subtitle: vm.recipe.title, icon: "link.circle.fill")
+                    sourceRow(title: "View Recipe Source", subtitle: recipeTitle, icon: "link.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
             } else {

@@ -22,6 +22,7 @@ public struct HomeInvitePage: View {
     let ownerName: String
     let ownerEmail: String?
     var invite: CKShare.Metadata?
+    var supabaseToken: String?
     
     @State private var state: JoinState = .start
     @State private var showError: Bool = false
@@ -37,9 +38,18 @@ public struct HomeInvitePage: View {
     
     public init(for invite: CKShare.Metadata) {
         self.invite = invite
+        self.supabaseToken = nil
         title = (invite.rootRecord?[CKShare.SystemFieldKey.title] as? String) ?? "Home"
         ownerName = invite.ownerIdentity.nameComponents?.formatted(.name(style: .long)) ?? "Your Friend"
         ownerEmail = invite.ownerIdentity.lookupInfo?.emailAddress
+    }
+
+    public init(supabaseToken: String) {
+        self.invite = nil
+        self.supabaseToken = supabaseToken
+        self.title = "Shared Home"
+        self.ownerName = "Your friend"
+        self.ownerEmail = nil
     }
     
     public init(demoTitle: String, demoOwnerName: String, demoEmail: String?) {
@@ -54,6 +64,7 @@ public struct HomeInvitePage: View {
         self.ownerName = demoOwnerName
         
         self.invite = nil
+        self.supabaseToken = nil
     }
     
     public var body: some View {
@@ -162,6 +173,29 @@ public struct HomeInvitePage: View {
         
         Task {
             self.state = .pending
+
+            if let supabaseToken {
+                let existingHomeId = homes.home?.id
+                if !overrideInHome && homes.home != nil {
+                    self.showInHomeError = true
+                    self.state = .start
+                    return
+                }
+
+                do {
+                    let joinedHomeId = try await homes.acceptSupabaseInvite(token: supabaseToken)
+                    if joinedHomeId == existingHomeId {
+                        self.showSameHomeError = true
+                        self.state = .start
+                        return
+                    }
+                    self.state = .success
+                } catch {
+                    print("Supabase invite accept failed \(error.localizedDescription)")
+                    self.state = .fail
+                }
+                return
+            }
             
             guard let invite else {
                 self.state = .fail
@@ -180,7 +214,7 @@ public struct HomeInvitePage: View {
             }
             
             if !overrideInHome && homes.home != nil {
-                self.showSameHomeError = true
+                self.showInHomeError = true
                 return
             }
             
@@ -198,12 +232,25 @@ public struct HomeInvitePage: View {
                 try await syncEngine.syncChanges()
                 
                 try await awaitHomeSync(externalId: id)
-                try await db.write { db in
+                let adoptedRecipeIds = try await db.write { db in
+                    let recipeIds = try DBRecipe.all
+                        .select(\.id)
+                        .fetchAll(db)
                     try DBRecipe
                         .update { recipe in
                             recipe.homeId = #bind(id)
                         }
                         .execute(db)
+                    return recipeIds
+                }
+                if SupabaseSyncFeature.isEnabled {
+                    for recipeId in adoptedRecipeIds {
+                        await SupabaseSyncService.shared.enqueueRecipeUpsert(recipeId: recipeId, homeId: id)
+                    }
+                    await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: id)
+                    await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: id)
+                    await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: id)
+                    await SupabaseSyncService.shared.drainOutbox()
                 }
                 
                 self.state = .success

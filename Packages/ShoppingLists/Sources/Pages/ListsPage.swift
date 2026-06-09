@@ -81,7 +81,7 @@ public struct ShoppingListsPage: View {
                     .animation(.easeInOut(duration: 0.3), value: showEmpty)
                     .fontDesign(.rounded)
             } else {
-                ShoppingListNoListView(onCreate: createShoppingList)
+                ShoppingListNoListView(onCreate: { createShoppingList() })
             }
         }
         .navigationTitle(pageTitle)
@@ -102,9 +102,10 @@ public struct ShoppingListsPage: View {
             }
         }
         .onChange(of: dbLists, initial: true) { _, newValue in
-            Task { @MainActor in
-                updateShoppingListState(from: preferredShoppingList(from: newValue))
-            }
+            handleShoppingListsChanged(newValue)
+        }
+        .onChange(of: homes.home?.id) { _, homeId in
+            handleHomeChanged(homeId)
         }
         .onDisappear {
             revealedInputSectionID = nil
@@ -152,6 +153,21 @@ public struct ShoppingListsPage: View {
 
 private extension ShoppingListsPage {
 
+    func handleShoppingListsChanged(_ lists: [FullDBShoppingList]) {
+        Task { @MainActor in
+            let homeId = homes.home?.id
+            updateShoppingListState(from: preferredShoppingList(from: lists, homeId: homeId))
+            ensureVisibleShoppingListExists(homeId: homeId)
+        }
+    }
+
+    func handleHomeChanged(_ homeId: UUID?) {
+        Task { @MainActor in
+            updateShoppingListState(from: preferredShoppingList(from: dbLists, homeId: homeId))
+            ensureVisibleShoppingListExists(homeId: homeId)
+        }
+    }
+
     func sortedSections(for list: ShoppingList) -> [ShoppingListItemGroup] {
         list.itemGroups.sorted { lhs, rhs in
             let leftCategory = ShoppingCategory(categoryIdentifier: lhs.id)
@@ -167,10 +183,11 @@ private extension ShoppingListsPage {
         }
     }
 
-    func preferredShoppingList(from lists: [FullDBShoppingList]) -> FullDBShoppingList? {
-        guard !lists.isEmpty else { return nil }
+    func preferredShoppingList(from lists: [FullDBShoppingList], homeId: UUID?) -> FullDBShoppingList? {
+        let scopedLists = lists.filter { $0.shoppingList.homeId == homeId }
+        guard !scopedLists.isEmpty else { return nil }
 
-        let sorted = lists.sorted { lhs, rhs in
+        let sorted = scopedLists.sorted { lhs, rhs in
             let left = lhs.shoppingList
             let right = rhs.shoppingList
             if left.modifiedAt != right.modifiedAt {
@@ -276,8 +293,8 @@ private extension ShoppingListsPage {
 
     // MARK: - Shopping List Mutations
 
-    func createShoppingList() {
-        let homeId = homes.home?.id
+    func createShoppingList(homeId: UUID? = nil) {
+        let homeId = homeId ?? homes.home?.id
         Task {
             do {
                 _ = try await shoppingMutations.ensureActiveShoppingList(homeId: homeId)
@@ -285,6 +302,12 @@ private extension ShoppingListsPage {
                 print("Failed to create shopping list: \(error)")
             }
         }
+    }
+
+    @MainActor
+    func ensureVisibleShoppingListExists(homeId: UUID?) {
+        guard shoppingList == nil else { return }
+        createShoppingList(homeId: homeId)
     }
 
     @MainActor

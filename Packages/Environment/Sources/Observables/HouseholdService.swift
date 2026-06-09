@@ -14,7 +14,7 @@ import CloudKit
 import Combine
 import Persistence
 
-public struct HomeResident: Identifiable, Hashable, Equatable {
+public struct HomeResident: Identifiable, Hashable, Equatable, Sendable {
     public let name: String
     public let role: String
     public let isUser: Bool
@@ -28,6 +28,7 @@ public protocol HouseholdServiceProtocol {
     var canCreate: Bool { get }
     var residents: [HomeResident] { get }
     var pendingInvite: CKShare.Metadata? { get set }
+    var pendingSupabaseInvite: SupabaseHomeInviteLink? { get set }
     
     @MainActor
     @discardableResult
@@ -42,6 +43,12 @@ public protocol HouseholdServiceProtocol {
     
     @MainActor
     func share() async throws -> SharedRecord
+
+    @MainActor
+    func createSupabaseInviteLink() async throws -> URL?
+
+    @MainActor
+    func acceptSupabaseInvite(token: String) async throws -> UUID?
     
     func syncEntities() async
 }
@@ -53,6 +60,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     public static let shared = HouseholdService()
     
     public var pendingInvite: CKShare.Metadata? = nil
+    public var pendingSupabaseInvite: SupabaseHomeInviteLink? = nil
     
     @ObservationIgnored
     @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -118,7 +126,8 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             guard canCreate else { throw CreationError.alreadyInHousehold }
             
             let newDBHome = try await repository.createHome(named: name)
-            
+            try await refreshShareMetadata()
+
             errorMessage = nil
             return Home(from: newDBHome)
         } catch {
@@ -188,6 +197,17 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             share.publicPermission = .readOnly
         }
     }
+
+    public func createSupabaseInviteLink() async throws -> URL? {
+        guard let token = try await repository.createSupabaseInviteToken() else { return nil }
+        return SupabaseHomeInviteLink(token: token).url
+    }
+
+    public func acceptSupabaseInvite(token: String) async throws -> UUID? {
+        let homeId = try await repository.acceptSupabaseInviteToken(token)
+        try await refreshShareMetadata()
+        return homeId
+    }
     
     public func syncEntities() async {
         await repository.syncHomeEntities()
@@ -202,6 +222,11 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     private func refreshShareMetadata() async throws {
         guard let home else {
             self.residents.removeAll()
+            return
+        }
+
+        if SupabaseSyncFeature.isEnabled {
+            self.residents = try await repository.supabaseResidents(for: home.id)
             return
         }
         
@@ -309,6 +334,7 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     public var residents: [HomeResident] = []
     
     public var pendingInvite: CKShare.Metadata? = nil
+    public var pendingSupabaseInvite: SupabaseHomeInviteLink? = nil
     
     public init(withHome: Bool = false) {
         if withHome {
@@ -332,6 +358,14 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     
     public func share() async throws -> SQLiteData.SharedRecord {
         throw MockError.notImplemented
+    }
+
+    public func createSupabaseInviteLink() async throws -> URL? {
+        URL(string: "sporkcast://join-home?token=mock-token")
+    }
+
+    public func acceptSupabaseInvite(token: String) async throws -> UUID? {
+        home?.id ?? UUID()
     }
     
     public enum MockError: Error {

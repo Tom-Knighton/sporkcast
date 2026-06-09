@@ -95,10 +95,9 @@ public struct MealplanPage: View {
             }
         }
         .sheet(isPresented: $showingShoppingListFlow) {
-            let defaultRange = Self.currentWeekRange(containing: now, calendar: calendar, firstWeekday: weekStartWeekday)
             MealplanToShoppingListFlowView(
-                initialStartDate: defaultRange.lowerBound,
-                initialEndDate: defaultRange.upperBound
+                initialStartDate: startDate,
+                initialEndDate: endDate
             )
         }
         .task(id: [startDate, endDate]) {

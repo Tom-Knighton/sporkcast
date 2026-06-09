@@ -506,6 +506,9 @@ extension EditRecipePage {
                     tagIDs: selectedTagIDs
                 )
             }
+
+            await SupabaseSyncService.shared.enqueueRecipeUpsert(recipeId: newRecipe.id, homeId: newRecipe.homeId)
+            await SupabaseSyncService.shared.drainOutbox()
             
             self.dismiss()
         } catch {

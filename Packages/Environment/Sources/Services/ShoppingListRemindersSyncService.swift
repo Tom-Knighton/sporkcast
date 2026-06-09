@@ -688,6 +688,11 @@ private extension ShoppingListRemindersSyncService {
                 .execute(db)
             }
         }
+
+        if hadLocalMutations, SupabaseSyncFeature.isEnabled {
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: localState.list.homeId)
+            await SupabaseSyncService.shared.drainOutbox()
+        }
     }
 
     func remoteForLink(

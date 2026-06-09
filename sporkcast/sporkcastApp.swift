@@ -20,47 +20,58 @@ struct SporkcastApp: App {
     @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     init() {
+        SupabaseInstallState.clearPersistedSessionAfterFreshInstallIfNeeded()
+        SupabaseSyncFeature.setEnabled(true)
         var appDatabase: (any DatabaseWriter)!
         prepareDependencies {
             appDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
 #if DEBUG
-                print(description)
+//                print(description)
 #endif
-                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
+//                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
             })
             $0.defaultDatabase = appDatabase
-            
-            $0.defaultSyncEngine = try! SyncEngine(
-                for: $0.defaultDatabase,
-                tables:
-                    DBHome.self,
-                DBRecipe.self,
-                DBRecipeIngredientGroup.self,
-                DBRecipeIngredient.self,
-                DBRecipeStepGroup.self,
-                DBRecipeStep.self,
-                DBRecipeStepTiming.self,
-                DBRecipeStepTemperature.self,
-                DBRecipeStepLinkedIngredient.self,
-                DBRecipeRating.self,
-                DBRecipeImage.self,
-                DBRecipeFolder.self,
-                DBRecipeFolderHierarchy.self,
-                DBRecipeTag.self,
-                DBRecipeFolderAssignment.self,
-                DBRecipeTagAssignment.self,
-                DBMealplanEntry.self,
-                DBShoppingList.self,
-                DBShoppingListItem.self,
-                DBShoppingListItemIngredientLink.self,
-                DBShoppingListItemReminderLink.self,
-                DBShoppingListItemMealplanLink.self,
-            )
+
+            if SupabaseSyncFeature.isEnabled {
+                $0.defaultSyncEngine = try! SyncEngine(
+                    for: $0.defaultDatabase,
+                    startImmediately: false
+                )
+            } else {
+                $0.defaultSyncEngine = try! SyncEngine(
+                    for: $0.defaultDatabase,
+                    tables:
+                        DBHome.self,
+                    DBRecipe.self,
+                    DBRecipeIngredientGroup.self,
+                    DBRecipeIngredient.self,
+                    DBRecipeStepGroup.self,
+                    DBRecipeStep.self,
+                    DBRecipeStepTiming.self,
+                    DBRecipeStepTemperature.self,
+                    DBRecipeStepLinkedIngredient.self,
+                    DBRecipeRating.self,
+                    DBRecipeImage.self,
+                    DBRecipeFolder.self,
+                    DBRecipeFolderHierarchy.self,
+                    DBRecipeTag.self,
+                    DBRecipeFolderAssignment.self,
+                    DBRecipeTagAssignment.self,
+                    DBMealplanEntry.self,
+                    DBShoppingList.self,
+                    DBShoppingListItem.self,
+                    DBShoppingListItemIngredientLink.self,
+                    DBShoppingListItemReminderLink.self,
+                    DBShoppingListItemMealplanLink.self,
+                )
+            }
         }
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")
         Task {
             await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
+            guard SupabaseSyncFeature.isEnabled else { return }
+            await SupabaseSyncService.shared.start()
         }
     }
     
@@ -86,10 +97,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     
     func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        guard !SupabaseSyncFeature.isEnabled else { return }
         HouseholdService.shared.pendingInvite = cloudKitShareMetadata
     }
     
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard !SupabaseSyncFeature.isEnabled else { return }
         guard let ckData = connectionOptions.cloudKitShareMetadata else { return }
         
         HouseholdService.shared.pendingInvite = ckData

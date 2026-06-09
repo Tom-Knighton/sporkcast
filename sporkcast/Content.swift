@@ -127,11 +127,20 @@ struct AppContent: View {
             handleIncomingURL(incomingURL)
         }
         .task {
+            if SupabaseSyncFeature.isEnabled {
+                await SupabaseSyncService.shared.resumeRealtimeSync()
+            }
             if let sharedURL = consumePendingSharedImportURLFromDefaults() {
                 routeToRecipeImport(url: sharedURL)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active, SupabaseSyncFeature.isEnabled {
+                Task {
+                    await SupabaseSyncService.shared.resumeRealtimeSync()
+                }
+            }
+
             guard newPhase == .active,
                   let sharedURL = consumePendingSharedImportURLFromDefaults() else {
                 return
@@ -147,6 +156,9 @@ struct AppContent: View {
         }
         .fullScreenCover(item: $households.pendingInvite, content: { invite in
             HomeInvitePage(for: invite)
+        })
+        .fullScreenCover(item: $households.pendingSupabaseInvite, content: { invite in
+            HomeInvitePage(supabaseToken: invite.token)
         })
         .fullScreenCover(isPresented: $isOnboardingPresented) {
             OnboardingPage(complete: completeOnboarding)
@@ -173,9 +185,6 @@ struct AppContent: View {
             }
         } message: {
             Text(alerting?.metadata.description ?? "")
-        }
-        .task(id: households.home?.id) {
-            await households.syncEntities()
         }
         .task {
             proAccess.configure()
@@ -378,7 +387,12 @@ extension AppContent {
 
     private func handleIncomingURL(_ incomingURL: URL) {
         guard incomingURL.scheme?.lowercased() == "sporkcast",
-              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" else {
+              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" || incomingURL.host == "join-home" else {
+            return
+        }
+
+        if incomingURL.host == "join-home" {
+            routeToHomeInvite(url: incomingURL)
             return
         }
 
@@ -399,6 +413,17 @@ extension AppContent {
 
         guard let sharedURL = consumePendingSharedImportURLFromDefaults() else { return }
         routeToRecipeImport(url: sharedURL)
+    }
+
+    private func routeToHomeInvite(url: URL) {
+        guard SupabaseSyncFeature.isEnabled,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+              !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        households.pendingSupabaseInvite = SupabaseHomeInviteLink(token: token)
     }
 
     private func routeToRecipeImport(url: URL) {

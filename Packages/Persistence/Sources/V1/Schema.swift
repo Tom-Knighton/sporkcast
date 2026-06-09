@@ -496,6 +496,42 @@ public struct DBMealplanEntryCalendarEventLink: Codable, Identifiable, Sendable,
     }
 }
 
+@Table("SupabaseOutboxMutations")
+public struct DBSupabaseOutboxMutation: Codable, Identifiable, Sendable, Equatable {
+    @Column(primaryKey: true)
+    public let id: UUID
+    public let kind: String
+    public let entityId: UUID?
+    public let homeId: UUID?
+    public let operation: String
+    public let createdAt: Date
+    public let attemptCount: Int
+    public let lastAttemptAt: Date?
+    public let lastError: String?
+
+    public init(
+        id: UUID,
+        kind: String,
+        entityId: UUID?,
+        homeId: UUID?,
+        operation: String,
+        createdAt: Date,
+        attemptCount: Int,
+        lastAttemptAt: Date?,
+        lastError: String?
+    ) {
+        self.id = id
+        self.kind = kind
+        self.entityId = entityId
+        self.homeId = homeId
+        self.operation = operation
+        self.createdAt = createdAt
+        self.attemptCount = attemptCount
+        self.lastAttemptAt = lastAttemptAt
+        self.lastError = lastError
+    }
+}
+
 public struct SchemaV1 {
     public static func migrate(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("Create Tables") { db in
@@ -828,6 +864,20 @@ public struct SchemaV1 {
                     GROUP BY childFolderId
                 )
                 """)
+        }
+
+        migrator.registerMigration("Create Supabase Outbox Tables") { db in
+            try db.create(table: "SupabaseOutboxMutations") { e in
+                e.primaryKey("id", .text)
+                e.column("kind", .text).notNull().indexed()
+                e.column("entityId", .text).indexed()
+                e.column("homeId", .text).indexed()
+                e.column("operation", .text).notNull()
+                e.column("createdAt", .date).notNull().indexed()
+                e.column("attemptCount", .integer).notNull().defaults(to: 0)
+                e.column("lastAttemptAt", .date)
+                e.column("lastError", .text)
+            }
         }
 
 //        migrator.registerMigration("Remove Recipe Detail Cascade Constraints") { db in

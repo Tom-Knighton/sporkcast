@@ -26,8 +26,10 @@ public struct HouseholdSettingsPage: View {
     @State private var nameError: String? = nil
     @State private var showError: Bool = false
     @State private var showDeleteConfirmation: Bool = false
+    @State private var isPreparingSupabaseInvite: Bool = false
     
     @State private var sharedRecord: SharedRecord?
+    @State private var supabaseInviteURL: URL?
     
     public init() {}
     
@@ -77,7 +79,20 @@ public struct HouseholdSettingsPage: View {
                     Text(resident.name)
                 }
                 
-                if ckState.canUseCloudKit {
+                if SupabaseSyncFeature.isEnabled {
+                    Button {
+                        Task { await prepareSupabaseInvite() }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label(isPreparingSupabaseInvite ? "Preparing Invite" : "Invite to Home", systemImage: "plus")
+                                .bold()
+                            Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
+                                .font(.subheadline)
+                                .tint(.gray)
+                        }
+                    }
+                    .disabled(isPreparingSupabaseInvite)
+                } else if ckState.canUseCloudKit {
                     ShareLink(item: ShareHome(homes: households), preview: SharePreview("Join \(household.name) on Sporkast")) {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Invite to Home", systemImage: "plus")
@@ -142,6 +157,12 @@ public struct HouseholdSettingsPage: View {
                     .padding()
             }
         }
+        .sheet(item: Binding(
+            get: { supabaseInviteURL.map(IdentifiableURL.init(url:)) },
+            set: { supabaseInviteURL = $0?.url }
+        )) { invite in
+            ActivityView(activityItems: [invite.url])
+        }
     }
     
     private func save() async {
@@ -154,6 +175,30 @@ public struct HouseholdSettingsPage: View {
         await households.rename(to: name.trimmingCharacters(in: .whitespacesAndNewlines))
         self.dismiss()
     }
+
+    private func prepareSupabaseInvite() async {
+        guard !isPreparingSupabaseInvite else { return }
+        isPreparingSupabaseInvite = true
+        defer { isPreparingSupabaseInvite = false }
+
+        do {
+            guard let url = try await households.createSupabaseInviteLink() else {
+                nameError = "Supabase sync is not available for this home yet."
+                showError = true
+                return
+            }
+            supabaseInviteURL = url
+        } catch {
+            nameError = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+private struct IdentifiableURL: Identifiable {
+    let url: URL
+
+    var id: String { url.absoluteString }
 }
 
 struct ActivityView: UIViewControllerRepresentable {

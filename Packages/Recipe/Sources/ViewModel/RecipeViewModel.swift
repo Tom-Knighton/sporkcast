@@ -18,8 +18,8 @@ public class RecipeViewModel: @unchecked Sendable {
     
     @ObservationIgnored private var defaultRecipe: Recipe
     @ObservationIgnored private let repository: RecipeDetailRepository
+    @ObservationIgnored private var pendingDominantColorHex: String?
     
-    public var scrollOffset: CGFloat = 0
     public var showNavTitle: Bool = false
     public var segment: Int = 1
     public var dominantColour: Color = .clear
@@ -48,12 +48,18 @@ public class RecipeViewModel: @unchecked Sendable {
     
     /// Saves the new dominant colour for the recipe directly to the database and to the current view
     public func setDominantColour(to colour: Color) async {
-        dominantColour = colour
-        
-        if let hex = colour.toHex() {
-            let id = recipe.id
-            try? await repository.updateDominantColor(recipeId: id, hex: hex)
+        guard let hex = colour.toHex() else { return }
+        guard recipe.dominantColorHex != hex else {
+            dominantColour = colour
+            return
         }
+        guard pendingDominantColorHex != hex else { return }
+
+        pendingDominantColorHex = hex
+        dominantColour = colour
+        defer { pendingDominantColorHex = nil }
+
+        try? await repository.updateDominantColor(recipeId: recipe.id, hex: hex)
     }
 
     public func setIngredientScale(to scale: Double) async {
@@ -77,6 +83,7 @@ public class RecipeViewModel: @unchecked Sendable {
     
     /// Uses Apple Intelligence to generate emojis for each ingredient, and saves them to the model in one go
     public func generateEmojis() async throws {
+        guard ingredientsGenerating == false else { return }
         
         let ingredients = recipe.ingredientSections.flatMap(\.ingredients)
         
@@ -121,6 +128,8 @@ public class RecipeViewModel: @unchecked Sendable {
             }
         }
         
+        guard !ingredientEmojiMap.isEmpty else { return }
+
         try await repository.updateIngredientEmojis(ingredientEmojiMap)
         
         print("Finished generating")
