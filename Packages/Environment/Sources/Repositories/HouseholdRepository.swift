@@ -11,7 +11,6 @@ import Observation
 import SQLiteData
 import Persistence
 import Foundation
-import CloudKit
 import Models
 
 @Observable
@@ -41,13 +40,13 @@ public final class HouseholdRepository {
         try await database.write { db in
             try DBHome.insert { newDBHome }.execute(db)
         }
-        try await syncSupabaseHomeIfEnabled(newDBHome)
+        try await syncSupabaseHome(newDBHome)
         return newDBHome
     }
 
     public func deleteHome() async throws {
         let home = _dbHome
-        if let home, SupabaseSyncFeature.isEnabled {
+        if let home {
             try await SupabaseSyncService.shared.leaveHome(homeId: home.id, disbandIfOwner: true)
         }
 
@@ -62,52 +61,27 @@ public final class HouseholdRepository {
         try await database.write { db in
             try DBHome.find(_dbHome.id).update { $0.name = name }.execute(db)
         }
-        try await syncSupabaseHomeIfEnabled(DBHome(id: _dbHome.id, name: name))
+        try await syncSupabaseHome(DBHome(id: _dbHome.id, name: name))
     }
 
     public func createSupabaseInviteToken(expiresAt: Date? = nil) async throws -> String? {
-        guard SupabaseSyncFeature.isEnabled, let _dbHome else { return nil }
-        try await syncSupabaseHomeRecordIfEnabled(_dbHome)
+        guard let _dbHome else { return nil }
+        try await syncSupabaseHomeRecord(_dbHome)
         return try await SupabaseSyncService.shared.createInviteToken(homeId: _dbHome.id, expiresAt: expiresAt)
     }
 
     public func acceptSupabaseInviteToken(_ token: String) async throws -> UUID? {
-        guard SupabaseSyncFeature.isEnabled else { return nil }
         let homeId = try await SupabaseSyncService.shared.acceptInviteToken(token)
         await adoptPersonalEntitiesIntoHomeIfNeeded(homeId)
         return homeId
     }
 
-    public func shareHome() async throws -> CKShare? {
-        guard let _dbHome else { return nil }
-        
-        let share = try await database.read { db in
-            try SyncMetadata
-                .find(_dbHome.syncMetadataID)
-                .select(\.share)
-                .fetchOne(db)
-        }
-        
-        return share as? CKShare
-    }
-
-    public func homeShareMetadata() async throws -> [SyncMetadata] {
-        guard let _dbHome else { return [] }
-        
-        return try await database.read { db in
-            try SyncMetadata
-                .find(_dbHome.syncMetadataID)
-                .fetchAll(db)
-        }
-    }
-
     public func syncHomeEntities() async {
-        guard SupabaseSyncFeature.isEnabled, let _dbHome else { return }
+        guard let _dbHome else { return }
         RecipeDebugDiagnostics.logAppEvent("supabase startup household entity sync skipped homeId=\(_dbHome.id)")
     }
 
     public func supabaseResidents(for homeId: UUID) async throws -> [HomeResident] {
-        guard SupabaseSyncFeature.isEnabled else { return [] }
         return try await SupabaseSyncService.shared.homeResidents(homeId: homeId)
     }
 
@@ -156,19 +130,16 @@ public final class HouseholdRepository {
         }
     }
 
-    private func syncSupabaseHomeIfEnabled(_ home: DBHome) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
-        try await syncSupabaseHomeRecordIfEnabled(home)
+    private func syncSupabaseHome(_ home: DBHome) async throws {
+        try await syncSupabaseHomeRecord(home)
         await adoptPersonalEntitiesIntoHomeIfNeeded(home.id)
     }
 
-    private func syncSupabaseHomeRecordIfEnabled(_ home: DBHome) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func syncSupabaseHomeRecord(_ home: DBHome) async throws {
         try await SupabaseSyncService.shared.syncHomeImmediately(home)
     }
 
     private func syncAdoptedSupabaseScopes(homeId: UUID) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: homeId)
         await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: homeId)
         await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: homeId)

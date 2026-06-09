@@ -817,10 +817,8 @@ extension RecipePage {
                     .delete()
                     .execute(db)
             }
-            if SupabaseSyncFeature.isEnabled {
-                await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: homeId)
-                await SupabaseSyncService.shared.drainOutbox()
-            }
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: homeId)
+            await SupabaseSyncService.shared.drainOutbox()
             await loadMealplanIngredientCompletionState()
         } catch {
             print(error)

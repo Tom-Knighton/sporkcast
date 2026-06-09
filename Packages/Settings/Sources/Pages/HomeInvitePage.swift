@@ -8,10 +8,8 @@
 import Environment
 import SwiftUI
 import Design
-import CloudKit
 import Dependencies
-import Persistence
-import SQLiteData
+import Combine
 
 public struct HomeInvitePage: View {
     
@@ -21,7 +19,6 @@ public struct HomeInvitePage: View {
     let title: String
     let ownerName: String
     let ownerEmail: String?
-    var invite: CKShare.Metadata?
     var supabaseToken: String?
     
     @State private var state: JoinState = .start
@@ -29,23 +26,11 @@ public struct HomeInvitePage: View {
     @State private var showSameHomeError: Bool = false
     @State private var showInHomeError: Bool = false
     
-    @Dependency(\.defaultDatabase) private var db
-    @Dependency(\.defaultSyncEngine) private var syncEngine
-    
     enum JoinState: Equatable {
         case start, pending, success, fail
     }
-    
-    public init(for invite: CKShare.Metadata) {
-        self.invite = invite
-        self.supabaseToken = nil
-        title = (invite.rootRecord?[CKShare.SystemFieldKey.title] as? String) ?? "Home"
-        ownerName = invite.ownerIdentity.nameComponents?.formatted(.name(style: .long)) ?? "Your Friend"
-        ownerEmail = invite.ownerIdentity.lookupInfo?.emailAddress
-    }
 
     public init(supabaseToken: String) {
-        self.invite = nil
         self.supabaseToken = supabaseToken
         self.title = "Shared Home"
         self.ownerName = "Your friend"
@@ -63,7 +48,6 @@ public struct HomeInvitePage: View {
         self.ownerEmail = demoEmail
         self.ownerName = demoOwnerName
         
-        self.invite = nil
         self.supabaseToken = nil
     }
     
@@ -159,18 +143,7 @@ public struct HomeInvitePage: View {
         return ["Your current and future recipes and mealplans will be synced with the home's", "You can leave at any time."]
     }
     
-    private func extractId(from id: CKRecord.ID) -> UUID? {
-        let parsed = id.recordName
-            .replacingOccurrences(of: "share-", with: "")
-            .replacingOccurrences(of: ":Homes", with: "")
-        let uuid = UUID(rawIdentifier: parsed)
-        return uuid
-    }
-    
     public func accept(overrideInHome: Bool = false) {
-        @Dependency(\.defaultDatabase) var db
-        @Dependency(\.defaultSyncEngine) var syncEngine
-        
         Task {
             self.state = .pending
 
@@ -196,110 +169,8 @@ public struct HomeInvitePage: View {
                 }
                 return
             }
-            
-            guard let invite else {
-                self.state = .fail
-                return
-            }
-            
-            guard let id = extractId(from: invite.share.recordID) else {
-                print("No id!")
-                self.state = .fail
-                return
-            }
-            
-            if id == homes.home?.id {
-                self.showSameHomeError = true
-                return
-            }
-            
-            if !overrideInHome && homes.home != nil {
-                self.showInHomeError = true
-                return
-            }
-            
-            do {
-                print("DOING JOIN")
-                let joined = try await isAlreadyParticipant(invite)
-                if joined {
-                    print("ALLREADY JOINED")
-                } else {
-                    print("Not joined?")
-                    
-                }
-                
-                try await syncEngine.acceptShare(metadata: invite)
-                try await syncEngine.syncChanges()
-                
-                try await awaitHomeSync(externalId: id)
-                let adoptedRecipeIds = try await db.write { db in
-                    let recipeIds = try DBRecipe.all
-                        .select(\.id)
-                        .fetchAll(db)
-                    try DBRecipe
-                        .update { recipe in
-                            recipe.homeId = #bind(id)
-                        }
-                        .execute(db)
-                    return recipeIds
-                }
-                if SupabaseSyncFeature.isEnabled {
-                    for recipeId in adoptedRecipeIds {
-                        await SupabaseSyncService.shared.enqueueRecipeUpsert(recipeId: recipeId, homeId: id)
-                    }
-                    await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: id)
-                    await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: id)
-                    await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: id)
-                    await SupabaseSyncService.shared.drainOutbox()
-                }
-                
-                self.state = .success
-            } catch {
-                print("DB Fail \(error.localizedDescription)")
-                self.state = .fail
-            }
+            self.state = .fail
         }
-    }
-    
-    func isAlreadyParticipant(_ metadata: CKShare.Metadata) async throws -> Bool {
-        let db = CKContainer.default().sharedCloudDatabase
-        do {
-            let save = try await db.record(for: metadata.share.recordID)
-            let op = try await db.modifyRecords(saving: [], deleting: [save.recordID])
-            print(op.deleteResults)
-            return true
-        } catch let e as CKError {
-            switch e.code {
-            case .unknownItem, .permissionFailure:
-                print("JOIN - UNKNOWN OR PERM \(e.localizedDescription)")
-                return false
-            default:
-                print("JOIN - \(e.localizedDescription)")
-                return false
-            }
-        }
-    }
-    
-    @discardableResult
-    func awaitHomeSync(
-        externalId: UUID,
-        deadline: Duration = .seconds(60)
-    ) async throws -> DBHome {
-        let start = ContinuousClock.now
-        while ContinuousClock.now - start < deadline {
-            try await syncEngine.syncChanges()
-            let result = try await db.read { db in
-                try DBHome
-                    .find(externalId)
-                    .fetchOne(db)
-            }
-            if let result {
-                return result
-            }
-            
-            try await Task.sleep(for: .milliseconds(300))
-        }
-        throw NSError(domain: "AwaitHome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Timed out"])
     }
 }
 

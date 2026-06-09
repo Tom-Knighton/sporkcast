@@ -44,7 +44,6 @@ public actor SupabaseSyncService {
 
     @discardableResult
     public func bootstrapAnonymousSessionIfNeeded() async -> Bool {
-        guard SupabaseSyncFeature.isEnabled else { return false }
 
         do {
             let session = try await client.auth.session
@@ -71,7 +70,6 @@ public actor SupabaseSyncService {
     }
 
     public func start() async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard !startInProgress else {
             RecipeDebugDiagnostics.logAppEvent("supabase start skipped already in progress")
             return
@@ -86,7 +84,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushCurrentHomeSnapshot() async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         RecipeDebugDiagnostics.logAppEvent("supabase legacy home snapshot request ignored")
         await drainOutbox()
     }
@@ -108,10 +105,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushShoppingListsSnapshot(homeId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else {
-            RecipeDebugDiagnostics.logAppEvent("supabase shopping direct push skipped feature disabled")
-            return
-        }
         guard await bootstrapAnonymousSessionIfNeeded() else {
             RecipeDebugDiagnostics.logAppEvent("supabase shopping direct push skipped auth unavailable")
             return
@@ -133,7 +126,6 @@ public actor SupabaseSyncService {
     }
 
     private func enqueueMutation(kind: String, entityId: UUID?, homeId: UUID?, operation: String) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         do {
             try await database.write { db in
@@ -158,7 +150,6 @@ public actor SupabaseSyncService {
     }
 
     public func drainOutbox(limit: Int = 20) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
         do {
@@ -199,7 +190,6 @@ public actor SupabaseSyncService {
     }
 
     private func pullHomesAndRecipes(startRealtime: Bool) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
@@ -233,11 +223,7 @@ public actor SupabaseSyncService {
     }
 
     public func resumeRealtimeSync() async {
-        logRealtime("resume requested enabled=\(SupabaseSyncFeature.isEnabled)")
-        guard SupabaseSyncFeature.isEnabled else {
-            logRealtime("resume skipped feature disabled")
-            return
-        }
+        logRealtime("resume requested")
         guard await bootstrapAnonymousSessionIfNeeded() else {
             logRealtime("resume skipped auth unavailable")
             return
@@ -274,7 +260,6 @@ public actor SupabaseSyncService {
     }
 
     public func createInviteToken(homeId: UUID, expiresAt: Date? = nil) async throws -> String {
-        guard SupabaseSyncFeature.isEnabled else { throw SupabaseSyncError.disabled }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let rows: [SupabaseHomeInviteRow] = try await client
@@ -293,7 +278,6 @@ public actor SupabaseSyncService {
     }
 
     public func homeResidents(homeId: UUID) async throws -> [HomeResident] {
-        guard SupabaseSyncFeature.isEnabled else { return [] }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let currentUserId = try await client.auth.session.user.id
@@ -319,7 +303,6 @@ public actor SupabaseSyncService {
     }
 
     public func acceptInviteToken(_ token: String) async throws -> UUID {
-        guard SupabaseSyncFeature.isEnabled else { throw SupabaseSyncError.disabled }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let homeId: UUID = try await client
@@ -347,7 +330,6 @@ public actor SupabaseSyncService {
     }
 
     public func leaveHome(homeId: UUID, disbandIfOwner: Bool) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         try await client
@@ -362,7 +344,6 @@ public actor SupabaseSyncService {
     }
 
     public func upsert(_ home: DBHome) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         try await client
@@ -377,7 +358,6 @@ public actor SupabaseSyncService {
     }
 
     public func deleteRecipe(_ recipeId: UUID, homeId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
@@ -390,11 +370,7 @@ public actor SupabaseSyncService {
     }
 
     public func startRealtimeForCurrentHomes() async {
-        logRealtime("start requested enabled=\(SupabaseSyncFeature.isEnabled)")
-        guard SupabaseSyncFeature.isEnabled else {
-            logRealtime("start skipped feature disabled")
-            return
-        }
+        logRealtime("start requested")
         guard !realtimeStartInProgress else {
             logRealtime("start skipped already in progress")
             return
@@ -560,7 +536,6 @@ public actor SupabaseSyncService {
     }
 
     public func deleteMealplanEntry(_ entryId: UUID, homeId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
@@ -581,7 +556,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushMealplanEntries(entryIds: [UUID]) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let entryIdSet = Set(entryIds)
@@ -615,7 +589,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushRecipes(homeId: UUID?) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         let recipes = try await database.read { db in
             try DBRecipe.full.fetchAll(db)
@@ -635,7 +608,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushRecipes(recipeIds: [UUID]) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let recipeIdSet = Set(recipeIds)
@@ -662,7 +634,6 @@ public actor SupabaseSyncService {
     }
 
     public func deleteRecipes(in scopes: Set<UUID?>) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
         for scope in scopes {
@@ -675,7 +646,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushRecipeImages(recipeIds: [UUID]) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
         let recipeIdSet = Set(recipeIds)
@@ -719,7 +689,6 @@ public actor SupabaseSyncService {
     }
 
     private func pushRecipe(recipeId: UUID) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         guard let recipe = try await database.read({ db in
             try DBRecipe.full.fetchAll(db).first { $0.recipe.id == recipeId }
@@ -732,7 +701,6 @@ public actor SupabaseSyncService {
     }
 
     public func upsert(_ fullRecipe: FullDBRecipe) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         try await upsertRecipes([fullRecipe])
     }
@@ -984,7 +952,6 @@ public actor SupabaseSyncService {
     }
 
     public func pushRecipeIngredients(_ ingredientIds: [UUID]) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
         let ingredientIdSet = Set(ingredientIds)
@@ -1122,7 +1089,7 @@ public actor SupabaseSyncService {
     }
 
     public func deleteShoppingListItems(_ itemIds: [UUID]) async {
-        guard SupabaseSyncFeature.isEnabled, !itemIds.isEmpty else { return }
+        guard !itemIds.isEmpty else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
 
         do {
@@ -1133,7 +1100,6 @@ public actor SupabaseSyncService {
     }
 
     public func hydrateRecipeDetails(recipeIds: [UUID]) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
         let uniqueRecipeIds = Array(Set(recipeIds))
         guard !uniqueRecipeIds.isEmpty else { return }
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
@@ -2725,7 +2691,6 @@ public actor SupabaseSyncService {
 }
 
 private enum SupabaseSyncError: Error {
-    case disabled
     case authUnavailable
     case missingEntityId
     case missingInviteToken

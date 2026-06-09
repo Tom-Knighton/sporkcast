@@ -689,7 +689,7 @@ private extension ShoppingListRemindersSyncService {
             }
         }
 
-        if hadLocalMutations, SupabaseSyncFeature.isEnabled {
+        if hadLocalMutations {
             await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: localState.list.homeId)
             await SupabaseSyncService.shared.drainOutbox()
         }

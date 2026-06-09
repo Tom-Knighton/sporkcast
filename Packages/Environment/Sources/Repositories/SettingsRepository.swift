@@ -24,7 +24,7 @@ public final class SettingsRepository {
     public func deleteAllData() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllData requested")
         let syncScopes = try await currentSyncScopes()
-        try await leaveSupabaseHomesIfEnabled(homeIds: syncScopes.compactMap { $0 })
+        try await leaveSupabaseHomes(homeIds: syncScopes.compactMap { $0 })
         try await database.write { db in
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
@@ -41,7 +41,7 @@ public final class SettingsRepository {
             try SyncMetadata.delete().execute(db)
         }
         await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
-        await syncSupabaseSnapshotsIfEnabled(scopes: syncScopes)
+        await syncSupabaseSnapshots(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllData", database: database)
     }
 
@@ -58,7 +58,7 @@ public final class SettingsRepository {
                 .execute(db)
         }
         await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
-        await syncSupabaseSnapshotsIfEnabled(scopes: syncScopes)
+        await syncSupabaseSnapshots(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllRecipes", database: database)
     }
 
@@ -90,8 +90,7 @@ public final class SettingsRepository {
         }
     }
 
-    private func syncSupabaseSnapshotsIfEnabled(scopes: Set<UUID?>) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func syncSupabaseSnapshots(scopes: Set<UUID?>) async {
         for scope in scopes {
             await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: scope)
             await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: scope)
@@ -100,8 +99,7 @@ public final class SettingsRepository {
         await SupabaseSyncService.shared.drainOutbox(limit: max(20, scopes.count * 3))
     }
 
-    private func leaveSupabaseHomesIfEnabled(homeIds: [UUID]) async throws {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func leaveSupabaseHomes(homeIds: [UUID]) async throws {
         for homeId in Set(homeIds) {
             try await SupabaseSyncService.shared.leaveHome(homeId: homeId, disbandIfOwner: true)
         }
@@ -148,55 +146,7 @@ public final class SettingsRepository {
         let content = try await database.read { db in
             let stream = DebugStringOutputStream()
             try db.dumpContent(format: .debug(), to: stream)
-
-            let metadataRows = try SyncMetadata.all.fetchAll(db)
-            let unsyncedRows = try DebugUnsyncedRecordID.all.fetchAll(db)
-            let recordTypes = try DebugRecordType.all.fetchAll(db)
-            var output: String = stream.output
-
-            output += "\n\nsqlitedata_icloud_metadata (attached)\n"
-            if metadataRows.isEmpty {
-                output += "<empty>"
-            } else {
-                let lines = metadataRows
-                    .sorted {
-                        if $0.recordType != $1.recordType { return $0.recordType < $1.recordType }
-                        return $0.recordPrimaryKey < $1.recordPrimaryKey
-                    }
-                    .map { row -> String in
-                        let parentType = row.parentRecordType ?? "nil"
-                        let parentKey = row.parentRecordPrimaryKey ?? "nil"
-                        return "\(row.recordType)|\(row.recordPrimaryKey)|zone=\(row.zoneName)|owner=\(row.ownerName)|parentType=\(parentType)|parentKey=\(parentKey)|isShared=\(row.isShared)|hasServerRecord=\(row.hasLastKnownServerRecord)|deleted=\(row._isDeleted)|modTime=\(row.userModificationTime)"
-                    }
-                    .joined(separator: "\n")
-                output += lines
-            }
-
-            output += "\n\nsqlitedata_icloud_unsyncedRecordIDs (attached)\n"
-            if unsyncedRows.isEmpty {
-                output += "<empty>"
-            } else {
-                output += unsyncedRows
-                    .sorted {
-                        if $0.zoneName != $1.zoneName { return $0.zoneName < $1.zoneName }
-                        if $0.ownerName != $1.ownerName { return $0.ownerName < $1.ownerName }
-                        return $0.recordName < $1.recordName
-                    }
-                    .map { "\($0.recordName)|zone=\($0.zoneName)|owner=\($0.ownerName)" }
-                    .joined(separator: "\n")
-            }
-
-            output += "\n\nsqlitedata_icloud_recordTypes (attached)\n"
-            if recordTypes.isEmpty {
-                output += "<empty>"
-            } else {
-                output += recordTypes
-                    .map(\.tableName)
-                    .sorted()
-                    .joined(separator: "\n")
-            }
-
-            return output
+            return stream.output
         }
         return DebugDatabaseDump(generatedAt: .now, content: content)
     }
@@ -220,20 +170,6 @@ private final class DebugStringOutputStream: TextOutputStream, @unchecked Sendab
     func write(_ string: String) {
         output += string
     }
-}
-
-@Table("sqlitedata_icloud_unsyncedRecordIDs")
-private struct DebugUnsyncedRecordID: Codable, Sendable {
-    let recordName: String
-    let zoneName: String
-    let ownerName: String
-}
-
-@Table("sqlitedata_icloud_recordTypes")
-private struct DebugRecordType: Codable, Sendable {
-    let tableName: String
-    let schema: String
-    let tableInfo: String
 }
 #endif
 

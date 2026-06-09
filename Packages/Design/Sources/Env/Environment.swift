@@ -15,7 +15,6 @@ public extension EnvironmentValues {
     @Entry var networkClient: any NetworkClient = APIClient(host: "")
     @Entry var appSettings: SettingsStore = SettingsStore()
     @Entry var homeServices: any HouseholdServiceProtocol = HouseholdService.shared
-    @Entry var cloudKit: any CloudKitGateProtocol = CloudKitGate()
     @Entry var flagKit: any FlagServiceProtocol = FlagService(mobileKey: "")
     @Entry var proAccess: any ProAccessServiceProtocol = ProAccessService.shared
 }

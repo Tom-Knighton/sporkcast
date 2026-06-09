@@ -7,12 +7,8 @@
 
 import Foundation
 import Observation
-import SQLiteData
-import Dependencies
 import Models
-import CloudKit
 import Combine
-import Persistence
 
 public struct HomeResident: Identifiable, Hashable, Equatable, Sendable {
     public let name: String
@@ -27,7 +23,6 @@ public protocol HouseholdServiceProtocol {
     var isInHome: Bool { get }
     var canCreate: Bool { get }
     var residents: [HomeResident] { get }
-    var pendingInvite: CKShare.Metadata? { get set }
     var pendingSupabaseInvite: SupabaseHomeInviteLink? { get set }
     
     @MainActor
@@ -40,9 +35,6 @@ public protocol HouseholdServiceProtocol {
     
     @MainActor
     func rename(to rawName: String) async
-    
-    @MainActor
-    func share() async throws -> SharedRecord
 
     @MainActor
     func createSupabaseInviteLink() async throws -> URL?
@@ -59,11 +51,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
     
     public static let shared = HouseholdService()
     
-    public var pendingInvite: CKShare.Metadata? = nil
     public var pendingSupabaseInvite: SupabaseHomeInviteLink? = nil
-    
-    @ObservationIgnored
-    @Dependency(\.defaultSyncEngine) private var syncEngine
     
     @ObservationIgnored
     private let repository: HouseholdRepository
@@ -152,18 +140,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
         defer { isBusy = false }
         
         do {
-            
-            let share = try await repository.shareHome()
-            
-            if let share {
-                let ckDb = share.isCurrentUserOwner ? CKContainer.default().privateCloudDatabase : CKContainer.default().sharedCloudDatabase
-                try await ckDb.deleteRecord(withID: share.recordID)
-                try await syncEngine.syncChanges()
-                try await repository.deleteHome()
-                try await syncEngine.deleteLocalData()
-            } else {
-                try await repository.deleteHome()
-            }
+            try await repository.deleteHome()
 
             self.residents.removeAll()
             errorMessage = nil
@@ -187,14 +164,6 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             errorMessage = nil
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        }
-    }
-    
-    public func share() async throws -> SQLiteData.SharedRecord {
-        guard let dbHome = repository._dbHome else { throw HouseholdError.noHome  }
-        return try await syncEngine.share(record: dbHome) { share in
-            share[CKShare.SystemFieldKey.title] = "Join \(dbHome.name) on Sporkast!"
-            share.publicPermission = .readOnly
         }
     }
 
@@ -225,66 +194,7 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             return
         }
 
-        if SupabaseSyncFeature.isEnabled {
-            self.residents = try await repository.supabaseResidents(for: home.id)
-            return
-        }
-        
-        let metadataAll = try await repository.homeShareMetadata()
-        
-        let metadata = metadataAll.first(where: { $0.recordPrimaryKey.uppercased() == home.id.uuidString })
-                
-        guard let currentUserId = try? await CKContainer.default().userRecordID(), let metadata, let serverRecord = metadata.lastKnownServerRecord, let shareRef = serverRecord.share else {
-            return
-        }
-        
-        var residents: [HomeResident] = []
-        if let share = try? await CKContainer.default().sharedCloudDatabase.record(for: shareRef.recordID) as? CKShare {
-            residents.append(share.owner.toResident(currentId: currentUserId))
-            residents.append(contentsOf: share.participants.compactMap { $0.toResident(currentId: currentUserId) }.filter { $0.role != "Owner" })
-        } else if let share = try? await CKContainer.default().privateCloudDatabase.record(for: shareRef.recordID) as? CKShare {
-            residents.append(share.owner.toResident(currentId: currentUserId))
-            residents.append(contentsOf: share.participants.compactMap { $0.toResident(currentId: currentUserId) }.filter { $0.role != "Owner" })
-        }
-        
-        print("Sync residents")
-        self.residents = residents
-    }
-    
-    public enum HouseholdError: Error {
-        case noHome
-    }
-}
-
-extension CKShare.Participant {
-    func toResident(currentId: CKRecord.ID) -> HomeResident {
-        let isOwner = self.role == .owner
-        let isCurrent = currentId.recordName == self.userIdentity.userRecordID?.recordName || self.userIdentity.userRecordID?.recordName == "__defaultOwner__"
-        
-        let status = switch self.acceptanceStatus {
-        case .accepted: "Member"
-        case .pending: "Pending"
-        case .removed: "Left"
-        case .unknown: "Unknown"
-        default:
-            "Unknown"
-        }
-        let name = isCurrent ? "You" : self.userIdentity.nameComponents?.givenName ?? (isOwner ? "(Owner)" : "(Member)")
-        var displayName = "\(name)"
-        if let email = self.userIdentity.lookupInfo?.emailAddress {
-            displayName += " (\(email))"
-        }
-        
-        displayName += " - \(status)"
-        
-        return .init(name: displayName, role: isOwner ? "Owner" : "Member", isUser: isCurrent)
-    }
-}
-
-extension CKShare {
-    var isCurrentUserOwner: Bool {
-        guard let me = currentUserParticipant else { return false }
-        return me.role == .owner
+        self.residents = try await repository.supabaseResidents(for: home.id)
     }
 }
 
@@ -316,7 +226,7 @@ public extension HouseholdService {
             case .busy:
                 "Please wait for the current operation to finish."
             case .cloudShareOperationFailed(let message):
-                "Couldn’t update CloudKit sharing: \(message)"
+                "Couldn’t update sharing: \(message)"
             }
         }
     }
@@ -333,7 +243,6 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     
     public var residents: [HomeResident] = []
     
-    public var pendingInvite: CKShare.Metadata? = nil
     public var pendingSupabaseInvite: SupabaseHomeInviteLink? = nil
     
     public init(withHome: Bool = false) {
@@ -356,20 +265,12 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
         self.home?.name = rawName
     }
     
-    public func share() async throws -> SQLiteData.SharedRecord {
-        throw MockError.notImplemented
-    }
-
     public func createSupabaseInviteLink() async throws -> URL? {
         URL(string: "sporkcast://join-home?token=mock-token")
     }
 
     public func acceptSupabaseInvite(token: String) async throws -> UUID? {
         home?.id ?? UUID()
-    }
-    
-    public enum MockError: Error {
-        case notImplemented
     }
     
     public func syncEntities() async {

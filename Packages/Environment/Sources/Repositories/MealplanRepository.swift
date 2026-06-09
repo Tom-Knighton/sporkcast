@@ -41,7 +41,7 @@ public final class MealplanRepository {
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseEntriesIfEnabled([newEntry.id], homeId: homeId)
+        await syncSupabaseEntries([newEntry.id], homeId: homeId)
     }
 
     public func addNoteEntry(date: Date, index: Int, text: String, homeId: UUID?) async throws {
@@ -51,7 +51,7 @@ public final class MealplanRepository {
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseEntriesIfEnabled([newEntry.id], homeId: homeId)
+        await syncSupabaseEntries([newEntry.id], homeId: homeId)
     }
 
     public func updateNote(id: UUID, text: String) async throws {
@@ -61,7 +61,7 @@ public final class MealplanRepository {
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseEntriesIfEnabled([id], homeId: homeId)
+        await syncSupabaseEntries([id], homeId: homeId)
     }
 
     public func deleteEntry(id: UUID) async throws {
@@ -90,7 +90,7 @@ public final class MealplanRepository {
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseEntriesIfEnabled([newEntry.id], homeId: homeId)
+        await syncSupabaseEntries([newEntry.id], homeId: homeId)
     }
 
     public func moveEntry(entryId: UUID, to date: Date, index: Int, existingEntries: [MealplanEntry]) async throws {
@@ -113,7 +113,7 @@ public final class MealplanRepository {
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseEntriesIfEnabled([entryId] + existingEntries.map(\.id), homeId: homeId)
+        await syncSupabaseEntries([entryId] + existingEntries.map(\.id), homeId: homeId)
     }
 
     public func refreshWidgetSnapshot(now: Date = .now, calendar: Calendar = .current) async {
@@ -131,19 +131,17 @@ public final class MealplanRepository {
         WidgetCenter.shared.reloadTimelines(ofKind: MealplanWidgetSnapshotStore.widgetKind)
     }
 
-    private func syncSupabaseSnapshotIfEnabled(homeId: UUID? = nil) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func syncSupabaseSnapshot(homeId: UUID? = nil) async {
         await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: homeId)
         await SupabaseSyncService.shared.drainOutbox()
     }
 
-    private func syncSupabaseEntriesIfEnabled(_ entryIds: [UUID], homeId: UUID? = nil) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func syncSupabaseEntries(_ entryIds: [UUID], homeId: UUID? = nil) async {
         do {
             try await SupabaseSyncService.shared.pushMealplanEntries(entryIds: entryIds)
         } catch {
             RecipeDebugDiagnostics.logAppEvent("supabase mealplan direct push failed count=\(entryIds.count) error=\(error)")
-            await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+            await syncSupabaseSnapshot(homeId: homeId)
         }
     }
 

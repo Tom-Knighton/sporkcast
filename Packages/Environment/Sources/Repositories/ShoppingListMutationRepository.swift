@@ -54,7 +54,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+        await syncSupabaseSnapshot(homeId: homeId)
         return listId
     }
 
@@ -84,7 +84,7 @@ public final class ShoppingListMutationRepository {
             return listId
         }
 
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+        await syncSupabaseSnapshot(homeId: homeId)
         return listId
     }
 
@@ -166,7 +166,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotForListIfEnabled(listId)
+        await syncSupabaseSnapshotForList(listId)
         return persistedItemId
     }
 
@@ -190,7 +190,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotForListIfEnabled(listId)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -213,7 +213,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotForListIfEnabled(listId)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -244,7 +244,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotForListIfEnabled(listId)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -272,7 +272,7 @@ public final class ShoppingListMutationRepository {
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
         await SupabaseSyncService.shared.deleteShoppingListItems(itemIDs)
-        await syncSupabaseSnapshotForListIfEnabled(listId)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -419,7 +419,7 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+        await syncSupabaseSnapshot(homeId: homeId)
     }
 }
 
@@ -430,8 +430,7 @@ private extension ShoppingListMutationRepository {
     }
 
     @MainActor
-    func syncSupabaseSnapshotForListIfEnabled(_ listId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    func syncSupabaseSnapshotForList(_ listId: UUID?) async {
 
         let homeId = try? await database.read { db in
             guard let listId else { return nil as UUID? }
@@ -441,15 +440,11 @@ private extension ShoppingListMutationRepository {
         RecipeDebugDiagnostics.logAppEvent(
             "shopping supabase sync for listId=\(listId?.uuidString ?? "nil") resolvedHomeId=\((homeId ?? nil)?.uuidString ?? "personal")"
         )
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId ?? nil)
+        await syncSupabaseSnapshot(homeId: homeId ?? nil)
     }
 
     @MainActor
-    func syncSupabaseSnapshotIfEnabled(homeId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else {
-            RecipeDebugDiagnostics.logAppEvent("shopping supabase sync skipped feature disabled")
-            return
-        }
+    func syncSupabaseSnapshot(homeId: UUID?) async {
         let counts = try? await database.read { db in
             let lists = try DBShoppingList.all.fetchAll(db).filter { $0.homeId == homeId }
             let listIds = Set(lists.map(\.id))

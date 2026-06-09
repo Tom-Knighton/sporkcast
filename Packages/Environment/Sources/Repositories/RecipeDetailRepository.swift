@@ -75,13 +75,11 @@ public final class RecipeDetailRepository {
     }
 
     private func syncSupabaseSnapshots(forRecipeIds recipeIds: [UUID]) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         await enqueueRecipeUpserts(recipeIds)
     }
 
     private func syncSupabaseSnapshots(forIngredientIds ingredientIds: [UUID]) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         do {
             let recipeIds = try await database.read { db in
@@ -119,7 +117,6 @@ public final class RecipeDetailRepository {
     }
 
     private func syncSupabaseIngredientUpdates(_ ingredientIds: [UUID]) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
 
         do {
             try await SupabaseSyncService.shared.pushRecipeIngredients(ingredientIds)

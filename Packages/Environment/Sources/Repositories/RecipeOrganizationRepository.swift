@@ -162,7 +162,7 @@ public final class RecipeOrganizationRepository {
                     .execute(db)
             }
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+        await syncSupabaseSnapshot(homeId: homeId)
 
         return folder.toDomainModel()
     }
@@ -184,7 +184,7 @@ public final class RecipeOrganizationRepository {
             }
             .execute(db)
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: folder.homeId)
+        await syncSupabaseSnapshot(homeId: folder.homeId)
     }
 
     public func deleteFolder(_ folder: RecipeFolder) async throws {
@@ -205,7 +205,7 @@ public final class RecipeOrganizationRepository {
                 .delete()
                 .execute(db)
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: folder.homeId)
+        await syncSupabaseSnapshot(homeId: folder.homeId)
     }
 
     @discardableResult
@@ -229,7 +229,7 @@ public final class RecipeOrganizationRepository {
         try await database.write { db in
             try DBRecipeTag.insert { tag }.execute(db)
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: homeId)
+        await syncSupabaseSnapshot(homeId: homeId)
 
         return tag.toDomainModel()
     }
@@ -248,14 +248,14 @@ public final class RecipeOrganizationRepository {
             }
             .execute(db)
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: tag.homeId)
+        await syncSupabaseSnapshot(homeId: tag.homeId)
     }
 
     public func deleteTag(_ tag: RecipeTag) async throws {
         try await database.write { db in
             try DBRecipeTag.find(tag.id).delete().execute(db)
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: tag.homeId)
+        await syncSupabaseSnapshot(homeId: tag.homeId)
     }
 
     public func setOrganization(for recipe: Recipe, folderIDs: Set<UUID>, tagIDs: Set<UUID>) async throws {
@@ -299,7 +299,7 @@ public final class RecipeOrganizationRepository {
                 try DBRecipeTagAssignment.insert { tagInserts }.execute(db)
             }
         }
-        await syncSupabaseSnapshotIfEnabled(homeId: recipe.homeId)
+        await syncSupabaseSnapshot(homeId: recipe.homeId)
     }
 
     public func suggestedTags(for recipe: Recipe, in homeId: UUID?) -> [RecipeTag] {
@@ -355,8 +355,7 @@ public final class RecipeOrganizationRepository {
         return tags
     }
 
-    private func syncSupabaseSnapshotIfEnabled(homeId: UUID?) async {
-        guard SupabaseSyncFeature.isEnabled else { return }
+    private func syncSupabaseSnapshot(homeId: UUID?) async {
         await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: homeId)
         await SupabaseSyncService.shared.drainOutbox()
     }

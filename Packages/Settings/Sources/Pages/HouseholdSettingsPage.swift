@@ -6,20 +6,13 @@
 //
 
 import SwiftUI
-import API
 import Models
 import Design
-import IssueReporting
-import CloudKit
-import SQLiteData
-import Dependencies
 import Environment
 
 public struct HouseholdSettingsPage: View {
     
     @Environment(\.homeServices) private var households
-    @Environment(AlertManager.self) private var alerts
-    @Environment(\.cloudKit) private var ckState
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
@@ -28,7 +21,6 @@ public struct HouseholdSettingsPage: View {
     @State private var showDeleteConfirmation: Bool = false
     @State private var isPreparingSupabaseInvite: Bool = false
     
-    @State private var sharedRecord: SharedRecord?
     @State private var supabaseInviteURL: URL?
     
     public init() {}
@@ -79,44 +71,18 @@ public struct HouseholdSettingsPage: View {
                     Text(resident.name)
                 }
                 
-                if SupabaseSyncFeature.isEnabled {
-                    Button {
-                        Task { await prepareSupabaseInvite() }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label(isPreparingSupabaseInvite ? "Preparing Invite" : "Invite to Home", systemImage: "plus")
-                                .bold()
-                            Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
-                                .font(.subheadline)
-                                .tint(.gray)
-                        }
-                    }
-                    .disabled(isPreparingSupabaseInvite)
-                } else if ckState.canUseCloudKit {
-                    ShareLink(item: ShareHome(homes: households), preview: SharePreview("Join \(household.name) on Sporkast")) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label("Invite to Home", systemImage: "plus")
-                                .bold()
-                            Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
-                                .font(.subheadline)
-                                .tint(.gray)
-                        }
-                    }
-                } else {
+                Button {
+                    Task { await prepareSupabaseInvite() }
+                } label: {
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Invite to Home", systemImage: "plus")
+                        Label(isPreparingSupabaseInvite ? "Preparing Invite" : "Invite to Home", systemImage: "plus")
                             .bold()
-                            .foregroundStyle(.secondary)
                         Text("Invite a friend or family member to your home and share recipes, mealplans and more.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(ckState.unavailableReason)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
+                            .tint(.gray)
                     }
-                    .disabled(true)
                 }
-                
+                .disabled(isPreparingSupabaseInvite)
                 
             }
             
@@ -149,14 +115,6 @@ public struct HouseholdSettingsPage: View {
             }
         }
         .fontDesign(.rounded)
-        .sheet(item: $sharedRecord) { sharedRecord in
-            if let url = sharedRecord.share.url {
-                ActivityView(activityItems: [url])
-            } else {
-                Text("Preparing share…")
-                    .padding()
-            }
-        }
         .sheet(item: Binding(
             get: { supabaseInviteURL.map(IdentifiableURL.init(url:)) },
             set: { supabaseInviteURL = $0?.url }
@@ -220,20 +178,6 @@ struct ActivityView: UIViewControllerRepresentable {
     }
 }
 
-struct ShareHome: Transferable {
-    
-    let homes: any HouseholdServiceProtocol
-    
-    static var transferRepresentation: some TransferRepresentation {
-        CKShareTransferRepresentation { home in
-            return .prepareShare(container: .default(), allowedSharingOptions: .init(allowedParticipantPermissionOptions: [.readWrite], allowedParticipantAccessOptions: [.specifiedRecipientsOnly])) {
-                return try await home.homes.share().share
-            }
-        }
-    }
-}
-
-
 #Preview {
     
     let _ = PreviewSupport.preparePreviewDatabase()
@@ -242,5 +186,4 @@ struct ShareHome: Transferable {
     }
     .environment(\.homeServices, MockHouseholdService(withHome: true))
     .environment(AlertManager())
-    .environment(\.cloudKit, MockCloudKitGate())
 }
