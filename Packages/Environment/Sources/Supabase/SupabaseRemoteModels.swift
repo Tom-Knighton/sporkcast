@@ -198,15 +198,23 @@ struct SupabaseRecipeImageRow: Codable, Sendable, Identifiable {
         case updatedAt = "updated_at"
     }
 
-    init(_ image: DBRecipeImage) {
+    init(_ image: DBRecipeImage, storagePath: String? = nil) {
         recipeId = image.recipeId
         imageSourceUrl = image.imageSourceUrl
-        storagePath = nil
+        self.storagePath = storagePath
         updatedAt = nil
     }
 
     func localRow() -> DBRecipeImage {
         DBRecipeImage(recipeId: recipeId, imageSourceUrl: imageSourceUrl, imageData: nil)
+    }
+
+    func localRow(preservingImageDataFrom existing: DBRecipeImage?) -> DBRecipeImage {
+        DBRecipeImage(
+            recipeId: recipeId,
+            imageSourceUrl: imageSourceUrl,
+            imageData: existing?.imageData
+        )
     }
 }
 
@@ -431,7 +439,6 @@ struct SupabaseRecipeStepLinkedIngredientRow: Codable, Sendable, Identifiable {
 
 struct SupabaseFullRecipePayload: Sendable {
     var recipe: SupabaseRecipeRow
-    var image: SupabaseRecipeImageRow?
     var ingredientSections: [SupabaseRecipeIngredientSectionRow]
     var ingredients: [SupabaseRecipeIngredientRow]
     var stepSections: [SupabaseRecipeStepSectionRow]
@@ -443,7 +450,6 @@ struct SupabaseFullRecipePayload: Sendable {
 
     init(_ fullRecipe: FullDBRecipe) {
         recipe = SupabaseRecipeRow(fullRecipe.recipe)
-        image = fullRecipe.imageData.map(SupabaseRecipeImageRow.init)
 
         let ingredientGroups = fullRecipe.ingredientGroups.sorted { $0.sortIndex < $1.sortIndex }
         ingredientSections = ingredientGroups.map { group in

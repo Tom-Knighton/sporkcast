@@ -29,6 +29,7 @@ public actor SupabaseSyncService {
     private let recipeBootstrapChunkSize = 25
     private let recipeUploadChunkSize = 25
     private let detailLookupChunkSize = 100
+    private let recipeImageBucket = "recipe-images"
 
     @Dependency(\.defaultDatabase) private var database
 
@@ -80,6 +81,7 @@ public actor SupabaseSyncService {
 
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
         await drainOutbox()
+        await backfillLocalRecipeImages()
         await pullHomesAndRecipes(startRealtime: true)
     }
 
@@ -651,21 +653,79 @@ public actor SupabaseSyncService {
         let recipeIdSet = Set(recipeIds)
         guard !recipeIdSet.isEmpty else { return }
 
-        let images = try await database.read { db in
+        let localImages = try await database.read { db in
             try DBRecipeImage.all
                 .fetchAll(db)
                 .filter { recipeIdSet.contains($0.recipeId) }
-                .map(SupabaseRecipeImageRow.init)
         }
 
+        let images = try await recipeImageRowsForUpload(localImages)
+        RecipeDebugDiagnostics.logAppEvent("supabase recipe_images direct push requested local=\(localImages.count) remoteRows=\(images.count) withStorage=\(images.filter { $0.storagePath != nil }.count)")
         guard !images.isEmpty else { return }
 
         for chunk in images.chunked(into: recipeUploadChunkSize) {
-            try await client
-                .from("recipe_images")
-                .upsert(chunk)
-                .execute()
+            do {
+                try await client
+                    .from("recipe_images")
+                    .upsert(chunk)
+                    .execute()
+            } catch {
+                RecipeDebugDiagnostics.logAppEvent("supabase recipe_images direct upsert failed count=\(chunk.count) error=\(error)")
+                throw error
+            }
         }
+    }
+
+    private func backfillLocalRecipeImages() async {
+        do {
+            let recipeIds = try await database.read { db in
+                try DBRecipeImage.all
+                    .fetchAll(db)
+                    .map(\.recipeId)
+            }
+
+            guard !recipeIds.isEmpty else { return }
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe_images startup backfill requested count=\(recipeIds.count)")
+            try await pushRecipeImages(recipeIds: recipeIds)
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe_images startup backfill failed error=\(error)")
+        }
+    }
+
+    private func recipeImageRowsForUpload(_ images: [DBRecipeImage]) async throws -> [SupabaseRecipeImageRow] {
+        var rows: [SupabaseRecipeImageRow] = []
+        rows.reserveCapacity(images.count)
+
+        for image in images {
+            rows.append(await recipeImageRowForUpload(image))
+        }
+
+        return rows
+    }
+
+    private func recipeImageRowForUpload(_ image: DBRecipeImage) async -> SupabaseRecipeImageRow {
+        guard let imageData = image.imageData, !imageData.isEmpty else {
+            return SupabaseRecipeImageRow(image)
+        }
+
+        let path = recipeImageStoragePath(for: image.recipeId)
+        do {
+            try await client.storage
+                .from(recipeImageBucket)
+                .upload(
+                    path,
+                    data: imageData,
+                    options: FileOptions(contentType: "image/jpeg", upsert: true)
+                )
+            return SupabaseRecipeImageRow(image, storagePath: path)
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage upload failed recipeId=\(image.recipeId) path=\(path) error=\(error)")
+            return SupabaseRecipeImageRow(image)
+        }
+    }
+
+    private nonisolated func recipeImageStoragePath(for recipeId: UUID) -> String {
+        "recipes/\(recipeId.uuidString)/cover.jpg"
     }
 
     private func softDeleteRemoteStaleRecipes(homeId: UUID?, localRecipeIds: Set<UUID>) async throws {
@@ -709,7 +769,8 @@ public actor SupabaseSyncService {
         guard !fullRecipes.isEmpty else { return }
         let payloads = fullRecipes.map(SupabaseFullRecipePayload.init)
         var recipes = payloads.map(\.recipe)
-        let images = payloads.compactMap(\.image)
+        let localImages = fullRecipes.compactMap(\.imageData)
+        let images = try await recipeImageRowsForUpload(localImages)
         let ingredientSections = payloads.flatMap(\.ingredientSections)
         let ingredients = payloads.flatMap(\.ingredients)
         let stepSections = payloads.flatMap(\.stepSections)
@@ -740,10 +801,16 @@ public actor SupabaseSyncService {
         }
 
         if !images.isEmpty {
-            try await client
-                .from("recipe_images")
-                .upsert(images)
-                .execute()
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe_images full push requested count=\(images.count) withStorage=\(images.filter { $0.storagePath != nil }.count)")
+            do {
+                try await client
+                    .from("recipe_images")
+                    .upsert(images)
+                    .execute()
+            } catch {
+                RecipeDebugDiagnostics.logAppEvent("supabase recipe_images full upsert failed count=\(images.count) error=\(error)")
+                throw error
+            }
         }
 
         if !ingredientSections.isEmpty {
@@ -1322,7 +1389,7 @@ public actor SupabaseSyncService {
             }
         }
 
-        try await pullRecipeImages(recipeIds: changedRecipeIds)
+        try await pullRecipeImages(recipeIds: remoteRecipes.map(\.id))
 
         for chunk in changedRecipeIds.chunked(into: recipeBootstrapChunkSize) {
             do {
@@ -1351,9 +1418,26 @@ public actor SupabaseSyncService {
             images.append(contentsOf: rows)
         }
 
-        let localImages = images.map { $0.localRow() }
+        let imageIds = Set(images.map(\.id))
+        let existingImagesById = try await database.read { db in
+            Dictionary(
+                uniqueKeysWithValues: try DBRecipeImage.all
+                    .fetchAll(db)
+                    .filter { imageIds.contains($0.id) }
+                    .map { ($0.id, $0) }
+            )
+        }
+
+        var localImages: [DBRecipeImage] = []
+        localImages.reserveCapacity(images.count)
+        for remoteImage in images {
+            let existing = existingImagesById[remoteImage.id]
+            localImages.append(await localRecipeImage(from: remoteImage, preserving: existing))
+        }
+
+        let resolvedLocalImages = localImages
         try await database.write { db in
-            for image in localImages {
+            for image in resolvedLocalImages {
                 try upsertIfChanged(image, in: db)
             }
         }
@@ -1954,9 +2038,31 @@ public actor SupabaseSyncService {
     }
 
     private func apply(_ row: SupabaseRecipeImageRow) async throws {
-        try await database.write { db in
-            try upsertIfChanged(row.localRow(), in: db)
+        let existing = try await database.read { db in
+            try DBRecipeImage.find(row.id).fetchOne(db)
         }
+        let localImage = await localRecipeImage(from: row, preserving: existing)
+
+        try await database.write { db in
+            try upsertIfChanged(localImage, in: db)
+        }
+    }
+
+    private func localRecipeImage(from row: SupabaseRecipeImageRow, preserving existing: DBRecipeImage?) async -> DBRecipeImage {
+        var localImage = row.localRow(preservingImageDataFrom: existing)
+        guard localImage.imageData == nil, let storagePath = row.storagePath else {
+            return localImage
+        }
+
+        do {
+            localImage.imageData = try await client.storage
+                .from(recipeImageBucket)
+                .download(path: storagePath)
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage download failed recipeId=\(row.recipeId) path=\(storagePath) error=\(error)")
+        }
+
+        return localImage
     }
 
     private func apply(_ row: SupabaseRecipeIngredientSectionRow) async throws {
