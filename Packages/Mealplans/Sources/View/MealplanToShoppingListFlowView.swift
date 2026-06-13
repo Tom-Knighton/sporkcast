@@ -15,6 +15,7 @@ import Environment
 struct MealplanToShoppingListFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.calendar) private var calendar
+    @Environment(\.homeServices) private var homes
     @Environment(\.shoppingListMutations) private var shoppingMutations
     @Dependency(\.defaultDatabase) private var db
 
@@ -142,8 +143,20 @@ private extension MealplanToShoppingListFlowView {
 
         let queryStart = calendar.startOfDay(for: startDate)
         let queryEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDate)) ?? endDate
+        let currentHomeId = homes.home?.id
 
         do {
+            let recipeIds = try await db.read { db in
+                try DBMealplanEntry
+                    .full(startDate: queryStart, endDate: queryEnd)
+                    .fetchAll(db)
+                    .compactMap(\.mealplanEntry.recipeId)
+            }
+            RecipeDebugDiagnostics.logAppEvent(
+                "mealplan shopping refresh range=\(queryStart)..<\(queryEnd) mealplanRecipeIds=\(recipeIds.count) currentHomeId=\(currentHomeId?.uuidString ?? "personal")"
+            )
+            await SupabaseSyncService.shared.hydrateRecipeDetails(recipeIds: recipeIds)
+
             let drafts = try await db.read { db in
                 let fullEntries = try DBMealplanEntry
                     .full(startDate: queryStart, endDate: queryEnd)
@@ -169,13 +182,19 @@ private extension MealplanToShoppingListFlowView {
                             section.ingredients.sorted(by: { $0.sortIndex < $1.sortIndex })
                         }
 
-                    guard !ingredients.isEmpty else { continue }
+                    guard !ingredients.isEmpty else {
+                        RecipeDebugDiagnostics.logAppEvent(
+                            "mealplan shopping skipped recipeId=\(recipe.id.uuidString) reason=noIngredients homeId=\((fullEntry.mealplanEntry.homeId ?? recipe.homeId ?? currentHomeId)?.uuidString ?? "personal")"
+                        )
+                        continue
+                    }
+                    let resolvedHomeId = fullEntry.mealplanEntry.homeId ?? recipe.homeId ?? currentHomeId
 
                     drafts.append(
                         MealplanShoppingEntryDraft(
                             mealplanEntryId: fullEntry.mealplanEntry.id,
                             date: fullEntry.mealplanEntry.date,
-                            homeId: fullEntry.mealplanEntry.homeId,
+                            homeId: resolvedHomeId,
                             recipeId: recipe.id,
                             recipeTitle: recipe.title,
                             isSelected: true,
@@ -203,6 +222,9 @@ private extension MealplanToShoppingListFlowView {
                 entryDrafts = drafts
                 isLoading = false
             }
+            RecipeDebugDiagnostics.logAppEvent(
+                "mealplan shopping refresh drafts=\(drafts.count) ingredientCount=\(drafts.reduce(0) { $0 + $1.ingredients.count })"
+            )
         } catch {
             await MainActor.run {
                 errorMessage = "Failed to load mealplan entries."
@@ -216,13 +238,22 @@ private extension MealplanToShoppingListFlowView {
         guard !isSaving else { return }
 
         let selectedPayloads = selectedShoppingPayloads()
-        guard !selectedPayloads.isEmpty else { return }
+        guard !selectedPayloads.isEmpty else {
+            RecipeDebugDiagnostics.logAppEvent(
+                "mealplan shopping import skipped reason=noSelectedPayloads drafts=\(entryDrafts.count) selectedIngredientCount=\(selectedIngredientCount)"
+            )
+            return
+        }
 
         isSaving = true
         errorMessage = nil
 
         Task {
             do {
+                let resolvedHomeIds = Set(selectedPayloads.map(\.homeId))
+                RecipeDebugDiagnostics.logAppEvent(
+                    "mealplan shopping import selectedPayloads=\(selectedPayloads.count) homeIds=\(resolvedHomeIds.map { $0?.uuidString ?? "personal" }.sorted().joined(separator: ","))"
+                )
                 try await shoppingMutations.addImportedItems(
                     selectedPayloads.map {
                         ShoppingListImportPayload(

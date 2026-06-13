@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
+import Dependencies
 import Models
 import Persistence
-import SQLiteData
 import Environment
 import Design
 
@@ -24,8 +24,7 @@ public struct ShoppingListsPage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.shoppingListMutations) private var shoppingMutations
     @Environment(\.shoppingListRemindersSync) private var remindersSync
-    @FetchAll(DBShoppingList.full.where({ list, _ in !list.isArchived })) private var dbLists: [FullDBShoppingList]
-    @FetchAll(DBShoppingListItem.all) private var dbClassifierItems: [DBShoppingListItem]
+    @Dependency(\.defaultDatabase) private var database
     @FocusState private var focusedRow: String?
 
     private let classifier = ShoppingCategoryClassifier()
@@ -38,6 +37,10 @@ public struct ShoppingListsPage: View {
     @State private var autoAssignedMoveToast: AutoAssignedMoveToast?
     @State private var remindersSnapshot = ShoppingListRemindersSyncSnapshot()
     @State private var showGroceriesSetupPrompt = false
+    @State private var dbLists: [FullDBShoppingList] = []
+    @State private var dbClassifierItems: [DBShoppingListItem] = []
+    @State private var listObservation: AnyDatabaseCancellable?
+    @State private var classifierItemsObservation: AnyDatabaseCancellable?
 
     private var pageTitle: String {
         shoppingList?.title ?? "Shopping"
@@ -81,7 +84,7 @@ public struct ShoppingListsPage: View {
                     .animation(.easeInOut(duration: 0.3), value: showEmpty)
                     .fontDesign(.rounded)
             } else {
-                ShoppingListNoListView(onCreate: createShoppingList)
+                ShoppingListNoListView(onCreate: { createShoppingList() })
             }
         }
         .navigationTitle(pageTitle)
@@ -102,15 +105,17 @@ public struct ShoppingListsPage: View {
             }
         }
         .onChange(of: dbLists, initial: true) { _, newValue in
-            Task { @MainActor in
-                updateShoppingListState(from: preferredShoppingList(from: newValue))
-            }
+            handleShoppingListsChanged(newValue)
+        }
+        .onChange(of: homes.home?.id) { _, homeId in
+            handleHomeChanged(homeId)
         }
         .onDisappear {
             revealedInputSectionID = nil
             autoAssignedMoveToast = nil
         }
         .task {
+            startDatabaseObservations()
             await remindersSync.start()
             await remindersSync.scheduleSync(trigger: .shoppingTabAppeared)
             await refreshRemindersSnapshot()
@@ -148,9 +153,43 @@ public struct ShoppingListsPage: View {
         }
         .animation(.easeInOut(duration: 0.2), value: autoAssignedMoveToast)
     }
+
+    @MainActor
+    private func startDatabaseObservations() {
+        guard listObservation == nil, classifierItemsObservation == nil else { return }
+        listObservation = observeAll(
+            database,
+            query: DBShoppingList.full.where(SQLCondition(sql: "isArchived = 0"))
+        ) { error in
+            RecipeDebugDiagnostics.logAppEvent("shopping lists observation failed error=\(error)")
+        } onChange: { lists in
+            dbLists = lists
+        }
+
+        classifierItemsObservation = observeAll(database, query: DBShoppingListItem.all) { error in
+            RecipeDebugDiagnostics.logAppEvent("shopping classifier observation failed error=\(error)")
+        } onChange: { items in
+            dbClassifierItems = items
+        }
+    }
 }
 
 private extension ShoppingListsPage {
+
+    func handleShoppingListsChanged(_ lists: [FullDBShoppingList]) {
+        Task { @MainActor in
+            let homeId = homes.home?.id
+            updateShoppingListState(from: preferredShoppingList(from: lists, homeId: homeId))
+            ensureVisibleShoppingListExists(homeId: homeId)
+        }
+    }
+
+    func handleHomeChanged(_ homeId: UUID?) {
+        Task { @MainActor in
+            updateShoppingListState(from: preferredShoppingList(from: dbLists, homeId: homeId))
+            ensureVisibleShoppingListExists(homeId: homeId)
+        }
+    }
 
     func sortedSections(for list: ShoppingList) -> [ShoppingListItemGroup] {
         list.itemGroups.sorted { lhs, rhs in
@@ -167,10 +206,11 @@ private extension ShoppingListsPage {
         }
     }
 
-    func preferredShoppingList(from lists: [FullDBShoppingList]) -> FullDBShoppingList? {
-        guard !lists.isEmpty else { return nil }
+    func preferredShoppingList(from lists: [FullDBShoppingList], homeId: UUID?) -> FullDBShoppingList? {
+        let scopedLists = lists.filter { $0.shoppingList.homeId == homeId }
+        guard !scopedLists.isEmpty else { return nil }
 
-        let sorted = lists.sorted { lhs, rhs in
+        let sorted = scopedLists.sorted { lhs, rhs in
             let left = lhs.shoppingList
             let right = rhs.shoppingList
             if left.modifiedAt != right.modifiedAt {
@@ -276,8 +316,8 @@ private extension ShoppingListsPage {
 
     // MARK: - Shopping List Mutations
 
-    func createShoppingList() {
-        let homeId = homes.home?.id
+    func createShoppingList(homeId: UUID? = nil) {
+        let homeId = homeId ?? homes.home?.id
         Task {
             do {
                 _ = try await shoppingMutations.ensureActiveShoppingList(homeId: homeId)
@@ -285,6 +325,12 @@ private extension ShoppingListsPage {
                 print("Failed to create shopping list: \(error)")
             }
         }
+    }
+
+    @MainActor
+    func ensureVisibleShoppingListExists(homeId: UUID?) {
+        guard shoppingList == nil else { return }
+        createShoppingList(homeId: homeId)
     }
 
     @MainActor

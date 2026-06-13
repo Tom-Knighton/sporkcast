@@ -16,7 +16,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/dimillian/AppRouter.git", from: "1.0.0"),
         .package(url: "https://github.com/launchdarkly/ios-client-sdk.git", .upToNextMajor(from: "11.1.2")),
-        .package(url: "https://github.com/RevenueCat/purchases-ios.git", .upToNextMajor(from: "5.0.0")),
+        .package(url: "https://github.com/RevenueCat/purchases-ios.git", .upToNextMajor(from: "5.78.0")),
+        .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.0.0"),
         .package(url: "https://github.com/weichsel/ZIPFoundation", from: "0.9.20"),
         .package(path: "../API"),
         .package(path: "../Models"),
@@ -31,6 +32,7 @@ let package = Package(
                 .product(name: "AppRouter", package: "AppRouter"),
                 .product(name: "LaunchDarkly", package: "ios-client-sdk"),
                 .product(name: "RevenueCat", package: "purchases-ios"),
+                .product(name: "Supabase", package: "supabase-swift"),
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
                 "API",
                 "Models",

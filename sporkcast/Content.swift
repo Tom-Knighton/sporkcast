@@ -17,7 +17,6 @@ import Mealplans
 internal import AppRouter
 import Models
 import Settings
-import CloudKit
 import ShoppingLists
 import WidgetKit
 
@@ -43,7 +42,6 @@ struct AppContent: View {
     
     @State private var appSettings = SettingsStore()
     @State private var apiClient = APIClient(host: "https://api.dev.sporkast.tomk.online/")
-    @State private var cloudKitGate = CloudKitGate()
     @State private var pendingSharedImportURL: URL?
     @State private var lastRoutedSharedImport: (url: String, at: Date)?
     @State private var isOnboardingPresented = false
@@ -117,7 +115,6 @@ struct AppContent: View {
         .environment(\.homeServices, HouseholdService.shared)
         .environment(alertManager)
         .environment(\.appSettings, appSettings)
-        .environment(\.cloudKit, cloudKitGate)
         .environment(\.shoppingListMutations, shoppingMutations)
         .environment(\.flagKit, flagKit)
         .environment(\.proAccess, proAccess)
@@ -127,11 +124,18 @@ struct AppContent: View {
             handleIncomingURL(incomingURL)
         }
         .task {
+            await SupabaseSyncService.shared.resumeRealtimeSync()
             if let sharedURL = consumePendingSharedImportURLFromDefaults() {
                 routeToRecipeImport(url: sharedURL)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task {
+                    await SupabaseSyncService.shared.resumeRealtimeSync()
+                }
+            }
+
             guard newPhase == .active,
                   let sharedURL = consumePendingSharedImportURLFromDefaults() else {
                 return
@@ -145,8 +149,8 @@ struct AppContent: View {
                 showAlert = true
             }
         }
-        .fullScreenCover(item: $households.pendingInvite, content: { invite in
-            HomeInvitePage(for: invite)
+        .fullScreenCover(item: $households.pendingSupabaseInvite, content: { invite in
+            HomeInvitePage(supabaseToken: invite.token)
         })
         .fullScreenCover(isPresented: $isOnboardingPresented) {
             OnboardingPage(complete: completeOnboarding)
@@ -173,9 +177,6 @@ struct AppContent: View {
             }
         } message: {
             Text(alerting?.metadata.description ?? "")
-        }
-        .task(id: households.home?.id) {
-            await households.syncEntities()
         }
         .task {
             proAccess.configure()
@@ -378,7 +379,12 @@ extension AppContent {
 
     private func handleIncomingURL(_ incomingURL: URL) {
         guard incomingURL.scheme?.lowercased() == "sporkcast",
-              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" else {
+              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" || incomingURL.host == "join-home" else {
+            return
+        }
+
+        if incomingURL.host == "join-home" {
+            routeToHomeInvite(url: incomingURL)
             return
         }
 
@@ -399,6 +405,16 @@ extension AppContent {
 
         guard let sharedURL = consumePendingSharedImportURLFromDefaults() else { return }
         routeToRecipeImport(url: sharedURL)
+    }
+
+    private func routeToHomeInvite(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+              !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        households.pendingSupabaseInvite = SupabaseHomeInviteLink(token: token)
     }
 
     private func routeToRecipeImport(url: URL) {
@@ -447,10 +463,6 @@ extension AppContent {
         let defaults = UserDefaults(suiteName: appGroupSuiteName)
         defaults?.removeObject(forKey: sharedImportURLDefaultsKey)
     }
-}
-
-extension CKShare.Metadata: @retroactive Identifiable {
-    
 }
 
 extension View {

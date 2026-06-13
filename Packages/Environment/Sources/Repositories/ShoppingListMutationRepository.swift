@@ -2,7 +2,6 @@ import Dependencies
 import Foundation
 import Models
 import Persistence
-import SQLiteData
 
 public struct ShoppingListImportPayload: Sendable, Hashable {
     public let ingredientId: UUID
@@ -54,18 +53,14 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshot(homeId: homeId)
         return listId
     }
 
     @MainActor
     public func ensureActiveShoppingList(homeId: UUID?) async throws -> UUID {
-        try await database.write { db in
-            let existing = try DBShoppingList
-                .where(\.isArchived)
-                .not()
-                .order(by: \.createdAt)
-                .select(\.id)
-                .fetchAll(db)
+        let listId = try await database.write { db in
+            let existing = try Self.activeShoppingLists(homeId: homeId, in: db)
 
             if let id = existing.first {
                 return id
@@ -87,6 +82,9 @@ public final class ShoppingListMutationRepository {
 
             return listId
         }
+
+        await syncSupabaseSnapshot(homeId: homeId)
+        return listId
     }
 
     @MainActor
@@ -167,47 +165,54 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshotForList(listId)
         return persistedItemId
     }
 
     @MainActor
     public func updateItemTitle(itemId: UUID, listId: UUID?, title: String, modifiedAt: Date = Date()) async throws {
         try await database.write { db in
+            let existingModifiedAt = try DBShoppingListItem.find(itemId).fetchOne(db)?.modifiedAt
+            let effectiveModifiedAt = Self.monotonicModifiedAt(requested: modifiedAt, after: existingModifiedAt)
             try DBShoppingListItem.find(itemId).update {
                 $0.title = title
-                $0.modifiedAt = modifiedAt
+                $0.modifiedAt = effectiveModifiedAt
             }
             .execute(db)
 
             if let listId {
                 try DBShoppingList.find(listId).update {
-                    $0.modifiedAt = modifiedAt
+                    $0.modifiedAt = effectiveModifiedAt
                 }
                 .execute(db)
             }
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
     public func setItemCompletion(itemId: UUID, listId: UUID?, isComplete: Bool, modifiedAt: Date = Date()) async throws {
         try await database.write { db in
+            let existingModifiedAt = try DBShoppingListItem.find(itemId).fetchOne(db)?.modifiedAt
+            let effectiveModifiedAt = Self.monotonicModifiedAt(requested: modifiedAt, after: existingModifiedAt)
             try DBShoppingListItem.find(itemId).update {
                 $0.isComplete = isComplete
-                $0.modifiedAt = modifiedAt
+                $0.modifiedAt = effectiveModifiedAt
             }
             .execute(db)
 
             if let listId {
                 try DBShoppingList.find(listId).update {
-                    $0.modifiedAt = modifiedAt
+                    $0.modifiedAt = effectiveModifiedAt
                 }
                 .execute(db)
             }
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -219,23 +224,26 @@ public final class ShoppingListMutationRepository {
         modifiedAt: Date = Date()
     ) async throws {
         try await database.write { db in
+            let existingModifiedAt = try DBShoppingListItem.find(itemId).fetchOne(db)?.modifiedAt
+            let effectiveModifiedAt = Self.monotonicModifiedAt(requested: modifiedAt, after: existingModifiedAt)
             try DBShoppingListItem.find(itemId).update {
-                $0.categoryIdentifier = #bind(category.rawValue)
+                $0.categoryIdentifier = category.rawValue
                 $0.categoryDisplayName = category.displayName
                 $0.categorySource = source
-                $0.modifiedAt = modifiedAt
+                $0.modifiedAt = effectiveModifiedAt
             }
             .execute(db)
 
             if let listId {
                 try DBShoppingList.find(listId).update {
-                    $0.modifiedAt = modifiedAt
+                    $0.modifiedAt = effectiveModifiedAt
                 }
                 .execute(db)
             }
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
@@ -262,21 +270,22 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await SupabaseSyncService.shared.deleteShoppingListItems(itemIDs)
+        await syncSupabaseSnapshotForList(listId)
     }
 
     @MainActor
     public func addImportedItems(_ payloads: [ShoppingListImportPayload]) async throws {
         guard !payloads.isEmpty else { return }
         let classifier = self.classifier
+        let homeId = payloads.compactMap(\.homeId).first ?? payloads.first?.homeId
+        RecipeDebugDiagnostics.logAppEvent(
+            "shopping import persist payloads=\(payloads.count) resolvedHomeId=\(homeId?.uuidString ?? "personal") payloadHomeIds=\(Set(payloads.map(\.homeId)).map { $0?.uuidString ?? "personal" }.sorted().joined(separator: ","))"
+        )
 
         try await database.write { db in
             let now = Date()
-            let existingListIDs = try DBShoppingList
-                .where(\.isArchived)
-                .not()
-                .order(by: \.createdAt)
-                .select(\.id)
-                .fetchAll(db)
+            let existingListIDs = try Self.activeShoppingLists(homeId: homeId, in: db)
 
             let listId: UUID
             if let existingID = existingListIDs.first {
@@ -286,7 +295,7 @@ public final class ShoppingListMutationRepository {
                 try DBShoppingList.insert {
                     DBShoppingList(
                         id: newListID,
-                        homeId: payloads.first?.homeId,
+                        homeId: homeId,
                         title: "Shopping List",
                         createdAt: now,
                         modifiedAt: now,
@@ -409,10 +418,55 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshot(homeId: homeId)
     }
 }
 
 private extension ShoppingListMutationRepository {
+    static func monotonicModifiedAt(requested: Date, after existingModifiedAt: Date?) -> Date {
+        guard let existingModifiedAt else { return requested }
+        return max(requested, existingModifiedAt.addingTimeInterval(0.001))
+    }
+
+    @MainActor
+    func syncSupabaseSnapshotForList(_ listId: UUID?) async {
+
+        let homeId = try? await database.read { db in
+            guard let listId else { return nil as UUID? }
+            return try DBShoppingList.find(listId).fetchOne(db)?.homeId
+        }
+
+        RecipeDebugDiagnostics.logAppEvent(
+            "shopping supabase sync for listId=\(listId?.uuidString ?? "nil") resolvedHomeId=\((homeId ?? nil)?.uuidString ?? "personal")"
+        )
+        await syncSupabaseSnapshot(homeId: homeId ?? nil)
+    }
+
+    @MainActor
+    func syncSupabaseSnapshot(homeId: UUID?) async {
+        let counts = try? await database.read { db in
+            let lists = try DBShoppingList.all.fetchAll(db).filter { $0.homeId == homeId }
+            let listIds = Set(lists.map(\.id))
+            let items = try DBShoppingListItem.all.fetchAll(db).filter { listIds.contains($0.listId) }
+            return (lists.count, items.count)
+        }
+        RecipeDebugDiagnostics.logAppEvent(
+            "shopping supabase sync requested homeId=\(homeId?.uuidString ?? "personal") localLists=\(counts?.0 ?? -1) localItems=\(counts?.1 ?? -1)"
+        )
+        await SupabaseSyncService.shared.pushShoppingListsSnapshot(homeId: homeId)
+        await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: homeId)
+        await SupabaseSyncService.shared.drainOutbox()
+    }
+
+    static func activeShoppingLists(homeId: UUID?, in db: Database) throws -> [UUID] {
+        try DBShoppingList
+            .where(SQLCondition(sql: "isArchived = 0"))
+            .order(by: \.createdAt)
+            .fetchAll(db)
+            .filter { $0.homeId == homeId }
+            .map(\.id)
+    }
+
     static func classifierContextItems(from dbItems: [DBShoppingListItem]) -> [ShoppingListItem] {
         guard !dbItems.isEmpty else { return [] }
 

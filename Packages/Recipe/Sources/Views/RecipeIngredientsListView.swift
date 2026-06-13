@@ -10,8 +10,8 @@ import FoundationModels
 import Models
 
 public struct RecipeIngredientsListView: View {
-    
     @Environment(RecipeViewModel.self) private var viewModel
+    @State private var ingredients: [RecipeIngredient] = []
     public let tint: Color
     public let completedIngredientIDs: Set<UUID>
     public let showMealplanShoppingTicks: Bool
@@ -30,8 +30,8 @@ public struct RecipeIngredientsListView: View {
     }
         
     public var body: some View {
-        VStack {
-            ForEach(viewModel.recipe.ingredientSections.flatMap(\.ingredients).sorted(by: { $0.sortIndex < $1.sortIndex })) { ingredient in
+        LazyVStack {
+            ForEach(ingredients) { ingredient in
                 let showCompletionTick = showMealplanShoppingTicks && completedIngredientIDs.contains(ingredient.id)
                 HStack {
                     ZStack {
@@ -47,7 +47,7 @@ public struct RecipeIngredientsListView: View {
                                 .font(.caption.weight(.bold))
                         }
 
-                        if !showCompletionTick, let emoji = displayedEmoji(for: ingredient) {
+                        if !isGeneratingIngredientEmoji, !showCompletionTick, let emoji = displayedEmoji(for: ingredient) {
                             Text(emoji)
                                 .font(.caption)
                         }
@@ -72,6 +72,12 @@ public struct RecipeIngredientsListView: View {
             
             Spacer().frame(height: 8)
         }
+        .onAppear {
+            updateIngredients(from: viewModel.recipe.ingredientSections)
+        }
+        .onChange(of: viewModel.recipe.ingredientSections) { _, sections in
+            updateIngredients(from: sections)
+        }
     }
 
     private var isGeneratingIngredientEmoji: Bool {
@@ -80,6 +86,12 @@ public struct RecipeIngredientsListView: View {
 
     private func displayedEmoji(for ingredient: RecipeIngredient) -> String? {
         showIngredientEmojis ? ingredient.emoji : nil
+    }
+
+    private func updateIngredients(from sections: [RecipeIngredientGroup]) {
+        ingredients = sections
+            .flatMap(\.ingredients)
+            .sorted(by: { $0.sortIndex < $1.sortIndex })
     }
 }
 

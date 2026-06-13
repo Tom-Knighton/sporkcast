@@ -8,7 +8,6 @@
 import Dependencies
 import Foundation
 import Observation
-import SQLiteData
 import Persistence
 import ZIPFoundation
 
@@ -23,19 +22,31 @@ public final class SettingsRepository {
 
     public func deleteAllData() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllData requested")
+        let syncScopes = try await currentSyncScopes()
+        try await leaveSupabaseHomes(homeIds: syncScopes.compactMap { $0 })
         try await database.write { db in
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
             try DBMealplanEntry.delete().execute(db)
+            try DBShoppingListItemIngredientLink.delete().execute(db)
+            try DBShoppingListItemMealplanLink.delete().execute(db)
+            try DBShoppingListItemReminderLink.delete().execute(db)
+            try DBShoppingListItem.delete().execute(db)
+            try DBShoppingList.delete().execute(db)
+            try DBRecipeFolderHierarchy.delete().execute(db)
+            try DBRecipeFolder.delete().execute(db)
+            try DBRecipeTag.delete().execute(db)
             try DBHome.delete().execute(db)
-            try SyncMetadata.delete().execute(db)
         }
+        await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
+        await syncSupabaseSnapshots(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllData", database: database)
     }
 
     public func deleteAllRecipes() async throws {
         RecipeDebugDiagnostics.logAppEvent("settings deleteAllRecipes requested")
         await RecipeDebugDiagnostics.logRecipeCounts("before settings deleteAllRecipes", database: database)
+        let syncScopes = try await recipeSyncScopes()
         try await database.write { db in
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
@@ -44,7 +55,52 @@ public final class SettingsRepository {
                 .delete()
                 .execute(db)
         }
+        await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
+        await syncSupabaseSnapshots(scopes: syncScopes)
         await RecipeDebugDiagnostics.logRecipeCounts("after settings deleteAllRecipes", database: database)
+    }
+
+    private func currentSyncScopes() async throws -> Set<UUID?> {
+        try await database.read { db in
+            var scopes = Set<UUID?>()
+            scopes.formUnion(try DBHome.all.fetchAll(db).map { Optional($0.id) })
+            scopes.formUnion(try DBRecipe.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBMealplanEntry.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBShoppingList.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBRecipeFolder.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(try DBRecipeTag.all.fetchAll(db).map(\.homeId))
+            scopes.insert(nil)
+            return scopes
+        }
+    }
+
+    private func recipeSyncScopes() async throws -> Set<UUID?> {
+        try await database.read { db in
+            var scopes = Set<UUID?>()
+            scopes.formUnion(try DBRecipe.all.fetchAll(db).map(\.homeId))
+            scopes.formUnion(
+                try DBMealplanEntry.all.fetchAll(db)
+                    .filter { $0.recipeId != nil }
+                    .map(\.homeId)
+            )
+            scopes.insert(nil)
+            return scopes
+        }
+    }
+
+    private func syncSupabaseSnapshots(scopes: Set<UUID?>) async {
+        for scope in scopes {
+            await SupabaseSyncService.shared.enqueueMealplanSnapshot(homeId: scope)
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: scope)
+            await SupabaseSyncService.shared.enqueueRecipeOrganizationSnapshot(homeId: scope)
+        }
+        await SupabaseSyncService.shared.drainOutbox(limit: max(20, scopes.count * 3))
+    }
+
+    private func leaveSupabaseHomes(homeIds: [UUID]) async throws {
+        for homeId in Set(homeIds) {
+            try await SupabaseSyncService.shared.leaveHome(homeId: homeId, disbandIfOwner: true)
+        }
     }
 
     public func exportDatabase() async throws -> URL {
@@ -88,55 +144,7 @@ public final class SettingsRepository {
         let content = try await database.read { db in
             let stream = DebugStringOutputStream()
             try db.dumpContent(format: .debug(), to: stream)
-
-            let metadataRows = try SyncMetadata.all.fetchAll(db)
-            let unsyncedRows = try DebugUnsyncedRecordID.all.fetchAll(db)
-            let recordTypes = try DebugRecordType.all.fetchAll(db)
-            var output: String = stream.output
-
-            output += "\n\nsqlitedata_icloud_metadata (attached)\n"
-            if metadataRows.isEmpty {
-                output += "<empty>"
-            } else {
-                let lines = metadataRows
-                    .sorted {
-                        if $0.recordType != $1.recordType { return $0.recordType < $1.recordType }
-                        return $0.recordPrimaryKey < $1.recordPrimaryKey
-                    }
-                    .map { row -> String in
-                        let parentType = row.parentRecordType ?? "nil"
-                        let parentKey = row.parentRecordPrimaryKey ?? "nil"
-                        return "\(row.recordType)|\(row.recordPrimaryKey)|zone=\(row.zoneName)|owner=\(row.ownerName)|parentType=\(parentType)|parentKey=\(parentKey)|isShared=\(row.isShared)|hasServerRecord=\(row.hasLastKnownServerRecord)|deleted=\(row._isDeleted)|modTime=\(row.userModificationTime)"
-                    }
-                    .joined(separator: "\n")
-                output += lines
-            }
-
-            output += "\n\nsqlitedata_icloud_unsyncedRecordIDs (attached)\n"
-            if unsyncedRows.isEmpty {
-                output += "<empty>"
-            } else {
-                output += unsyncedRows
-                    .sorted {
-                        if $0.zoneName != $1.zoneName { return $0.zoneName < $1.zoneName }
-                        if $0.ownerName != $1.ownerName { return $0.ownerName < $1.ownerName }
-                        return $0.recordName < $1.recordName
-                    }
-                    .map { "\($0.recordName)|zone=\($0.zoneName)|owner=\($0.ownerName)" }
-                    .joined(separator: "\n")
-            }
-
-            output += "\n\nsqlitedata_icloud_recordTypes (attached)\n"
-            if recordTypes.isEmpty {
-                output += "<empty>"
-            } else {
-                output += recordTypes
-                    .map(\.tableName)
-                    .sorted()
-                    .joined(separator: "\n")
-            }
-
-            return output
+            return stream.output
         }
         return DebugDatabaseDump(generatedAt: .now, content: content)
     }
@@ -160,20 +168,6 @@ private final class DebugStringOutputStream: TextOutputStream, @unchecked Sendab
     func write(_ string: String) {
         output += string
     }
-}
-
-@Table("sqlitedata_icloud_unsyncedRecordIDs")
-private struct DebugUnsyncedRecordID: Codable, Sendable {
-    let recordName: String
-    let zoneName: String
-    let ownerName: String
-}
-
-@Table("sqlitedata_icloud_recordTypes")
-private struct DebugRecordType: Codable, Sendable {
-    let tableName: String
-    let schema: String
-    let tableInfo: String
 }
 #endif
 

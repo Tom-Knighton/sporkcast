@@ -2,7 +2,7 @@
 //  OnboardingPage.swift
 //  Settings
 //
-//  Created by Codex on 29/05/2026.
+//  Created by Tom Knighton on 29/05/2026.
 //
 
 import Design

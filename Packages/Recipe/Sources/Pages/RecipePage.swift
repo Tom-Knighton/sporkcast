@@ -10,7 +10,6 @@ import Design
 import Models
 import SwiftData
 import API
-import SQLiteData
 import Environment
 import NukeUI
 import Persistence
@@ -147,6 +146,12 @@ public struct RecipePage: View {
     @State private var reimportFailureMessage: String?
     @State private var reimportSuccessFeedbackToken: Int = 0
     @State private var reimportFailureFeedbackToken: Int = 0
+    @State private var recipeChatEnabled = false
+    @State private var hasSocialRecipeImportProAccess = false
+    @State private var recipeChatSeperateTab = false
+    @State private var shouldCollapseTab = false
+    @State private var showIngredientEmojis = true
+    @State private var showNavTitle = false
     private let mealplanEntryId: UUID?
     
     
@@ -167,7 +172,11 @@ public struct RecipePage: View {
                     .stretchy()
                     .ignoresSafeArea()
                     
-                    RecipeTitleView(showNavTitle: $viewModel.showNavTitle)
+                    RecipeTitleView(
+                        title: viewModel.recipe.title,
+                        author: viewModel.recipe.author,
+                        showNavTitle: $showNavTitle
+                    )
                     
                     VStack {
                         
@@ -225,7 +234,11 @@ public struct RecipePage: View {
                         Spacer().frame(height: 20)
                         
                         if viewModel.recipe.hasUsableSource {
-                            RecipeSourceButton(with: viewModel.dominantColour) {
+                            RecipeSourceButton(
+                                sourceUrl: viewModel.recipe.sourceUrl,
+                                recipeTitle: viewModel.recipe.title,
+                                color: viewModel.dominantColour
+                            ) {
                                 image()
                             }
                         }
@@ -305,7 +318,7 @@ public struct RecipePage: View {
                                 tint: viewModel.dominantColour,
                                 completedIngredientIDs: completedMealplanIngredientIDs,
                                 showMealplanShoppingTicks: mealplanEntryId != nil,
-                                showIngredientEmojis: appSettings.settings.showIngredientEmojis
+                                showIngredientEmojis: showIngredientEmojis
                             )
                             .tint(viewModel.dominantColour)
                         case 2:
@@ -313,7 +326,7 @@ public struct RecipePage: View {
                                 tint: viewModel.dominantColour,
                                 completedIngredientIDs: completedMealplanIngredientIDs,
                                 showMealplanShoppingTicks: mealplanEntryId != nil,
-                                showIngredientEmojis: appSettings.settings.showIngredientEmojis
+                                showIngredientEmojis: showIngredientEmojis
                             )
                         case 3:
                             RecipeCommentsView(showRecipeChat: shouldShowRecipeChatInline)
@@ -336,11 +349,6 @@ public struct RecipePage: View {
             .tabBarMinimizeBehavior(shouldCollapseTab ? .onScrollDown : .automatic)
             .scrollBounceBehavior(.always, axes: .vertical)
             .coordinateSpace(name: "recipeScroll")
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { newValue, _ in
-                viewModel.scrollOffset = newValue
-            }
         }
         .navigationAllowDismissalGestures(allowDismissalGesture)
         .task {
@@ -353,23 +361,16 @@ public struct RecipePage: View {
         .ignoresSafeArea(.all, edges: .all.subtracting(.bottom))
         .environment(viewModel)
         .colorScheme(.dark)
-        .background(
-            image()
-                .aspectRatio(contentMode: .fill)
-                .scaleEffect(2)
-                .blur(radius: scheme == .dark ? 100 : 64)
-                .ignoresSafeArea()
-                .overlay(Material.ultraThin.opacity(0.2))
-        )
+        .background(recipeBackdrop)
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.recipe.title)
                     .font(.headline)
                     .transition(.opacity)
-                    .accessibilityHidden(!viewModel.showNavTitle)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.showNavTitle)
-                    .opacity(viewModel.showNavTitle ? 1 : 0)
+                    .accessibilityHidden(!showNavTitle)
+                    .animation(.easeInOut(duration: 0.2), value: showNavTitle)
+                    .opacity(showNavTitle ? 1 : 0)
             }
             ToolbarItem {
                 Menu {
@@ -477,10 +478,14 @@ public struct RecipePage: View {
             summary: viewModel.recipe.summarisedTip
         )) {
             guard scenePhase == .active else { return }
-            if appSettings.settings.showIngredientEmojis {
+            if showIngredientEmojis {
                 try? await viewModel.generateEmojis()
             }
             try? await viewModel.generateTipsAndSummary()
+        }
+        .task {
+            refreshFeatureFlags()
+            showIngredientEmojis = appSettings.settings.showIngredientEmojis
         }
         .task(id: viewModel.recipe.summarisedTip) {
             generateCommentsLabel()
@@ -769,7 +774,7 @@ extension RecipePage {
                 let completedItemIDs = Set(
                     try DBShoppingListItem
                         .where {
-                            itemIDsForMealplanEntry.contains($0.id) && $0.isComplete
+                            itemIDsForMealplanEntry.contains($0.id) && $0.isComplete.eq(true)
                         }
                         .select(\.id)
                         .fetchAll(db)
@@ -801,6 +806,9 @@ extension RecipePage {
     func clearMealplanIngredientStates() async {
         do {
             guard let mealplanEntryId else { return }
+            let homeId = try await db.read { db in
+                try DBMealplanEntry.find(mealplanEntryId).fetchOne(db)?.homeId
+            }
             
             try await db.write { db in
                 try DBShoppingListItemMealplanLink
@@ -808,6 +816,8 @@ extension RecipePage {
                     .delete()
                     .execute(db)
             }
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: homeId)
+            await SupabaseSyncService.shared.drainOutbox()
             await loadMealplanIngredientCompletionState()
         } catch {
             print(error)
@@ -987,18 +997,6 @@ extension RecipePage {
         )
     }
 
-    private var recipeChatEnabled: Bool {
-        flagKit.isEnabled(.recipeChatEnabled, default: false)
-    }
-
-    private var hasSocialRecipeImportProAccess: Bool {
-        flagKit.isEnabled(.recipeSocialImportPro, default: proAccess.hasProAccess)
-    }
-    
-    private var recipeChatSeperateTab: Bool {
-        flagKit.isEnabled(.recipeChatSeperateTab, default: false)
-    }
-    
     private var shouldShowRecipeChat: Bool {
         recipeChatEnabled && viewModel.supportsRecipeChat
     }
@@ -1010,8 +1008,21 @@ extension RecipePage {
     private var shouldShowRecipeChatTab: Bool {
         shouldShowRecipeChat && recipeChatSeperateTab
     }
-    
-    private var shouldCollapseTab: Bool {
-        flagKit.isEnabled(.appCollapseTabBar, default: false)
+
+    @ViewBuilder
+    private var recipeBackdrop: some View {
+        image()
+            .aspectRatio(contentMode: .fill)
+            .scaleEffect(2)
+            .blur(radius: scheme == .dark ? 100 : 64)
+            .ignoresSafeArea()
+            .overlay(Material.ultraThin.opacity(0.2))
+    }
+
+    private func refreshFeatureFlags() {
+        recipeChatEnabled = flagKit.isEnabled(.recipeChatEnabled, default: false)
+        hasSocialRecipeImportProAccess = flagKit.isEnabled(.recipeSocialImportPro, default: proAccess.hasProAccess)
+        recipeChatSeperateTab = flagKit.isEnabled(.recipeChatSeperateTab, default: false)
+        shouldCollapseTab = flagKit.isEnabled(.appCollapseTabBar, default: false)
     }
 }

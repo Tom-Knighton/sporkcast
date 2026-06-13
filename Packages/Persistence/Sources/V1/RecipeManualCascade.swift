@@ -2,11 +2,11 @@
 //  RecipeManualCascade.swift
 //  Persistence
 //
-//  Created by Codex on 29/05/2026.
+//  Created by Tom Knighton on 29/05/2026.
 //
 
 import Foundation
-import SQLiteData
+import GRDB
 
 public enum RecipeManualCascade {
     public static func deleteAllRecipeLinkedData(in db: Database) throws {

@@ -14,7 +14,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/sqlite-data", .upToNextMajor(from: "1.2.0")),
+        .package(url: "https://github.com/groue/GRDB.swift", .upToNextMajor(from: "7.9.0")),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", .upToNextMajor(from: "1.6.1"))
     ],
     targets: [
@@ -23,7 +23,7 @@ let package = Package(
         .target(
             name: "Persistence",
             dependencies: [
-                .product(name: "SQLiteData", package: "sqlite-data"),
+                .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Dependencies", package: "swift-dependencies")
             ]
         ),

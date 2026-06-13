@@ -9,20 +9,22 @@ import SwiftUI
 import Models
 
 public struct RecipeTitleView: View {
-    
-    @Environment(RecipeViewModel.self) private var vm
+    private let title: String
+    private let author: String?
     @Binding private var showNavTitle: Bool
     
-    public init (showNavTitle: Binding<Bool>) {
+    public init(title: String, author: String?, showNavTitle: Binding<Bool>) {
+        self.title = title
+        self.author = author
         self._showNavTitle = showNavTitle
     }
     
     public var body: some View {
         VStack(alignment: .leading) {
-            Text(vm.recipe.author ?? "")
+            Text(author ?? "")
                 .font(.footnote.weight(.heavy))
                 .opacity(0.6)
-            Text(vm.recipe.title)
+            Text(title)
                 .font(.title.weight(.bold))
                 .background(
                     GeometryReader { proxy in

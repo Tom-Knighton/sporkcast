@@ -70,7 +70,7 @@ struct RecipesSettingsPage: View {
             } header: {
                 Text("Danger Zone")
             } footer: {
-                Text("This removes every recipe and its recipe-linked data from this device and iCloud sync.")
+                Text("This removes every recipe and its recipe-linked data from this device and Supabase sync.")
             }
         }
         .listStyle(.insetGrouped)

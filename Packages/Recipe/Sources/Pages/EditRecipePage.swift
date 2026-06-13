@@ -11,7 +11,6 @@ import Design
 import Models
 import Persistence
 import NukeUI
-import SQLiteData
 import PhotosUI
 import UIKit
 
@@ -506,6 +505,9 @@ extension EditRecipePage {
                     tagIDs: selectedTagIDs
                 )
             }
+
+            await SupabaseSyncService.shared.enqueueRecipeUpsert(recipeId: newRecipe.id, homeId: newRecipe.homeId)
+            await SupabaseSyncService.shared.drainOutbox()
             
             self.dismiss()
         } catch {

@@ -13,11 +13,9 @@ import AlarmKit
 
 @MainActor
 public struct RecipeStepsView: View {
-    
     @Environment(RecipeViewModel.self) private var vm
     @State private var stepSections: [RecipeStepSection] = []
-    @State private var stepIngredientMap: [String: [RecipeIngredient]] = [:]
-    
+    @State private var ingredientsById: [UUID: RecipeIngredient] = [:]
     public let tint: Color
     public let completedIngredientIDs: Set<UUID>
     public let showMealplanShoppingTicks: Bool
@@ -36,12 +34,12 @@ public struct RecipeStepsView: View {
     }
     
     public var body: some View {
-        VStack(alignment: .leading) {
+        LazyVStack(alignment: .leading) {
             ForEach(stepSections) { section in
                 Text(section.title)
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
-                ForEach(section.steps.sorted(by: { $0.sortIndex < $1.sortIndex })) { step in
+                ForEach(section.steps) { step in
                     HStack {
                         ZStack {
                             Circle()
@@ -75,20 +73,21 @@ public struct RecipeStepsView: View {
         .fontDesign(.rounded)
         .frame(maxWidth: .infinity)
         .onAppear {
-            if stepSections.isEmpty {
-                updateStepSections()
-            }
+            updateStepSections()
+            updateIngredientsById()
         }
         .onChange(of: vm.recipe.stepSections) { _, _ in
             updateStepSections()
         }
-
+        .onChange(of: vm.recipe.ingredientSections) { _, _ in
+            updateIngredientsById()
+        }
     }
 
     private func updateStepSections() {
         let sections = vm.recipe.stepSections
             .sorted(by: { $0.sortIndex < $1.sortIndex })
-            .compactMap { sect in
+            .map { sect in
                 var newSect = sect
                 if newSect.title.isEmpty {
                     newSect.title = "Steps:"
@@ -96,7 +95,12 @@ public struct RecipeStepsView: View {
                 newSect.steps = newSect.steps.sorted(by: { $0.sortIndex < $1.sortIndex })
                 return newSect
             }
-        self.stepSections = sections
+        stepSections = sections
+    }
+
+    private func updateIngredientsById() {
+        let ingredients = vm.recipe.ingredientSections.flatMap(\.ingredients)
+        ingredientsById = Dictionary(uniqueKeysWithValues: ingredients.map { ($0.id, $0) })
     }
     
     private func createAlarm(for recipeStep: RecipeStep, timingId: UUID) async {
@@ -151,9 +155,8 @@ extension RecipeStepsView {
     
     @ViewBuilder
     private func ingredientsView(for step: RecipeStep) -> some View {
-        let allIngredients = vm.recipe.ingredientSections.flatMap { $0.ingredients }
         let ingredientsForStep = step.linkedIngredients.compactMap { id in
-            allIngredients.first(where: { $0.id == id })
+            ingredientsById[id]
         }
         if ingredientsForStep.isEmpty == false {
             HorizontalScrollWithGradient {

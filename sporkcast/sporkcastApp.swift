@@ -8,9 +8,7 @@
 import SwiftUI
 import API
 import SwiftData
-import SQLiteData
 import Persistence
-import CloudKit
 import Design
 import Environment
 
@@ -20,47 +18,22 @@ struct SporkcastApp: App {
     @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     init() {
+        SupabaseInstallState.clearPersistedSessionAfterFreshInstallIfNeeded()
         var appDatabase: (any DatabaseWriter)!
         prepareDependencies {
             appDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
 #if DEBUG
-                print(description)
+//                print(description)
 #endif
-                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
+//                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
             })
             $0.defaultDatabase = appDatabase
-            
-            $0.defaultSyncEngine = try! SyncEngine(
-                for: $0.defaultDatabase,
-                tables:
-                    DBHome.self,
-                DBRecipe.self,
-                DBRecipeIngredientGroup.self,
-                DBRecipeIngredient.self,
-                DBRecipeStepGroup.self,
-                DBRecipeStep.self,
-                DBRecipeStepTiming.self,
-                DBRecipeStepTemperature.self,
-                DBRecipeStepLinkedIngredient.self,
-                DBRecipeRating.self,
-                DBRecipeImage.self,
-                DBRecipeFolder.self,
-                DBRecipeFolderHierarchy.self,
-                DBRecipeTag.self,
-                DBRecipeFolderAssignment.self,
-                DBRecipeTagAssignment.self,
-                DBMealplanEntry.self,
-                DBShoppingList.self,
-                DBShoppingListItem.self,
-                DBShoppingListItemIngredientLink.self,
-                DBShoppingListItemReminderLink.self,
-                DBShoppingListItemMealplanLink.self,
-            )
         }
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")
         Task {
             await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
+            await SupabaseSyncService.shared.start()
         }
     }
     
@@ -82,18 +55,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
-    @Dependency(\.defaultSyncEngine) private var syncEngine
     var window: UIWindow?
-    
-    func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
-        HouseholdService.shared.pendingInvite = cloudKitShareMetadata
-    }
-    
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let ckData = connectionOptions.cloudKitShareMetadata else { return }
-        
-        HouseholdService.shared.pendingInvite = ckData
-    }
 }
 
 // Tabs:

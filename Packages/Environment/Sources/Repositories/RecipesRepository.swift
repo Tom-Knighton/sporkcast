@@ -8,7 +8,6 @@
 import Dependencies
 import Models
 import Observation
-import SQLiteData
 import Persistence
 import Foundation
 
@@ -37,10 +36,9 @@ public final class RecipesRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @Dependency(\.defaultSyncEngine) private var syncEngine
+    private var recipesObservation: AnyDatabaseCancellable?
 
-    @ObservationIgnored
-    @FetchAll(DBRecipe.list) private var dbRecipes: [ListDBRecipe]
+    private var dbRecipes: [ListDBRecipe] = []
 
     public var recipes: [Recipe] {
         dbRecipes.compactMap { $0.toDomainModel() }
@@ -57,7 +55,13 @@ public final class RecipesRepository {
         }
     }
 
-    public init() {}
+    public init() {
+        recipesObservation = observeAll(database, query: DBRecipe.list) { error in
+            RecipeDebugDiagnostics.logAppEvent("recipes observation failed error=\(error)")
+        } onChange: { [weak self] recipes in
+            self?.dbRecipes = recipes
+        }
+    }
 
     public func deleteAll() async throws {
         RecipeDebugDiagnostics.logAppEvent("deleteAllRecipes requested")
@@ -72,11 +76,15 @@ public final class RecipesRepository {
     public func delete(_ id: Recipe.ID) async throws  {
         RecipeDebugDiagnostics.logAppEvent("deleteRecipe requested recipeId=\(id)")
         await RecipeDebugDiagnostics.logRecipeCounts("before deleteRecipe recipeId=\(id)", database: database)
+        let homeId = try await database.read { db in
+            try DBRecipe.find(id).fetchOne(db)?.homeId
+        }
         try await database.write { db in
             try RecipeManualCascade.deleteRecipeLinkedData(for: id, in: db)
             try DBRecipe.find(id).delete().execute(db)
             try DBMealplanEntry.where { $0.recipeId.eq(id) }.delete().execute(db)
         }
+        await SupabaseSyncService.shared.deleteRecipe(id, homeId: homeId)
         await RecipeDebugDiagnostics.logRecipeCounts("after deleteRecipe recipeId=\(id)", database: database)
     }
 
@@ -121,21 +129,6 @@ public final class RecipesRepository {
         RecipeDebugDiagnostics.logAppEvent("saveImportedRecipeEntities count=\(entityBatch.count) ids=\(recipeIDs)")
         await RecipeDebugDiagnostics.logRecipeCounts("before saveImportedRecipeEntities count=\(entityBatch.count)", database: database)
 
-        syncEngine.stop()
-        RecipeDebugDiagnostics.logAppEvent("syncEngine.stop for recipe import count=\(entityBatch.count)")
-        defer {
-            Task {
-                do {
-                    try await syncEngine.start()
-                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start after recipe import count=\(entityBatch.count)")
-                    await RecipeDebugDiagnostics.logRecipeCounts("after syncEngine.start recipe import count=\(entityBatch.count)", database: database)
-                } catch {
-                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start failed after recipe import error=\(error)")
-                    print("Error restarting sync after recipe import: \(error)")
-                }
-            }
-        }
-
         var startIndex = 0
         while startIndex < entityBatch.count {
             let endIndex = min(startIndex + Self.importWriteBatchSize, entityBatch.count)
@@ -144,6 +137,11 @@ public final class RecipesRepository {
             try await insertImportedEntityBatch(chunk)
             await RecipeDebugDiagnostics.logRecipeCounts("after insertImportedEntityBatch range=\(startIndex)..<\(endIndex)", database: database)
             startIndex = endIndex
+        }
+
+        let supabaseRecipes = entityBatch.map { ($0.0.id, $0.0.homeId) }
+        Task(priority: .utility) { [weak self, supabaseRecipes] in
+            await self?.syncSupabaseRecipeUpserts(supabaseRecipes)
         }
     }
 
@@ -214,21 +212,6 @@ public final class RecipesRepository {
         let shouldReplaceIngredients = !newIngGroups.isEmpty && !newIngs.isEmpty
         let shouldReplaceSteps = !newStepGroups.isEmpty && !newSteps.isEmpty
 
-        syncEngine.stop()
-        RecipeDebugDiagnostics.logAppEvent("syncEngine.stop for recipe replacement recipeId=\(existingRecipeId)")
-        defer {
-            Task {
-                do {
-                    try await syncEngine.start()
-                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start after recipe replacement recipeId=\(existingRecipeId)")
-                    await RecipeDebugDiagnostics.logRecipeCounts("after syncEngine.start recipe replacement recipeId=\(existingRecipeId)", database: database)
-                } catch {
-                    RecipeDebugDiagnostics.logAppEvent("syncEngine.start failed after recipe replacement recipeId=\(existingRecipeId) error=\(error)")
-                    print("Error restarting sync after recipe replacement: \(error)")
-                }
-            }
-        }
-
         try await database.write { db in
             try DBRecipe
                 .upsert { newRecipe }
@@ -295,7 +278,25 @@ public final class RecipesRepository {
         }
 
         await RecipeDebugDiagnostics.logRecipeCounts("after replaceImportedRecipe recipeId=\(existingRecipeId)", database: database)
+        await syncSupabaseRecipeUpserts([(newRecipe.id, newRecipe.homeId)])
         scheduleImportedImageHydration(for: [recipe])
+    }
+
+    private func syncSupabaseRecipeUpserts(_ recipes: [(id: UUID, homeId: UUID?)]) async {
+        guard !recipes.isEmpty else { return }
+
+        do {
+            try await SupabaseSyncService.shared.pushRecipes(recipeIds: recipes.map(\.id))
+            return
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase direct recipe batch push failed count=\(recipes.count) error=\(error)")
+        }
+
+        for recipe in recipes {
+            await SupabaseSyncService.shared.enqueueRecipeUpsert(recipeId: recipe.id, homeId: recipe.homeId)
+        }
+
+        await SupabaseSyncService.shared.drainOutbox(limit: max(20, recipes.count))
     }
 
     private struct PendingImportedImageHydration: Sendable {
@@ -397,6 +398,11 @@ public final class RecipesRepository {
                 }
             }
             await RecipeDebugDiagnostics.logRecipeCounts("after persistHydratedImageBatch count=\(batch.count)", database: database)
+            do {
+                try await SupabaseSyncService.shared.pushRecipes(recipeIds: batch.map(\.recipeId))
+            } catch {
+                RecipeDebugDiagnostics.logAppEvent("supabase hydrated image push failed count=\(batch.count) error=\(error)")
+            }
         } catch {
             RecipeDebugDiagnostics.logAppEvent("persistHydratedImageBatch failed count=\(batch.count) error=\(error)")
             print("Error hydrating imported images: \(error)")

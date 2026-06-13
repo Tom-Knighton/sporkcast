@@ -3,7 +3,6 @@ import EventKit
 import Foundation
 import Models
 import Persistence
-import SQLiteData
 
 public enum ShoppingListRemindersSyncTrigger: Sendable {
     case appLaunch
@@ -653,7 +652,7 @@ private extension ShoppingListRemindersSyncService {
                     $0.title = update.title
                     $0.isComplete = update.isComplete
                     $0.modifiedAt = update.modifiedAt
-                    $0.categoryIdentifier = #bind(update.categoryIdentifier)
+                    $0.categoryIdentifier = update.categoryIdentifier
                     $0.categoryDisplayName = update.categoryDisplayName
                     $0.categorySource = update.categorySource
                 }
@@ -688,6 +687,11 @@ private extension ShoppingListRemindersSyncService {
                 .execute(db)
             }
         }
+
+        if hadLocalMutations {
+            await SupabaseSyncService.shared.enqueueShoppingSnapshot(homeId: localState.list.homeId)
+            await SupabaseSyncService.shared.drainOutbox()
+        }
     }
 
     func remoteForLink(
@@ -711,8 +715,7 @@ private extension ShoppingListRemindersSyncService {
     func loadLocalState() async throws -> LocalState? {
         try await database.read { db -> LocalState? in
             let lists = try DBShoppingList
-                .where(\.isArchived)
-                .not()
+                .where(SQLCondition(sql: "isArchived = 0"))
                 .order(by: \.createdAt)
                 .fetchAll(db)
 
