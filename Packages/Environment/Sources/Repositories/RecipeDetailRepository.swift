@@ -7,7 +7,6 @@
 
 import Dependencies
 import Observation
-import SQLiteData
 import Persistence
 import Foundation
 import Models
@@ -20,20 +19,26 @@ public final class RecipeDetailRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchOne private var dbRecipe: FullDBRecipe?
+    private var recipeObservation: AnyDatabaseCancellable?
+
+    private var dbRecipe: FullDBRecipe?
 
     public var recipe: Recipe? {
         dbRecipe?.toDomainModel()
     }
 
     public init(recipeId: UUID) {
-        self._dbRecipe = FetchOne(DBRecipe.full.find(recipeId))
+        recipeObservation = observeOne(database, query: DBRecipe.full.find(recipeId)) { error in
+            RecipeDebugDiagnostics.logAppEvent("recipe detail observation failed recipeId=\(recipeId) error=\(error)")
+        } onChange: { [weak self] recipe in
+            self?.dbRecipe = recipe
+        }
     }
 
     public func updateDominantColor(recipeId: UUID, hex: String) async throws {
         RecipeDebugDiagnostics.logAppEvent("updateDominantColor recipeId=\(recipeId)")
         try await database.write { db in
-            try DBRecipe.find(recipeId).update { $0.dominantColorHex = #bind(hex) }.execute(db)
+            try DBRecipe.find(recipeId).update { $0.dominantColorHex = hex }.execute(db)
         }
         await syncSupabaseSnapshots(forRecipeIds: [recipeId])
     }

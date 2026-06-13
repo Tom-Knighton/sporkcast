@@ -6,64 +6,39 @@
 //
 
 import Foundation
-import SQLiteData
+import GRDB
 
-@Selection
-public struct FullDBRecipe: Sendable, Identifiable, Equatable {
-    
-    public let recipe: DBRecipe
-    
-    public let imageData: DBRecipeImage?
-    
-    @Column(as: [DBRecipeIngredientGroup].JSONRepresentation.self)
-    public let ingredientGroups: [DBRecipeIngredientGroup]
-    
-    @Column(as: [DBRecipeIngredient].JSONRepresentation.self)
-    public let ingredients: [DBRecipeIngredient]
-    
-    @Column(as: [DBRecipeStepGroup].JSONRepresentation.self)
-    public let stepGroups: [DBRecipeStepGroup]
-    
-    @Column(as: [DBRecipeStep].JSONRepresentation.self)
-    public let steps: [DBRecipeStep]
-    
-    @Column(as: [DBRecipeStepTiming].JSONRepresentation.self)
-    public let timings: [DBRecipeStepTiming]
-    
-    @Column(as: [DBRecipeStepTemperature].JSONRepresentation.self)
-    public let temperatures: [DBRecipeStepTemperature]
-    
-    @Column(as: [DBRecipeRating].JSONRepresentation.self)
-    public let ratings: [DBRecipeRating]
-    
-    @Column(as: [DBRecipeStepLinkedIngredient].JSONRepresentation.self)
-    public let stepLinkedIngredients: [DBRecipeStepLinkedIngredient]
+public struct FullDBRecipe: Codable, FetchableRecord, Sendable, Identifiable, Equatable {
+    public var recipe: DBRecipe
+    public var imageData: DBRecipeImage?
+    public var ingredientGroups: [DBRecipeIngredientGroup]
+    public var ingredients: [DBRecipeIngredient]
+    public var stepGroups: [DBRecipeStepGroup]
+    public var steps: [DBRecipeStep]
+    public var timings: [DBRecipeStepTiming]
+    public var temperatures: [DBRecipeStepTemperature]
+    public var ratings: [DBRecipeRating]
+    public var stepLinkedIngredients: [DBRecipeStepLinkedIngredient]
 
     public var id: UUID { recipe.id }
 }
 
-@Selection
-public struct ListDBRecipe: Sendable, Identifiable, Equatable {
-
-    public let recipe: DBRecipe
-    public let imageData: DBRecipeImage?
-    @Column(as: [DBRecipeFolder].JSONRepresentation.self)
-    public let folders: [DBRecipeFolder]
-    @Column(as: [DBRecipeTag].JSONRepresentation.self)
-    public let tags: [DBRecipeTag]
+public struct ListDBRecipe: Codable, FetchableRecord, Sendable, Identifiable, Equatable {
+    public var recipe: DBRecipe
+    public var imageData: DBRecipeImage?
+    public var folders: [DBRecipeFolder]
+    public var tags: [DBRecipeTag]
 
     public var id: UUID { recipe.id }
 }
 
-@Selection
-public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
-    
-    public let mealplanEntry: DBMealplanEntry
-    public let recipe: DBRecipe?
-    public let image: DBRecipeImage?
-    
+public struct FullDBMealplanEntry: Codable, FetchableRecord, Sendable, Identifiable, Equatable {
+    public var mealplanEntry: DBMealplanEntry
+    public var recipe: DBRecipe?
+    public var image: DBRecipeImage?
+
     public var id: UUID { mealplanEntry.id }
-    
+
     public init(mealplanEntry: DBMealplanEntry, recipe: DBRecipe?, image: DBRecipeImage?) {
         self.mealplanEntry = mealplanEntry
         self.recipe = recipe
@@ -71,16 +46,12 @@ public struct FullDBMealplanEntry: Sendable, Identifiable, Equatable {
     }
 }
 
-@Selection
-public struct FullDBShoppingList: Sendable, Identifiable, Equatable {
-    
-    public let shoppingList: DBShoppingList
-    
-    @Column(as: [DBShoppingListItem].JSONRepresentation.self)
-    public let items: [DBShoppingListItem]
-    
+public struct FullDBShoppingList: Codable, FetchableRecord, Sendable, Identifiable, Equatable {
+    public var shoppingList: DBShoppingList
+    public var items: [DBShoppingListItem]
+
     public var id: UUID { shoppingList.id }
-    
+
     public init(shoppingList: DBShoppingList, items: [DBShoppingListItem]) {
         self.shoppingList = shoppingList
         self.items = items
@@ -88,188 +59,155 @@ public struct FullDBShoppingList: Sendable, Identifiable, Equatable {
 }
 
 public extension DBRecipe {
-    
-    typealias FullSelect = Select<FullDBRecipe, DBRecipe, (DBRecipeIngredientGroup?, DBRecipeIngredient?, DBRecipeStepGroup?, DBRecipeStep?, DBRecipeStepTiming?, DBRecipeStepTemperature?, DBRecipeImage?, DBRecipeRating?, DBRecipeStepLinkedIngredient?)>
-    typealias ListSelect = Select<ListDBRecipe, DBRecipe, (DBRecipeImage?, DBRecipeFolderAssignment?, DBRecipeFolder?, DBRecipeTagAssignment?, DBRecipeTag?)>
-    
-    static var full: FullSelect {
-        
-        let base = DBRecipe
-            .group(by: \.id)
-            .order(by: \.dateModified)
-        
-        let withIngGroups = base.leftJoin(DBRecipeIngredientGroup.all) {
-            $0.id.eq($1.recipeId)
-        }
-        
-        let withIngs = withIngGroups.leftJoin(DBRecipeIngredient.all) {
-            $1.id.eq($2.ingredientGroupId)
-        }
-        
-        let withStepGroups = withIngs.leftJoin(DBRecipeStepGroup.all) {
-            $0.id.eq($3.recipeId)
-        }
-        
-        let withSteps = withStepGroups.leftJoin(DBRecipeStep.all) {
-            $3.id.eq($4.groupId)
-        }
-        
-        let withStepTimings = withSteps.leftJoin(DBRecipeStepTiming.all) {
-            $4.id.eq($5.recipeStepId)
-        }
-        
-        let withStepTemps = withStepTimings
-            .leftJoin(DBRecipeStepTemperature.all) {
-                $4.id.eq($6.recipeStepId)
-            }
-        
-        let withImage = withStepTemps
-            .leftJoin(DBRecipeImage.all) {
-                $0.id.eq($7.recipeId)
-            }
-        
-        let withRatings = withImage
-            .leftJoin(DBRecipeRating.all) {
-                $0.id.eq($8.recipeId)
-            }
-        
-        let withStepIngredients = withRatings
-            .leftJoin(DBRecipeStepLinkedIngredient.all) {
-                $4.id.eq($9.recipeStepId)
-            }
+    static var full: DBQuery<FullDBRecipe> {
+        DBQuery<FullDBRecipe> { db, query in
+            let recipes = try DBRecipe.all
+                .where(query.condition ?? SQLCondition(sql: "1"))
+                .order(by: \.dateModified)
+                .fetchAll(db)
 
-        let query = withStepIngredients
-            .select {
-                let igs = $1.jsonGroupArray(distinct: true)
-                let ings = $2.jsonGroupArray(distinct: true)
-                let stepLinkedIngs = $9.jsonGroupArray(distinct: true)
-                return FullDBRecipe.Columns(
-                    recipe: $0,
-                    imageData: $7,
-                    ingredientGroups: igs,
-                    ingredients: ings,
-                    stepGroups: $3.jsonGroupArray(distinct: true),
-                    steps: $4.jsonGroupArray(distinct: true),
-                    timings: $5.jsonGroupArray(distinct: true),
-                    temperatures: $6.jsonGroupArray(distinct: true),
-                    ratings: $8.jsonGroupArray(distinct: true),
-                    stepLinkedIngredients: stepLinkedIngs
+            guard !recipes.isEmpty else { return [] }
+
+            let recipeIds = Set(recipes.map(\.id))
+            let images = try DBRecipeImage.all.fetchAll(db).dictionaryById()
+            let ingredientGroups = try DBRecipeIngredientGroup.all.fetchAll(db)
+                .filter { recipeIds.contains($0.recipeId) }
+                .sorted { $0.sortIndex < $1.sortIndex }
+            let ingredientGroupIds = Set(ingredientGroups.map(\.id))
+            let ingredients = try DBRecipeIngredient.all.fetchAll(db)
+                .filter { ingredientGroupIds.contains($0.ingredientGroupId) }
+                .sorted { $0.sortIndex < $1.sortIndex }
+            let stepGroups = try DBRecipeStepGroup.all.fetchAll(db)
+                .filter { recipeIds.contains($0.recipeId) }
+                .sorted { $0.sortIndex < $1.sortIndex }
+            let stepGroupIds = Set(stepGroups.map(\.id))
+            let steps = try DBRecipeStep.all.fetchAll(db)
+                .filter { stepGroupIds.contains($0.groupId) }
+                .sorted { $0.sortIndex < $1.sortIndex }
+            let stepIds = Set(steps.map(\.id))
+            let timings = try DBRecipeStepTiming.all.fetchAll(db)
+                .filter { stepIds.contains($0.recipeStepId) }
+            let temperatures = try DBRecipeStepTemperature.all.fetchAll(db)
+                .filter { stepIds.contains($0.recipeStepId) }
+            let ratings = try DBRecipeRating.all.fetchAll(db)
+                .filter { recipeIds.contains($0.recipeId) }
+            let stepLinkedIngredients = try DBRecipeStepLinkedIngredient.all.fetchAll(db)
+                .filter { stepIds.contains($0.recipeStepId) }
+                .sorted { $0.sortIndex < $1.sortIndex }
+
+            let ingredientGroupsByRecipe = Dictionary(grouping: ingredientGroups, by: \.recipeId)
+            let ingredientsByGroup = Dictionary(grouping: ingredients, by: \.ingredientGroupId)
+            let stepGroupsByRecipe = Dictionary(grouping: stepGroups, by: \.recipeId)
+            let stepsByGroup = Dictionary(grouping: steps, by: \.groupId)
+            let timingsByStep = Dictionary(grouping: timings, by: \.recipeStepId)
+            let temperaturesByStep = Dictionary(grouping: temperatures, by: \.recipeStepId)
+            let ratingsByRecipe = Dictionary(grouping: ratings, by: \.recipeId)
+            let linkedIngredientsByStep = Dictionary(grouping: stepLinkedIngredients, by: \.recipeStepId)
+
+            return recipes.map { recipe in
+                let recipeIngredientGroups = ingredientGroupsByRecipe[recipe.id] ?? []
+                let recipeIngredients = recipeIngredientGroups.flatMap { ingredientsByGroup[$0.id] ?? [] }
+                let recipeStepGroups = stepGroupsByRecipe[recipe.id] ?? []
+                let recipeSteps = recipeStepGroups.flatMap { stepsByGroup[$0.id] ?? [] }
+                return FullDBRecipe(
+                    recipe: recipe,
+                    imageData: images[recipe.id],
+                    ingredientGroups: recipeIngredientGroups,
+                    ingredients: recipeIngredients,
+                    stepGroups: recipeStepGroups,
+                    steps: recipeSteps,
+                    timings: recipeSteps.flatMap { timingsByStep[$0.id] ?? [] },
+                    temperatures: recipeSteps.flatMap { temperaturesByStep[$0.id] ?? [] },
+                    ratings: ratingsByRecipe[recipe.id] ?? [],
+                    stepLinkedIngredients: recipeSteps.flatMap { linkedIngredientsByStep[$0.id] ?? [] }
                 )
             }
-        
-        
-       return query
+        }
     }
 
-    static var list: ListSelect {
-        let base = DBRecipe
-            .group(by: \.id)
-            .order(by: \.dateModified)
+    static var list: DBQuery<ListDBRecipe> {
+        DBQuery<ListDBRecipe> { db, query in
+            let recipes = try DBRecipe.all
+                .where(query.condition ?? SQLCondition(sql: "1"))
+                .order(by: \.dateModified)
+                .fetchAll(db)
+            guard !recipes.isEmpty else { return [] }
 
-        let withImage = base
-            .leftJoin(DBRecipeImage.all) {
-                $0.id.eq($1.recipeId)
-            }
+            let recipeIds = Set(recipes.map(\.id))
+            let images = try DBRecipeImage.all.fetchAll(db).dictionaryById()
+            let folderAssignments = try DBRecipeFolderAssignment.all.fetchAll(db)
+                .filter { recipeIds.contains($0.recipeId) }
+            let tagAssignments = try DBRecipeTagAssignment.all.fetchAll(db)
+                .filter { recipeIds.contains($0.recipeId) }
+            let folders = try DBRecipeFolder.all.fetchAll(db).dictionaryById()
+            let tags = try DBRecipeTag.all.fetchAll(db).dictionaryById()
+            let folderAssignmentsByRecipe = Dictionary(grouping: folderAssignments, by: \.recipeId)
+            let tagAssignmentsByRecipe = Dictionary(grouping: tagAssignments, by: \.recipeId)
 
-        let withFolderAssignments = withImage
-            .leftJoin(DBRecipeFolderAssignment.all) {
-                $0.id.eq($2.recipeId)
-            }
-
-        let withFolders = withFolderAssignments
-            .leftJoin(DBRecipeFolder.all) {
-                $2.folderId.eq($3.id)
-            }
-
-        let withTagAssignments = withFolders
-            .leftJoin(DBRecipeTagAssignment.all) {
-                $0.id.eq($4.recipeId)
-            }
-
-        let withTags = withTagAssignments
-            .leftJoin(DBRecipeTag.all) {
-                $4.tagId.eq($5.id)
-            }
-
-        let query = withTags
-            .select {
-                ListDBRecipe.Columns(
-                    recipe: $0,
-                    imageData: $1,
-                    folders: $3.jsonGroupArray(distinct: true),
-                    tags: $5.jsonGroupArray(distinct: true)
+            return recipes.map { recipe in
+                ListDBRecipe(
+                    recipe: recipe,
+                    imageData: images[recipe.id],
+                    folders: (folderAssignmentsByRecipe[recipe.id] ?? []).compactMap { folders[$0.folderId] },
+                    tags: (tagAssignmentsByRecipe[recipe.id] ?? []).compactMap { tags[$0.tagId] }
                 )
             }
-
-        return query
+        }
     }
 }
 
 public extension DBMealplanEntry {
-    
-    typealias FullSelect = Select<FullDBMealplanEntry, DBMealplanEntry, (DBRecipe?, DBRecipeImage?)>
-    
-    static func full(startDate: Date, endDate: Date) -> FullSelect {
-        let base = DBMealplanEntry
-            .group(by: \.id)
-            .order(by: \.date)
-            .where { $0.date >= #bind(startDate) && $0.date <= #bind(endDate)}
-        
-        let withRecipe = base.leftJoin(DBRecipe.all) {
-            $0.recipeId.eq($1.id)
-        }
-        
-        let withImage = withRecipe.leftJoin(DBRecipeImage.all) {
-            $0.recipeId.eq($2.recipeId)
-        }
-                
-        let query = withImage
-            .select {
-                return FullDBMealplanEntry.Columns(mealplanEntry: $0, recipe: $1, image: $2)
-            } 
-        
-        return query
+    static func full(startDate: Date, endDate: Date) -> DBQuery<FullDBMealplanEntry> {
+        full.where { $0.date >= startDate && $0.date <= endDate }
     }
 
-    static var full: FullSelect {
-        let base = DBMealplanEntry
-            .group(by: \.id)
-            .order(by: \.date)
+    static var full: DBQuery<FullDBMealplanEntry> {
+        DBQuery<FullDBMealplanEntry> { db, query in
+            let entries = try DBMealplanEntry.all
+                .where(query.condition ?? SQLCondition(sql: "1"))
+                .order(by: \.date)
+                .fetchAll(db)
+            let recipeIds = Set(entries.compactMap(\.recipeId))
+            let recipes = try DBRecipe.all.fetchAll(db)
+                .filter { recipeIds.contains($0.id) }
+                .dictionaryById()
+            let images = try DBRecipeImage.all.fetchAll(db).dictionaryById()
 
-        let withRecipe = base.leftJoin(DBRecipe.all) {
-            $0.recipeId.eq($1.id)
-        }
-
-        let withImage = withRecipe.leftJoin(DBRecipeImage.all) {
-            $0.recipeId.eq($2.recipeId)
-        }
-
-        let query = withImage
-            .select {
-                return FullDBMealplanEntry.Columns(mealplanEntry: $0, recipe: $1, image: $2)
+            return entries.map { entry in
+                FullDBMealplanEntry(
+                    mealplanEntry: entry,
+                    recipe: entry.recipeId.flatMap { recipes[$0] },
+                    image: entry.recipeId.flatMap { images[$0] }
+                )
             }
-
-        return query
+        }
     }
 }
 
 public extension DBShoppingList {
-    
-    typealias FullSelect = Select<FullDBShoppingList, DBShoppingList, (DBShoppingListItem?)>
-    
-    static var full: FullSelect {
-        let base = DBShoppingList
-            .group(by: \.id)
+    static var full: DBQuery<FullDBShoppingList> {
+        DBQuery<FullDBShoppingList> { db, query in
+            let lists = try DBShoppingList.all
+                .where(query.condition ?? SQLCondition(sql: "1"))
+                .fetchAll(db)
+            guard !lists.isEmpty else { return [] }
 
-        let withItems = base.leftJoin(DBShoppingListItem.all) {
-            $0.id.eq($1.listId)
-        }
-        
-        let query = withItems
-            .select {
-                return FullDBShoppingList.Columns(shoppingList: $0, items: $1.jsonGroupArray(distinct: true))
+            let listIds = Set(lists.map(\.id))
+            let itemsByList = Dictionary(
+                grouping: try DBShoppingListItem.all.fetchAll(db)
+                    .filter { listIds.contains($0.listId) },
+                by: \.listId
+            )
+
+            return lists.map { list in
+                FullDBShoppingList(shoppingList: list, items: itemsByList[list.id] ?? [])
             }
-        
-        return query
+        }
+    }
+}
+
+private extension Sequence where Element: Identifiable, Element.ID == UUID {
+    func dictionaryById() -> [UUID: Element] {
+        Dictionary(uniqueKeysWithValues: map { ($0.id, $0) })
     }
 }

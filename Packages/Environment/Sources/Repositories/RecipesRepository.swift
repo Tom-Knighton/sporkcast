@@ -8,7 +8,6 @@
 import Dependencies
 import Models
 import Observation
-import SQLiteData
 import Persistence
 import Foundation
 
@@ -37,7 +36,9 @@ public final class RecipesRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchAll(DBRecipe.list) private var dbRecipes: [ListDBRecipe]
+    private var recipesObservation: AnyDatabaseCancellable?
+
+    private var dbRecipes: [ListDBRecipe] = []
 
     public var recipes: [Recipe] {
         dbRecipes.compactMap { $0.toDomainModel() }
@@ -54,7 +55,13 @@ public final class RecipesRepository {
         }
     }
 
-    public init() {}
+    public init() {
+        recipesObservation = observeAll(database, query: DBRecipe.list) { error in
+            RecipeDebugDiagnostics.logAppEvent("recipes observation failed error=\(error)")
+        } onChange: { [weak self] recipes in
+            self?.dbRecipes = recipes
+        }
+    }
 
     public func deleteAll() async throws {
         RecipeDebugDiagnostics.logAppEvent("deleteAllRecipes requested")
@@ -392,7 +399,7 @@ public final class RecipesRepository {
             }
             await RecipeDebugDiagnostics.logRecipeCounts("after persistHydratedImageBatch count=\(batch.count)", database: database)
             do {
-                try await SupabaseSyncService.shared.pushRecipeImages(recipeIds: batch.map(\.recipeId))
+                try await SupabaseSyncService.shared.pushRecipes(recipeIds: batch.map(\.recipeId))
             } catch {
                 RecipeDebugDiagnostics.logAppEvent("supabase hydrated image push failed count=\(batch.count) error=\(error)")
             }

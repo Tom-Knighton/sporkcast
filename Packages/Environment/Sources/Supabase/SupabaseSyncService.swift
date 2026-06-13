@@ -8,7 +8,6 @@
 import Dependencies
 import Foundation
 import Persistence
-import SQLiteData
 import Supabase
 
 public actor SupabaseSyncService {
@@ -174,8 +173,8 @@ public actor SupabaseSyncService {
                         let attemptedAt = Date()
                         try DBSupabaseOutboxMutation.find(mutation.id).update {
                             $0.attemptCount = mutation.attemptCount + 1
-                            $0.lastAttemptAt = #bind(attemptedAt)
-                            $0.lastError = #bind(message)
+                            $0.lastAttemptAt = attemptedAt
+                            $0.lastError = message
                         }
                         .execute(db)
                     }

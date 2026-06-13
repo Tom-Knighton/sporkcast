@@ -8,7 +8,6 @@
 import SwiftUI
 import API
 import SwiftData
-import SQLiteData
 import Persistence
 import Design
 import Environment
@@ -29,11 +28,6 @@ struct SporkcastApp: App {
 //                RecipeDebugDiagnostics.logSQLIfRecipeMutation(description)
             })
             $0.defaultDatabase = appDatabase
-
-            $0.defaultSyncEngine = try! SyncEngine(
-                for: $0.defaultDatabase,
-                startImmediately: false
-            )
         }
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")

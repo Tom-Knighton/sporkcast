@@ -8,20 +8,26 @@
 import Combine
 import Dependencies
 import Observation
-import SQLiteData
 import Persistence
 import Foundation
 import Models
 
 @Observable
-public final class HouseholdRepository {
+public final class HouseholdRepository: @unchecked Sendable {
     private static let adoptionMarkerPrefix = "sporkast.supabase.homeAdoption.completed."
 
     @ObservationIgnored
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchOne(DBHome.all) public var _dbHome
+    private var homeObservation: AnyDatabaseCancellable?
+
+    @ObservationIgnored
+    private let homeSubject = CurrentValueSubject<DBHome?, Never>(nil)
+
+    public var _dbHome: DBHome? {
+        didSet { homeSubject.send(_dbHome) }
+    }
 
     public var home: Home? {
         if let _dbHome {
@@ -30,10 +36,18 @@ public final class HouseholdRepository {
     }
     
     public var homePublisher: AnyPublisher<DBHome?, Never> {
-        $_dbHome.publisher.eraseToAnyPublisher()
+        homeSubject.eraseToAnyPublisher()
     }
 
-    public init() {}
+    public init() {
+        Task { @MainActor [weak self, database] in
+            self?.homeObservation = observeOne(database, query: DBHome.all) { error in
+                RecipeDebugDiagnostics.logAppEvent("home observation failed error=\(error)")
+            } onChange: { [weak self] home in
+                self?._dbHome = home
+            }
+        }
+    }
 
     public func createHome(named name: String) async throws -> DBHome {
         let newDBHome = DBHome(id: UUID(), name: name)
@@ -97,35 +111,35 @@ public final class HouseholdRepository {
         try? await database.write { db in
             try DBRecipe
                 .where { $0.homeId.is(nil) }
-                .update(set: { r in
-                    r.homeId = #bind(homeId)
-                })
+                .update { r in
+                    r.homeId = homeId
+                }
                 .execute(db)
         }
 
         try? await database.write { db in
             try DBMealplanEntry
                 .where { $0.homeId.is(nil) }
-                .update { $0.homeId = #bind(homeId) }
+                .update { $0.homeId = homeId }
                 .execute(db)
         }
 
         try? await database.write { db in
             try DBRecipeFolder
                 .where { $0.homeId.is(nil) }
-                .update { $0.homeId = #bind(homeId) }
+                .update { $0.homeId = homeId }
                 .execute(db)
 
             try DBRecipeTag
                 .where { $0.homeId.is(nil) }
-                .update { $0.homeId = #bind(homeId) }
+                .update { $0.homeId = homeId }
                 .execute(db)
         }
 
         try? await database.write { db in
             try DBShoppingList
                 .where { $0.homeId.is(nil) }
-                .update { $0.homeId = #bind(homeId) }
+                .update { $0.homeId = homeId }
                 .execute(db)
         }
     }

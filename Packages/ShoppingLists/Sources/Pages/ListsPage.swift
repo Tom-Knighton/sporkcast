@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
+import Dependencies
 import Models
 import Persistence
-import SQLiteData
 import Environment
 import Design
 
@@ -24,8 +24,7 @@ public struct ShoppingListsPage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.shoppingListMutations) private var shoppingMutations
     @Environment(\.shoppingListRemindersSync) private var remindersSync
-    @FetchAll(DBShoppingList.full.where({ list, _ in !list.isArchived })) private var dbLists: [FullDBShoppingList]
-    @FetchAll(DBShoppingListItem.all) private var dbClassifierItems: [DBShoppingListItem]
+    @Dependency(\.defaultDatabase) private var database
     @FocusState private var focusedRow: String?
 
     private let classifier = ShoppingCategoryClassifier()
@@ -38,6 +37,10 @@ public struct ShoppingListsPage: View {
     @State private var autoAssignedMoveToast: AutoAssignedMoveToast?
     @State private var remindersSnapshot = ShoppingListRemindersSyncSnapshot()
     @State private var showGroceriesSetupPrompt = false
+    @State private var dbLists: [FullDBShoppingList] = []
+    @State private var dbClassifierItems: [DBShoppingListItem] = []
+    @State private var listObservation: AnyDatabaseCancellable?
+    @State private var classifierItemsObservation: AnyDatabaseCancellable?
 
     private var pageTitle: String {
         shoppingList?.title ?? "Shopping"
@@ -112,6 +115,7 @@ public struct ShoppingListsPage: View {
             autoAssignedMoveToast = nil
         }
         .task {
+            startDatabaseObservations()
             await remindersSync.start()
             await remindersSync.scheduleSync(trigger: .shoppingTabAppeared)
             await refreshRemindersSnapshot()
@@ -148,6 +152,25 @@ public struct ShoppingListsPage: View {
             )
         }
         .animation(.easeInOut(duration: 0.2), value: autoAssignedMoveToast)
+    }
+
+    @MainActor
+    private func startDatabaseObservations() {
+        guard listObservation == nil, classifierItemsObservation == nil else { return }
+        listObservation = observeAll(
+            database,
+            query: DBShoppingList.full.where(SQLCondition(sql: "isArchived = 0"))
+        ) { error in
+            RecipeDebugDiagnostics.logAppEvent("shopping lists observation failed error=\(error)")
+        } onChange: { lists in
+            dbLists = lists
+        }
+
+        classifierItemsObservation = observeAll(database, query: DBShoppingListItem.all) { error in
+            RecipeDebugDiagnostics.logAppEvent("shopping classifier observation failed error=\(error)")
+        } onChange: { items in
+            dbClassifierItems = items
+        }
     }
 }
 

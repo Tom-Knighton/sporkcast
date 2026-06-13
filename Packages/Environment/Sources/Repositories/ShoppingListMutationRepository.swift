@@ -2,7 +2,6 @@ import Dependencies
 import Foundation
 import Models
 import Persistence
-import SQLiteData
 
 public struct ShoppingListImportPayload: Sendable, Hashable {
     public let ingredientId: UUID
@@ -228,7 +227,7 @@ public final class ShoppingListMutationRepository {
             let existingModifiedAt = try DBShoppingListItem.find(itemId).fetchOne(db)?.modifiedAt
             let effectiveModifiedAt = Self.monotonicModifiedAt(requested: modifiedAt, after: existingModifiedAt)
             try DBShoppingListItem.find(itemId).update {
-                $0.categoryIdentifier = #bind(category.rawValue)
+                $0.categoryIdentifier = category.rawValue
                 $0.categoryDisplayName = category.displayName
                 $0.categorySource = source
                 $0.modifiedAt = effectiveModifiedAt
@@ -461,8 +460,7 @@ private extension ShoppingListMutationRepository {
 
     static func activeShoppingLists(homeId: UUID?, in db: Database) throws -> [UUID] {
         try DBShoppingList
-            .where(\.isArchived)
-            .not()
+            .where(SQLCondition(sql: "isArchived = 0"))
             .order(by: \.createdAt)
             .fetchAll(db)
             .filter { $0.homeId == homeId }

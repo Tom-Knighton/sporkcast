@@ -8,7 +8,6 @@
 import Dependencies
 import Models
 import Observation
-import SQLiteData
 import Persistence
 import Foundation
 import WidgetKit
@@ -21,7 +20,9 @@ public final class MealplanRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchAll private var dbMealplanEntries: [FullDBMealplanEntry]
+    private var mealplanObservation: AnyDatabaseCancellable?
+
+    private var dbMealplanEntries: [FullDBMealplanEntry] = []
 
     public var entries: [MealplanEntry] {
         dbMealplanEntries.compactMap { $0.toDomainModel() }
@@ -30,7 +31,12 @@ public final class MealplanRepository {
     public init() {}
 
     public func loadEntries(startDate: Date, endDate: Date) async throws {
-        try await $dbMealplanEntries.load(DBMealplanEntry.full(startDate: startDate, endDate: endDate))
+        mealplanObservation = observeAll(database, query: DBMealplanEntry.full(startDate: startDate, endDate: endDate)) { error in
+            RecipeDebugDiagnostics.logAppEvent("mealplan observation failed error=\(error)")
+        } onChange: { [weak self] entries in
+            self?.dbMealplanEntries = entries
+            self?.updateWidgetSnapshot()
+        }
         updateWidgetSnapshot()
     }
 
@@ -57,7 +63,7 @@ public final class MealplanRepository {
     public func updateNote(id: UUID, text: String) async throws {
         let homeId = try await homeIdForEntry(id)
         try await database.write { db in
-            try DBMealplanEntry.find(id).update { $0.noteText = #bind(text) }.execute(db)
+            try DBMealplanEntry.find(id).update { $0.noteText = text }.execute(db)
         }
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
@@ -77,9 +83,7 @@ public final class MealplanRepository {
 
     public func insertRandomMeal(date: Date, index: Int, homeId: UUID?) async throws {
         let recipe = try await database.read { db in
-            try DBRecipe
-                .order { _ in #sql("RANDOM()") }
-                .fetchOne(db)
+            try DBRecipe.fetchOne(db, sql: "SELECT * FROM Recipes ORDER BY RANDOM() LIMIT 1")
         }
 
         guard let recipe else { return }

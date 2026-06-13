@@ -1,6 +1,5 @@
 import Dependencies
 import Persistence
-import SQLiteData
 
 public enum PreviewSupport {
 
@@ -13,25 +12,7 @@ public enum PreviewSupport {
 
         prepareDependencies {
             $0.defaultDatabase = database
-            $0.defaultSyncEngine = try! SyncEngine(
-                for: database,
-                tables: DBHome.self,
-                DBRecipe.self,
-                DBRecipeIngredientGroup.self,
-                DBRecipeIngredient.self,
-                DBRecipeStepGroup.self,
-                DBRecipeStep.self,
-                DBRecipeStepTiming.self,
-                DBRecipeStepTemperature.self,
-                DBRecipeImage.self,
-                DBRecipeFolder.self,
-                DBRecipeFolderHierarchy.self,
-                DBRecipeTag.self,
-                DBRecipeFolderAssignment.self,
-                DBRecipeTagAssignment.self,
-                DBMealplanEntry.self,
-            )
-            
+
             if let seed {
                 try? seed(database)
             }

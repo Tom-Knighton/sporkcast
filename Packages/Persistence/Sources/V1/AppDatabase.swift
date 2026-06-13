@@ -5,25 +5,19 @@
 //  Created by Tom Knighton on 2025-12-27.
 //
 
-import Dependencies
 import OSLog
-import SQLiteData
+import GRDB
 
 public enum AppDatabaseFactory {
 
     public static func makeAppDatabase(
+        path: String? = nil,
         configuration: Configuration = Configuration(),
         tracer: (@Sendable (String) -> Void)? = nil
     ) throws -> any DatabaseWriter {
-        @Dependency(\.context) var context
         var config = configuration
 
         config.prepareDatabase { [tracer] db in
-            
-            if context != .preview {
-                try db.attachMetadatabase()
-            }
-
             if let tracer {
                 db.trace(options: .profile) { [tracer] in
                     tracer($0.expandedDescription)
@@ -31,7 +25,7 @@ public enum AppDatabaseFactory {
             }
         }
 
-        let database = try defaultDatabase(configuration: config)
+        let database = try defaultDatabase(path: path, configuration: config)
 
         var migrator = DatabaseMigrator()
         #if DEBUG

@@ -3,7 +3,6 @@ import EventKit
 import Foundation
 import Models
 import Persistence
-import SQLiteData
 
 public enum MealplanCalendarSyncTrigger: Sendable {
     case appLaunch

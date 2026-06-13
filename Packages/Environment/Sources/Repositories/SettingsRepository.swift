@@ -8,7 +8,6 @@
 import Dependencies
 import Foundation
 import Observation
-import SQLiteData
 import Persistence
 import ZIPFoundation
 
@@ -38,7 +37,6 @@ public final class SettingsRepository {
             try DBRecipeFolder.delete().execute(db)
             try DBRecipeTag.delete().execute(db)
             try DBHome.delete().execute(db)
-            try SyncMetadata.delete().execute(db)
         }
         await SupabaseSyncService.shared.deleteRecipes(in: syncScopes)
         await syncSupabaseSnapshots(scopes: syncScopes)

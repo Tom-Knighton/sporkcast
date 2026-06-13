@@ -6,30 +6,29 @@
 //
 
 import Foundation
-import SQLiteData
+import GRDB
 
-@Table("Recipes")
-public struct DBRecipe: Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let title: String
-    public let description: String?
-    public let author: String?
-    public let sourceUrl: String
-    public let dominantColorHex: String?
-    public let minutesToPrepare: Double?
-    public let minutesToCook: Double?
-    public let totalMins: Double?
-    public let serves: String?
-    public let overallRating: Double?
-    public let totalRatings: Int
-    public let summarisedRating: String?
-    public let summarisedSuggestion: String?
-    public let dateAdded: Date
-    public let dateModified: Date
-    public let ingredientScale: Double
-    public let ingredientUnitSystem: String
+public struct DBRecipe: Codable, Identifiable, Sendable, Equatable {
+    public var id: UUID
+    public var title: String
+    public var description: String?
+    public var author: String?
+    public var sourceUrl: String
+    public var dominantColorHex: String?
+    public var minutesToPrepare: Double?
+    public var minutesToCook: Double?
+    public var totalMins: Double?
+    public var serves: String?
+    public var overallRating: Double?
+    public var totalRatings: Int
+    public var summarisedRating: String?
+    public var summarisedSuggestion: String?
+    public var dateAdded: Date
+    public var dateModified: Date
+    public var ingredientScale: Double
+    public var ingredientUnitSystem: String
     
-    public let homeId: UUID?
+    public var homeId: UUID?
     
     public init(id: UUID, title: String, description: String?, author: String?, sourceUrl: String, dominantColorHex: String?, minutesToPrepare: Double?, minutesToCook: Double?, totalMins: Double?, serves: String?, overallRating: Double?, totalRatings: Int, summarisedRating: String?, summarisedSuggestion: String?, dateAdded: Date, dateModified: Date, ingredientScale: Double = 1.0, ingredientUnitSystem: String = "original", homeId: UUID?) {
         self.id = id
@@ -54,12 +53,10 @@ public struct DBRecipe: Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeImages")
 public struct DBRecipeImage: Codable, Identifiable, Sendable, Equatable {
     
-    @Column(primaryKey: true)
-    public let recipeId: DBRecipe.ID
-    public let imageSourceUrl: String?
+    public var recipeId: DBRecipe.ID
+    public var imageSourceUrl: String?
     public var imageData: Data?
     
     public var id: DBRecipe.ID { recipeId }
@@ -71,12 +68,11 @@ public struct DBRecipeImage: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeIngredientGroups")
 public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeId: UUID
-    public let title: String
-    public let sortIndex: Int
+    public var id: UUID
+    public var recipeId: UUID
+    public var title: String
+    public var sortIndex: Int
     
     public init(id: UUID, recipeId: UUID, title: String, sortIndex: Int) {
         self.id = id
@@ -86,20 +82,19 @@ public struct DBRecipeIngredientGroup: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
-@Table("RecipeIngredients")
 public struct DBRecipeIngredient: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let ingredientGroupId: UUID
-    public let sortIndex: Int
-    public let rawIngredient: String
-    public let quantity: Double?
-    public let quantityText: String?
-    public let unit: String?
-    public let unitText: String?
-    public let ingredient: String?
-    public let extra: String?
-    public let emojiDescriptor: String?
-    public let owned: Bool
+    public var id: UUID
+    public var ingredientGroupId: UUID
+    public var sortIndex: Int
+    public var rawIngredient: String
+    public var quantity: Double?
+    public var quantityText: String?
+    public var unit: String?
+    public var unitText: String?
+    public var ingredient: String?
+    public var extra: String?
+    public var emojiDescriptor: String?
+    public var owned: Bool
     
     public init(id: UUID, ingredientGroupId: UUID, sortIndex: Int, rawIngredient: String, quantity: Double?, quantityText: String?, unit: String?, unitText: String?, ingredient: String?, extra: String?, emojiDescriptor: String?, owned: Bool) {
         self.id = id
@@ -117,12 +112,11 @@ public struct DBRecipeIngredient: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeStepGroups")
 public struct DBRecipeStepGroup: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeId: UUID
-    public let title: String
-    public let sortIndex: Int
+    public var id: UUID
+    public var recipeId: UUID
+    public var title: String
+    public var sortIndex: Int
     
     public init(id: UUID, recipeId: UUID, title: String, sortIndex: Int) {
         self.id = id
@@ -132,12 +126,11 @@ public struct DBRecipeStepGroup: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeSteps")
 public struct DBRecipeStep: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let groupId: UUID
-    public let sortIndex: Int
-    public let instruction: String
+    public var id: UUID
+    public var groupId: UUID
+    public var sortIndex: Int
+    public var instruction: String
     
     public init(id: UUID, groupId: UUID, sortIndex: Int, instruction: String) {
         self.id = id
@@ -147,10 +140,9 @@ public struct DBRecipeStep: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeStepTimings")
 public struct DBRecipeStepTiming: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeStepId: UUID
+    public var id: UUID
+    public var recipeStepId: UUID
     public var timeInSeconds: Double
     public var timeText: String
     public var timeUnitText: String
@@ -164,10 +156,9 @@ public struct DBRecipeStepTiming: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeStepTemperatures")
 public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeStepId: UUID
+    public var id: UUID
+    public var recipeStepId: UUID
     public var temperature: Double
     public var temperatureText: String
     public var temperatureUnitText: String
@@ -181,12 +172,11 @@ public struct DBRecipeStepTemperature: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
-@Table("RecipeStepLinkedIngredients")
 public struct DBRecipeStepLinkedIngredient: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeStepId: UUID
-    public let ingredientId: UUID
-    public let sortIndex: Int
+    public var id: UUID
+    public var recipeStepId: UUID
+    public var ingredientId: UUID
+    public var sortIndex: Int
     
     public init(id: UUID, recipeStepId: UUID, ingredientId: UUID, sortIndex: Int) {
         self.id = id
@@ -196,12 +186,11 @@ public struct DBRecipeStepLinkedIngredient: Codable, Identifiable, Sendable, Equ
     }
 }
 
-@Table("RecipeRatings")
 public struct DBRecipeRating: Codable, Identifiable, Sendable, Equatable {
-    public let id: UUID
-    public let recipeId: UUID
-    public let rating: Int?
-    public let comment: String?
+    public var id: UUID
+    public var recipeId: UUID
+    public var rating: Int?
+    public var comment: String?
     
     public init(id: UUID, recipeId: UUID, rating: Int?, comment: String?) {
         self.id = id
@@ -211,11 +200,9 @@ public struct DBRecipeRating: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeFolders")
 public struct DBRecipeFolder: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let homeId: UUID?
+    public var id: UUID
+    public var homeId: UUID?
     public var name: String
     public var symbolName: String
     public var colorHex: String
@@ -244,12 +231,10 @@ public struct DBRecipeFolder: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeFolderHierarchy")
 public struct DBRecipeFolderHierarchy: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let parentFolderId: UUID
-    public let childFolderId: UUID
+    public var id: UUID
+    public var parentFolderId: UUID
+    public var childFolderId: UUID
 
     public init(id: UUID, parentFolderId: UUID, childFolderId: UUID) {
         self.id = id
@@ -258,11 +243,9 @@ public struct DBRecipeFolderHierarchy: Codable, Identifiable, Sendable, Equatabl
     }
 }
 
-@Table("RecipeTags")
 public struct DBRecipeTag: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let homeId: UUID?
+    public var id: UUID
+    public var homeId: UUID?
     public var name: String
     public var colorHex: String
     public var createdAt: Date
@@ -285,13 +268,11 @@ public struct DBRecipeTag: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("RecipeFolderAssignments")
 public struct DBRecipeFolderAssignment: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let recipeId: UUID
-    public let folderId: UUID
-    public let assignedAt: Date
+    public var id: UUID
+    public var recipeId: UUID
+    public var folderId: UUID
+    public var assignedAt: Date
 
     public init(id: UUID, recipeId: UUID, folderId: UUID, assignedAt: Date) {
         self.id = id
@@ -301,13 +282,11 @@ public struct DBRecipeFolderAssignment: Codable, Identifiable, Sendable, Equatab
     }
 }
 
-@Table("RecipeTagAssignments")
 public struct DBRecipeTagAssignment: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let recipeId: UUID
-    public let tagId: UUID
-    public let assignedAt: Date
+    public var id: UUID
+    public var recipeId: UUID
+    public var tagId: UUID
+    public var assignedAt: Date
 
     public init(id: UUID, recipeId: UUID, tagId: UUID, assignedAt: Date) {
         self.id = id
@@ -317,11 +296,9 @@ public struct DBRecipeTagAssignment: Codable, Identifiable, Sendable, Equatable 
     }
 }
 
-@Table("Homes")
 public struct DBHome: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let name: String
+    public var id: UUID
+    public var name: String
     
     public init(id: UUID, name: String) {
         self.id = id
@@ -329,15 +306,13 @@ public struct DBHome: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("MealplanEntries")
 public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let date: Date
-    public let index: Int
-    public let noteText: String?
-    public let recipeId: UUID?
-    public let homeId: UUID?
+    public var id: UUID
+    public var date: Date
+    public var index: Int
+    public var noteText: String?
+    public var recipeId: UUID?
+    public var homeId: UUID?
     
     public init(id: UUID, date: Date, index: Int, noteText: String?, recipeId: UUID?, homeId: UUID?) {
         self.id = id
@@ -349,15 +324,13 @@ public struct DBMealplanEntry: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("ShoppingLists")
 public struct DBShoppingList: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let homeId: UUID?
-    public let title: String
-    public let createdAt: Date
-    public let modifiedAt: Date
-    public let isArchived: Bool
+    public var id: UUID
+    public var homeId: UUID?
+    public var title: String
+    public var createdAt: Date
+    public var modifiedAt: Date
+    public var isArchived: Bool
     
     public init(id: UUID, homeId: UUID?, title: String, createdAt: Date, modifiedAt: Date, isArchived: Bool) {
         self.id = id
@@ -369,18 +342,16 @@ public struct DBShoppingList: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("ShoppingListItems")
 public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let title: String
-    public let listId: DBShoppingList.ID
-    public let isComplete: Bool
-    public let modifiedAt: Date
+    public var id: UUID
+    public var title: String
+    public var listId: DBShoppingList.ID
+    public var isComplete: Bool
+    public var modifiedAt: Date
     
-    public let categoryIdentifier: String?
-    public let categoryDisplayName: String
-    public let categorySource: String
+    public var categoryIdentifier: String?
+    public var categoryDisplayName: String
+    public var categorySource: String
     
     public init(
         id: UUID,
@@ -403,14 +374,12 @@ public struct DBShoppingListItem: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-@Table("ShoppingListItemIngredientLinks")
 public struct DBShoppingListItemIngredientLink: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let shoppingListItemId: DBShoppingListItem.ID
-    public let ingredientId: UUID
-    public let sourceScale: Double?
-    public let addedAt: Date
+    public var id: UUID
+    public var shoppingListItemId: DBShoppingListItem.ID
+    public var ingredientId: UUID
+    public var sourceScale: Double?
+    public var addedAt: Date
 
     public init(
         id: UUID,
@@ -427,13 +396,11 @@ public struct DBShoppingListItemIngredientLink: Codable, Identifiable, Sendable,
     }
 }
 
-@Table("ShoppingListItemMealplanLinks")
 public struct DBShoppingListItemMealplanLink: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let shoppingListItemId: DBShoppingListItem.ID
-    public let mealplanEntryId: UUID
-    public let addedAt: Date
+    public var id: UUID
+    public var shoppingListItemId: DBShoppingListItem.ID
+    public var mealplanEntryId: UUID
+    public var addedAt: Date
 
     public init(
         id: UUID,
@@ -448,14 +415,12 @@ public struct DBShoppingListItemMealplanLink: Codable, Identifiable, Sendable, E
     }
 }
 
-@Table("ShoppingListItemReminderLinks")
 public struct DBShoppingListItemReminderLink: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let shoppingListItemId: DBShoppingListItem.ID
-    public let reminderIdentifier: String
-    public let reminderExternalIdentifier: String?
-    public let lastSyncedAt: Date
+    public var id: UUID
+    public var shoppingListItemId: DBShoppingListItem.ID
+    public var reminderIdentifier: String
+    public var reminderExternalIdentifier: String?
+    public var lastSyncedAt: Date
 
     public init(
         id: UUID,
@@ -472,14 +437,12 @@ public struct DBShoppingListItemReminderLink: Codable, Identifiable, Sendable, E
     }
 }
 
-@Table("MealplanEntryCalendarEventLinks")
 public struct DBMealplanEntryCalendarEventLink: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let mealplanEntryId: UUID
-    public let eventIdentifier: String
-    public let eventExternalIdentifier: String?
-    public let lastSyncedAt: Date
+    public var id: UUID
+    public var mealplanEntryId: UUID
+    public var eventIdentifier: String
+    public var eventExternalIdentifier: String?
+    public var lastSyncedAt: Date
 
     public init(
         id: UUID,
@@ -496,18 +459,16 @@ public struct DBMealplanEntryCalendarEventLink: Codable, Identifiable, Sendable,
     }
 }
 
-@Table("SupabaseOutboxMutations")
 public struct DBSupabaseOutboxMutation: Codable, Identifiable, Sendable, Equatable {
-    @Column(primaryKey: true)
-    public let id: UUID
-    public let kind: String
-    public let entityId: UUID?
-    public let homeId: UUID?
-    public let operation: String
-    public let createdAt: Date
-    public let attemptCount: Int
-    public let lastAttemptAt: Date?
-    public let lastError: String?
+    public var id: UUID
+    public var kind: String
+    public var entityId: UUID?
+    public var homeId: UUID?
+    public var operation: String
+    public var createdAt: Date
+    public var attemptCount: Int
+    public var lastAttemptAt: Date?
+    public var lastError: String?
 
     public init(
         id: UUID,
@@ -530,6 +491,103 @@ public struct DBSupabaseOutboxMutation: Codable, Identifiable, Sendable, Equatab
         self.lastAttemptAt = lastAttemptAt
         self.lastError = lastError
     }
+}
+
+extension DBRecipe: DBRecord {
+    public static let databaseTableName = "Recipes"
+}
+
+extension DBRecipeImage: DBRecord {
+    public static let databaseTableName = "RecipeImages"
+    public static let idColumnName = "recipeId"
+}
+
+extension DBRecipeIngredientGroup: DBRecord {
+    public static let databaseTableName = "RecipeIngredientGroups"
+}
+
+extension DBRecipeIngredient: DBRecord {
+    public static let databaseTableName = "RecipeIngredients"
+}
+
+extension DBRecipeStepGroup: DBRecord {
+    public static let databaseTableName = "RecipeStepGroups"
+}
+
+extension DBRecipeStep: DBRecord {
+    public static let databaseTableName = "RecipeSteps"
+}
+
+extension DBRecipeStepTiming: DBRecord {
+    public static let databaseTableName = "RecipeStepTimings"
+}
+
+extension DBRecipeStepTemperature: DBRecord {
+    public static let databaseTableName = "RecipeStepTemperatures"
+}
+
+extension DBRecipeStepLinkedIngredient: DBRecord {
+    public static let databaseTableName = "RecipeStepLinkedIngredients"
+}
+
+extension DBRecipeRating: DBRecord {
+    public static let databaseTableName = "RecipeRatings"
+}
+
+extension DBRecipeFolder: DBRecord {
+    public static let databaseTableName = "RecipeFolders"
+}
+
+extension DBRecipeFolderHierarchy: DBRecord {
+    public static let databaseTableName = "RecipeFolderHierarchy"
+}
+
+extension DBRecipeTag: DBRecord {
+    public static let databaseTableName = "RecipeTags"
+}
+
+extension DBRecipeFolderAssignment: DBRecord {
+    public static let databaseTableName = "RecipeFolderAssignments"
+}
+
+extension DBRecipeTagAssignment: DBRecord {
+    public static let databaseTableName = "RecipeTagAssignments"
+}
+
+extension DBHome: DBRecord {
+    public static let databaseTableName = "Homes"
+}
+
+extension DBMealplanEntry: DBRecord {
+    public static let databaseTableName = "MealplanEntries"
+}
+
+extension DBShoppingList: DBRecord {
+    public static let databaseTableName = "ShoppingLists"
+}
+
+extension DBShoppingListItem: DBRecord {
+    public static let databaseTableName = "ShoppingListItems"
+}
+
+extension DBShoppingListItemIngredientLink: DBRecord {
+    public static let databaseTableName = "ShoppingListItemIngredientLinks"
+}
+
+extension DBShoppingListItemMealplanLink: DBRecord {
+    public static let databaseTableName = "ShoppingListItemMealplanLinks"
+}
+
+extension DBShoppingListItemReminderLink: DBRecord {
+    public static let databaseTableName = "ShoppingListItemReminderLinks"
+}
+
+extension DBMealplanEntryCalendarEventLink: DBRecord {
+    public static let databaseTableName = "MealplanEntryCalendarEventLinks"
+}
+
+extension DBSupabaseOutboxMutation: DBRecord {
+    public static let databaseTableName = "SupabaseOutboxMutations"
 }
 
 public struct SchemaV1 {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SQLiteData
+import GRDB
 
 public enum RecipeManualCascade {
     public static func deleteAllRecipeLinkedData(in db: Database) throws {

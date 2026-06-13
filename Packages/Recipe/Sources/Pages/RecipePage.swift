@@ -10,7 +10,6 @@ import Design
 import Models
 import SwiftData
 import API
-import SQLiteData
 import Environment
 import NukeUI
 import Persistence
@@ -775,7 +774,7 @@ extension RecipePage {
                 let completedItemIDs = Set(
                     try DBShoppingListItem
                         .where {
-                            itemIDsForMealplanEntry.contains($0.id) && $0.isComplete
+                            itemIDsForMealplanEntry.contains($0.id) && $0.isComplete.eq(true)
                         }
                         .select(\.id)
                         .fetchAll(db)

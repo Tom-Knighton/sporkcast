@@ -10,7 +10,6 @@ import Foundation
 import Models
 import Observation
 import Persistence
-import SQLiteData
 
 public struct RecipeFolderSummary: Identifiable, Hashable, Sendable {
     public let folder: RecipeFolder
@@ -46,19 +45,17 @@ public final class RecipeOrganizationRepository {
     @Dependency(\.defaultDatabase) private var database
 
     @ObservationIgnored
-    @FetchAll(DBRecipeFolder.all) private var dbFolders: [DBRecipeFolder]
+    private var observations: [AnyDatabaseCancellable] = []
 
-    @ObservationIgnored
-    @FetchAll(DBRecipeFolderHierarchy.all) private var dbFolderHierarchy: [DBRecipeFolderHierarchy]
+    private var dbFolders: [DBRecipeFolder] = []
 
-    @ObservationIgnored
-    @FetchAll(DBRecipeTag.all) private var dbTags: [DBRecipeTag]
+    private var dbFolderHierarchy: [DBRecipeFolderHierarchy] = []
 
-    @ObservationIgnored
-    @FetchAll(DBRecipeFolderAssignment.all) private var dbFolderAssignments: [DBRecipeFolderAssignment]
+    private var dbTags: [DBRecipeTag] = []
 
-    @ObservationIgnored
-    @FetchAll(DBRecipeTagAssignment.all) private var dbTagAssignments: [DBRecipeTagAssignment]
+    private var dbFolderAssignments: [DBRecipeFolderAssignment] = []
+
+    private var dbTagAssignments: [DBRecipeTagAssignment] = []
 
     public var folders: [RecipeFolder] {
         let parentIDsByChildID = Dictionary(
@@ -81,7 +78,25 @@ public final class RecipeOrganizationRepository {
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    public init() {}
+    public init() {
+        observations = [
+            observeAll(database, query: DBRecipeFolder.all) { _ in } onChange: { [weak self] rows in
+                self?.dbFolders = rows
+            },
+            observeAll(database, query: DBRecipeFolderHierarchy.all) { _ in } onChange: { [weak self] rows in
+                self?.dbFolderHierarchy = rows
+            },
+            observeAll(database, query: DBRecipeTag.all) { _ in } onChange: { [weak self] rows in
+                self?.dbTags = rows
+            },
+            observeAll(database, query: DBRecipeFolderAssignment.all) { _ in } onChange: { [weak self] rows in
+                self?.dbFolderAssignments = rows
+            },
+            observeAll(database, query: DBRecipeTagAssignment.all) { _ in } onChange: { [weak self] rows in
+                self?.dbTagAssignments = rows
+            },
+        ]
+    }
 
     public func folderSummaries(homeId: UUID?) -> [RecipeFolderSummary] {
         folders(in: homeId).map { folder in
@@ -177,10 +192,10 @@ public final class RecipeOrganizationRepository {
 
         try await database.write { db in
             try DBRecipeFolder.find(folder.id).update {
-                $0.name = #bind(name)
-                $0.symbolName = #bind(symbolName)
-                $0.colorHex = #bind(colorHex)
-                $0.modifiedAt = #bind(modifiedAt)
+                $0.name = name
+                $0.symbolName = symbolName
+                $0.colorHex = colorHex
+                $0.modifiedAt = modifiedAt
             }
             .execute(db)
         }
@@ -242,9 +257,9 @@ public final class RecipeOrganizationRepository {
 
         try await database.write { db in
             try DBRecipeTag.find(tag.id).update {
-                $0.name = #bind(name)
-                $0.colorHex = #bind(colorHex)
-                $0.modifiedAt = #bind(modifiedAt)
+                $0.name = name
+                $0.colorHex = colorHex
+                $0.modifiedAt = modifiedAt
             }
             .execute(db)
         }
