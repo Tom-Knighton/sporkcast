@@ -294,12 +294,17 @@ private struct MealplanAccessoryRectangularContent: View {
 
 private struct MealplanLockingContent<Content: View>: View {
     let hasProAccess: Bool
-    @ContentBuilder var content: Content
+    private let content: () -> Content
+
+    init(hasProAccess: Bool, @ContentBuilder content: @escaping () -> Content) {
+        self.hasProAccess = hasProAccess
+        self.content = content
+    }
 
     var body: some View {
         ZStack {
             if hasProAccess {
-                content
+                content()
             } else {
                 MealplanLockedView()
                     .padding(16)

@@ -2,6 +2,30 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+private enum BuildFlags {
+    private static let truthyValues: Set<String> = [
+        "1",
+        "true",
+        "yes",
+        "y"
+    ]
+
+    static let enablesIOS27SDK: Bool = {
+        guard let value = ProcessInfo.processInfo.environment["ENABLE_IOS_27_SDK"] else {
+            return false
+        }
+
+        return truthyValues.contains(value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+    }()
+
+    static var betaSDKSwiftSettings: [SwiftSetting] {
+        enablesIOS27SDK
+            ? [.define("HAS_IOS_27_SDK", .when(platforms: [.iOS]))]
+            : []
+    }
+}
 
 let package = Package(
     name: "Recipe",
@@ -19,11 +43,13 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Recipe",
-            dependencies: ["Design", "API", "Environment", "Persistence", "RecipeImporting"]
+            dependencies: ["Design", "API", "Environment", "Persistence", "RecipeImporting"],
+            swiftSettings: BuildFlags.betaSDKSwiftSettings
         ),
         .testTarget(
             name: "RecipeTests",
-            dependencies: ["Recipe", "Design", "Persistence", "Models", "RecipeImporting"]
+            dependencies: ["Recipe", "Design", "Persistence", "Models", "RecipeImporting"],
+            swiftSettings: BuildFlags.betaSDKSwiftSettings
         )
     ],
 )

@@ -2,6 +2,30 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+private enum BuildFlags {
+    private static let truthyValues: Set<String> = [
+        "1",
+        "true",
+        "yes",
+        "y"
+    ]
+
+    static let enablesIOS27SDK: Bool = {
+        guard let value = ProcessInfo.processInfo.environment["ENABLE_IOS_27_SDK"] else {
+            return false
+        }
+
+        return truthyValues.contains(value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+    }()
+
+    static var betaSDKSwiftSettings: [SwiftSetting] {
+        enablesIOS27SDK
+            ? [.define("HAS_IOS_27_SDK", .when(platforms: [.iOS]))]
+            : []
+    }
+}
 
 let package = Package(
     name: "Design",
@@ -19,8 +43,9 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Design",
-            dependencies: [.product(name: "NukeUI", package: "Nuke"), .product(name: "Nuke", package: "Nuke"), .product(name: "RevenueCatUI", package: "purchases-ios"), "API", "Environment", "Models", "Persistence"]
+            dependencies: [.product(name: "NukeUI", package: "Nuke"), .product(name: "Nuke", package: "Nuke"), .product(name: "RevenueCatUI", package: "purchases-ios"), "API", "Environment", "Models", "Persistence"],
+            swiftSettings: BuildFlags.betaSDKSwiftSettings
         ),
-        .testTarget(name: "DesignTests", dependencies: ["Design", "Environment", "Persistence", "Models"])
+        .testTarget(name: "DesignTests", dependencies: ["Design", "Environment", "Persistence", "Models"], swiftSettings: BuildFlags.betaSDKSwiftSettings)
     ]
 )
