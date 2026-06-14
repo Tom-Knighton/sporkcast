@@ -100,7 +100,7 @@ struct StepRow: View {
 
 extension StepRow {
     
-    @ViewBuilder
+    @ContentBuilder
     private func ingredientInStep(for ingredient: RecipeIngredient) -> some View {
         HStack(spacing: 2) {
             if let emoji = ingredient.emoji {

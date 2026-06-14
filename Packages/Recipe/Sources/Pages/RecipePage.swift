@@ -363,6 +363,7 @@ public struct RecipePage: View {
         .colorScheme(.dark)
         .background(recipeBackdrop)
         .toolbarTitleDisplayMode(.inline)
+        .scrollEdgeEffectStyle(showNavTitle ? .hard : .soft, for: .top)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.recipe.title)
@@ -372,6 +373,7 @@ public struct RecipePage: View {
                     .animation(.easeInOut(duration: 0.2), value: showNavTitle)
                     .opacity(showNavTitle ? 1 : 0)
             }
+            
             ToolbarItem {
                 Menu {
                     Button(action: {
@@ -452,6 +454,7 @@ public struct RecipePage: View {
                 .pickerStyle(.segmented)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .padding(.horizontal)
+                .padding(.bottom, 8)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: inlinePickerVisible)
@@ -527,7 +530,7 @@ public struct RecipePage: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func image() -> some View {
         
         if let data = viewModel.recipe.image.imageThumbnailData, let uiImage = UIImage(data: data) {
@@ -559,14 +562,14 @@ public struct RecipePage: View {
 }
 
 extension RecipePage {
-    @ViewBuilder
+    @ContentBuilder
     private func buildPickerLabel(title: String, systemImage: String? = nil) -> some View {
         Label(title, systemImage: systemImage ?? "")
             .font(.footnote)
             .labelIconToTitleSpacing(2)
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private var ingredientScaleToggleButton: some View {
         Button(action: { toggleIngredientScaleControls() }) {
             Label(ingredientScaleLabel, systemImage: "slider.horizontal.3")
@@ -574,7 +577,7 @@ extension RecipePage {
         .buttonStyle(.glass)
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private var ingredientUnitToggleButton: some View {
         Button(action: { toggleIngredientUnitControls() }) {
             Label(ingredientUnitLabel, systemImage: "scalemass")
@@ -1009,7 +1012,7 @@ extension RecipePage {
         shouldShowRecipeChat && recipeChatSeperateTab
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var recipeBackdrop: some View {
         image()
             .aspectRatio(contentMode: .fill)

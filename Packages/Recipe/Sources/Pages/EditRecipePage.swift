@@ -127,7 +127,7 @@ public struct EditRecipePage: View {
 
 extension EditRecipePage {
     
-    @ViewBuilder
+    @ContentBuilder
     private func basicDetailsSection() -> some View {
         Section {
             LabeledContent {
@@ -174,7 +174,7 @@ extension EditRecipePage {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func servesSection() -> some View {
         Section {
             LabeledContent {
@@ -196,7 +196,7 @@ extension EditRecipePage {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func timingsSection() -> some View {
         Section {
             DisclosureGroup {
@@ -264,7 +264,7 @@ extension EditRecipePage {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func organizationSection() -> some View {
         Section("Folders & Tags") {
             if organizationRepository.folders(in: homes.home?.id).isEmpty {
@@ -303,7 +303,7 @@ extension EditRecipePage {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func lockedOrganizationSection() -> some View {
         Section("Folders & Tags") {
             Button {
@@ -339,7 +339,7 @@ extension EditRecipePage {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func ingredientsSection() -> some View {
         Section("Ingredients") {
             ForEach($editingRecipe.ingredientSections) { $section in
@@ -377,7 +377,7 @@ extension EditRecipePage {
         .environment(\.editMode, .constant(.active))
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func stepSections() -> some View {
         Section("Steps") {
             ForEach($editingRecipe.stepSections) { $stepSection in
@@ -411,7 +411,7 @@ extension EditRecipePage {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func image() -> some View {
         if let item = selectedImageData ?? self.editingRecipe.image.imageThumbnailData, let uiImage = UIImage(data: item) {
             Image(uiImage: uiImage)

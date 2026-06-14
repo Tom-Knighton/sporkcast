@@ -17,7 +17,7 @@ public struct HorizontalScrollWithGradient<Content: View>: View {
     @State private var metrics = Metrics(offsetX: 0, contentWidth: 0, containerWidth: 0)
     @State private var hasMoreToScroll = false
     
-    public init(@ViewBuilder content: () -> Content) {
+    public init(@ContentBuilder content: () -> Content) {
         self.content = content()
     }
     

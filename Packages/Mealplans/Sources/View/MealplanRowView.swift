@@ -174,7 +174,7 @@ public struct MealplanRowView: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func rowView(for entry: MealplanEntry, _ idx: Int) -> some View {
         if let recipe = entry.recipe {
             let cached = recipeImages[recipe.id]
@@ -262,7 +262,7 @@ public struct MealplanRowView: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func mealPreview(for entry: MealplanEntry) -> some View {
         if let recipe = entry.recipe {
             RecipeCardView(
@@ -280,7 +280,7 @@ public struct MealplanRowView: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func selectorSheetView() -> some View {
         NavigationStack {
             RecipePickerPage() { selectedId in

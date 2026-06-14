@@ -185,7 +185,7 @@ struct TimerRow: View {
         .padding(.vertical, 6)
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func Controls(row: RecipeTimerRowModel) -> some View {
         switch row.presentation.mode {
         case .countdown:

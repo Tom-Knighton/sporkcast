@@ -66,7 +66,7 @@ public struct TimePicker: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func customView(_ title: String, _ range: ClosedRange<Int>, _ selection: Binding<Int>) -> some View {
         PickerViewWithoutIndicator(selection: selection) {
             ForEach(range, id: \.self) { value in
@@ -89,7 +89,7 @@ public struct TimePicker: View {
 /// Helpers
 struct PickerViewWithoutIndicator<Content: View, Selection: Hashable>: View {
     @Binding var selection: Selection
-    @ViewBuilder var content: Content
+    @ContentBuilder var content: Content
     @State private var isHidden: Bool = false
     var body: some View {
         Picker("", selection: $selection) {

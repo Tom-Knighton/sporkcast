@@ -111,7 +111,7 @@ public struct RecipeStepsView: View {
         let _ = try? await RecipeTimerStore.shared.scheduleRecipeStepTimer(for: vm.recipe.id, recipeStepId: recipeStep.id, timingId: timingId, seconds: Int(timer.timeInSeconds), title: "Timer", description: recipeStep.instructionText)
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func ingredientInStep(for ingredient: RecipeIngredient) -> some View {
         // TODO: Toggle to enable in settings
         let showCompletionTick = false && showMealplanShoppingTicks && completedIngredientIDs.contains(ingredient.id)
@@ -153,7 +153,7 @@ public struct RecipeStepsView: View {
 
 extension RecipeStepsView {
     
-    @ViewBuilder
+    @ContentBuilder
     private func ingredientsView(for step: RecipeStep) -> some View {
         let ingredientsForStep = step.linkedIngredients.compactMap { id in
             ingredientsById[id]

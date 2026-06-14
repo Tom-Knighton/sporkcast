@@ -114,7 +114,7 @@ struct RecipeImportPreviewEditSheet: View {
         candidate.recipe.image.imageThumbnailData != nil || candidate.recipe.image.imageUrl != nil
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var imagePreview: some View {
         #if canImport(UIKit)
         if let data = candidate.recipe.image.imageThumbnailData,

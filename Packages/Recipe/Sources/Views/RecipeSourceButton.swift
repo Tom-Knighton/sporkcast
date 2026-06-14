@@ -24,7 +24,7 @@ public struct RecipeSourceButton<RecipeImage: View>: View {
         sourceUrl: String,
         recipeTitle: String,
         color: Color = .clear,
-        @ViewBuilder image: () -> RecipeImage
+        @ContentBuilder image: () -> RecipeImage
     ) {
         self.sourceUrl = sourceUrl
         self.recipeTitle = recipeTitle
@@ -51,7 +51,7 @@ public struct RecipeSourceButton<RecipeImage: View>: View {
         .tint(color)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func sourceRow(title: String, subtitle: String, icon: String) -> some View {
         HStack {
             image

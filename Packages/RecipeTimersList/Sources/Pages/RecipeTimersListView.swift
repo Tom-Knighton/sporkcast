@@ -38,7 +38,7 @@ public struct RecipeTimersListView: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func timerRow(_ timer: RecipeTimerRowModel) -> some View {
         HStack {
             VStack(alignment: .leading) {
@@ -65,7 +65,7 @@ public struct RecipeTimersListView: View {
         .frame(maxWidth: .infinity)
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func timerDigits(_ timer: RecipeTimerRowModel) -> some View {
         switch timer.presentation.mode {
         case .countdown(let total, let previouslyElapsed, let startDate):
@@ -87,7 +87,7 @@ public struct RecipeTimersListView: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func Controls(row: RecipeTimerRowModel) -> some View {
         switch row.presentation.mode {
         case .countdown:

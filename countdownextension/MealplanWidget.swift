@@ -294,7 +294,7 @@ private struct MealplanAccessoryRectangularContent: View {
 
 private struct MealplanLockingContent<Content: View>: View {
     let hasProAccess: Bool
-    @ViewBuilder var content: Content
+    @ContentBuilder var content: Content
 
     var body: some View {
         ZStack {

@@ -126,14 +126,14 @@ struct AddRecipeSheet: View {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func optionStack(_ items: [AddRecipeAction]) -> some View {
         GlassEffectContainer(spacing: 10) {
             optionCards(items)
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func optionCards(_ items: [AddRecipeAction]) -> some View {
         VStack(spacing: 10) {
             ForEach(items) { action in

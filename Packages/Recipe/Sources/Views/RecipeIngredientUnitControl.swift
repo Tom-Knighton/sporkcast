@@ -45,7 +45,7 @@ public struct RecipeIngredientUnitControl: View {
 }
 
 private extension RecipeIngredientUnitControl {
-    @ViewBuilder
+    @ContentBuilder
     var container: some View {
         GlassEffectContainer(spacing: 0) {
             content
@@ -90,13 +90,13 @@ private extension RecipeIngredientUnitControl {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     var resetButton: some View {
         Button("Reset to Original", action: onReset)
             .buttonStyle(.glass)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     var doneButton: some View {
         Button("Done", action: onClose)
             .buttonStyle(.glassProminent)

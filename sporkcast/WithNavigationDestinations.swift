@@ -27,7 +27,7 @@ struct WithNavigationDestinations<Content: View>: View {
         pendingSharedImportURL: Binding<URL?> = .constant(nil),
         recipeOrganizationFeatureAccessFallback: Bool = false,
         socialRecipeImportFeatureAccessFallback: Bool = false,
-        @ViewBuilder content: @escaping () -> Content
+        @ContentBuilder content: @escaping () -> Content
     ) {
         self.namespace = namespace
         self._pendingSharedImportURL = pendingSharedImportURL
@@ -73,7 +73,7 @@ extension View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func sheetView(
         for sheet: AppSheet,
         alarmManager: RecipeTimerStore,

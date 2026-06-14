@@ -52,7 +52,7 @@ private extension RecipeIngredientScaleControl {
         abs(sliderValue - 1.0) < 0.0001
     }
 
-    @ViewBuilder
+    @ContentBuilder
     var container: some View {
         GlassEffectContainer(spacing: 0) {
             content
@@ -101,13 +101,13 @@ private extension RecipeIngredientScaleControl {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     var resetButton: some View {
         Button("Reset to 1x", action: onReset)
             .buttonStyle(.glass)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     var doneButton: some View {
         Button("Done", action: onClose)
             .buttonStyle(.glassProminent)

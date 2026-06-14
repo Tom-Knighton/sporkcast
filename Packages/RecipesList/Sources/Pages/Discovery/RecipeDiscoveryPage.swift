@@ -132,7 +132,7 @@ public struct RecipeDiscoveryPage: View {
         .sensoryFeedback(.error, trigger: importFailureFeedbackToken)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var feedContent: some View {
         switch feedState {
         case .loading:

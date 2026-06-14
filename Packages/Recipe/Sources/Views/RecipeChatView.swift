@@ -61,7 +61,7 @@ struct RecipeChatView: View {
         .fontDesign(.rounded)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var recipeMessages: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {

@@ -27,11 +27,11 @@ struct TabScaffold<Recipes: View, Discovery: View, Mealplans: View, ShoppingList
         isDiscoveryTabEnabled: Bool,
         isMealplanTabEnabled: Bool,
         isGroceriesTabEnabled: Bool,
-        @ViewBuilder recipes: @escaping () -> Recipes,
-        @ViewBuilder discovery: @escaping () -> Discovery,
-        @ViewBuilder mealplans: @escaping () -> Mealplans,
-        @ViewBuilder shoppingLists: @escaping () -> ShoppingLists,
-        @ViewBuilder settings: @escaping () -> Settings,
+        @ContentBuilder recipes: @escaping () -> Recipes,
+        @ContentBuilder discovery: @escaping () -> Discovery,
+        @ContentBuilder mealplans: @escaping () -> Mealplans,
+        @ContentBuilder shoppingLists: @escaping () -> ShoppingLists,
+        @ContentBuilder settings: @escaping () -> Settings,
     ) {
         self.recipes = recipes
         self.discovery = discovery

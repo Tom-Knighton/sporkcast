@@ -59,7 +59,7 @@ public struct HouseholdSettingsPage: View {
         })
     }
     
-    @ViewBuilder private func householdView(for household: Home) -> some View {
+    @ContentBuilder private func householdView(for household: Home) -> some View {
         List {
             Section("Name") {
                 TextField("Name:", text: $name)

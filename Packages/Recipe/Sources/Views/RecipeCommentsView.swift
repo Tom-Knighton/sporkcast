@@ -99,7 +99,7 @@ struct RecipeCommentsView: View {
 
 extension RecipeCommentsView {
     
-    @ViewBuilder
+    @ContentBuilder
     private func starView(_ rating: Double, max: Int = 5) -> some View {
         ZStack(alignment: .leading) {
             HStack(spacing: 4) {
@@ -124,7 +124,7 @@ extension RecipeCommentsView {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private func comment(_ comment: String, rating: Int?) -> some View {
         VStack(spacing: 8) {
             

@@ -107,7 +107,6 @@ struct AppContent: View {
         }
         .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())
-//        .tint(Color.primary)
         .environment(appRouter)
         .environment(\.networkClient, apiClient)
         .environment(alarmManager)
@@ -119,6 +118,7 @@ struct AppContent: View {
         .environment(\.flagKit, flagKit)
         .environment(\.proAccess, proAccess)
         .tabBarMinimizeBehavior(flagKit.isEnabled(.appCollapseTabBar, default: false) ? .onScrollDown : .automatic)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .onOpenURL(prefersInApp: true)
         .onOpenURL { incomingURL in
             handleIncomingURL(incomingURL)
@@ -234,7 +234,7 @@ struct AppContent: View {
         }
     }
     
-    @ViewBuilder
+    @ContentBuilder
     private var bottomAccessory: some View {
         if let first = alarmManager.timers.first {
             TimerAccessoryView(first: first, totalAlarms: alarmManager.timers.count)
@@ -258,7 +258,7 @@ struct AppContent: View {
         appSettings.settings.showDiscoveryPage && isRecipeDiscoverySeparateTabEnabled
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var recipesRoot: some View {
         if hasRecipeOrganizationFeatureAccess {
             RecipeFoldersPage(recipeOrganizationFeatureAccessFallback: cachedRecipeOrganizationFeatureAccess)
@@ -479,10 +479,10 @@ extension AppContent {
 }
 
 extension View {
-    @ViewBuilder
+    @ContentBuilder
     func tabViewBottomAccessoryCompat<Accessory: View>(
         isEnabled: Bool,
-        @ViewBuilder content: @escaping () -> Accessory
+        @ContentBuilder content: @escaping () -> Accessory
     ) -> some View {
         if #available(iOS 26.1, *) {
             self.tabViewBottomAccessory(isEnabled: isEnabled, content: content)

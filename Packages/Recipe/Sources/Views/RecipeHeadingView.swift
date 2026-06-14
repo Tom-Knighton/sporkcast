@@ -11,7 +11,7 @@ public struct RecipeHeadingView<Image: View>: View {
     
     private let image: Image
     
-    public init (@ViewBuilder imageContent: () -> Image) {
+    public init (@ContentBuilder imageContent: () -> Image) {
         self.image = imageContent()
     }
     

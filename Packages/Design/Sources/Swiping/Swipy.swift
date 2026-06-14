@@ -213,11 +213,11 @@ public extension EnvironmentValues {
  
  */
 public struct SwipeViewGroup<Content: View>: View {
-    @ViewBuilder var content: () -> Content
+    @ContentBuilder var content: () -> Content
     
     @State var selection: UUID?
     
-    public init(@ViewBuilder content: @escaping () -> Content) {
+    public init(@ContentBuilder content: @escaping () -> Content) {
         self.content = content
     }
     
@@ -265,8 +265,8 @@ public struct SwipeAction<Label: View, Background: View>: View {
     /// For use in `SwipeView`'s `leading` or `trailing` side.
     public init(
         action: @escaping () -> Void,
-        @ViewBuilder label: @escaping (Bool) -> Label,
-        @ViewBuilder background: @escaping (Bool) -> Background
+        @ContentBuilder label: @escaping (Bool) -> Label,
+        @ContentBuilder background: @escaping (Bool) -> Background
     ) {
         self.action = action
         self.label = label
@@ -338,9 +338,9 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
     /// Options for configuring the swipe view.
     public var options = SwipeOptions()
     
-    @ViewBuilder public var label: () -> Label
-    @ViewBuilder public var leadingActions: (SwipeContext) -> LeadingActions
-    @ViewBuilder public var trailingActions: (SwipeContext) -> TrailingActions
+    @ContentBuilder public var label: () -> Label
+    @ContentBuilder public var leadingActions: (SwipeContext) -> LeadingActions
+    @ContentBuilder public var trailingActions: (SwipeContext) -> TrailingActions
     
     // MARK: - Environment
     
@@ -395,9 +395,9 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
     
     /// A view for adding swipe actions.
     public init(
-        @ViewBuilder label: @escaping () -> Label,
-        @ViewBuilder leadingActions: @escaping (SwipeContext) -> LeadingActions,
-        @ViewBuilder trailingActions: @escaping (SwipeContext) -> TrailingActions
+        @ContentBuilder label: @escaping () -> Label,
+        @ContentBuilder leadingActions: @escaping (SwipeContext) -> LeadingActions,
+        @ContentBuilder trailingActions: @escaping (SwipeContext) -> TrailingActions
     ) {
         self.label = label
         self.leadingActions = leadingActions
@@ -525,11 +525,11 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
 
 extension SwipeView {
     /// The swipe actions.
-    @ViewBuilder func actionsView<Actions: View>(
+    @ContentBuilder func actionsView<Actions: View>(
         side: SwipeSide,
         state: Binding<SwipeState?>,
         numberOfActions: Binding<Int>,
-        @ViewBuilder actions: (SwipeContext) -> Actions
+        @ContentBuilder actions: (SwipeContext) -> Actions
     ) -> some View {
         let draggedLength = offset * Double(side.signWhenDragged) /// Flip the offset if necessary.
         let visibleWidth: Double = {
@@ -606,7 +606,7 @@ struct SwipeActionsLayout: _VariadicView_UnaryViewRoot {
     var state: SwipeState?
     var visibleWidth: Double
     
-    @ViewBuilder
+    @ContentBuilder
     public func body(children: _VariadicView.Children) -> some View {
         /// The ID of the edge action.
         let edgeID: AnyHashable? = {
@@ -1045,8 +1045,8 @@ public extension SwipeAction where Label == VStack<TupleView<(ModifiedContent<Im
 /// A `SwipeView` with leading actions only.
 public extension SwipeView where TrailingActions == EmptyView {
     init(
-        @ViewBuilder label: @escaping () -> Label,
-        @ViewBuilder leadingActions: @escaping (SwipeContext) -> LeadingActions
+        @ContentBuilder label: @escaping () -> Label,
+        @ContentBuilder leadingActions: @escaping (SwipeContext) -> LeadingActions
     ) {
         self.init(label: label, leadingActions: leadingActions) { _ in }
     }
@@ -1055,8 +1055,8 @@ public extension SwipeView where TrailingActions == EmptyView {
 /// A `SwipeView` with trailing actions only.
 public extension SwipeView where LeadingActions == EmptyView {
     init(
-        @ViewBuilder label: @escaping () -> Label,
-        @ViewBuilder trailingActions: @escaping (SwipeContext) -> TrailingActions
+        @ContentBuilder label: @escaping () -> Label,
+        @ContentBuilder trailingActions: @escaping (SwipeContext) -> TrailingActions
     ) {
         self.init(label: label, leadingActions: { _ in }, trailingActions: trailingActions)
     }
@@ -1064,7 +1064,7 @@ public extension SwipeView where LeadingActions == EmptyView {
 
 /// A `SwipeView` with no actions.
 public extension SwipeView where LeadingActions == EmptyView, TrailingActions == EmptyView {
-    init(@ViewBuilder label: @escaping () -> Label) {
+    init(@ContentBuilder label: @escaping () -> Label) {
         self.init(label: label) { _ in } trailingActions: { _ in }
     }
 }

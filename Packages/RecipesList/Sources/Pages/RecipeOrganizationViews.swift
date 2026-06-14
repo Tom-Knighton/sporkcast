@@ -633,7 +633,7 @@ private struct RecipeFolderManageTreeRow: View {
         .swipeActions { swipeActions }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var actions: some View {
         Button("Add Subfolder", systemImage: "folder.badge.plus") {
             onCreateChild(node.summary.folder)
@@ -644,7 +644,7 @@ private struct RecipeFolderManageTreeRow: View {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var swipeActions: some View {
         Button("Delete", systemImage: "trash", role: .destructive) {
             onDelete(node.summary.folder)
