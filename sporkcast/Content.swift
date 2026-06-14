@@ -378,13 +378,13 @@ extension AppContent {
     }
 
     private func handleIncomingURL(_ incomingURL: URL) {
-        guard incomingURL.scheme?.lowercased() == "sporkcast",
-              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" || incomingURL.host == "join-home" else {
+        if isHomeInviteURL(incomingURL) {
+            routeToHomeInvite(url: incomingURL)
             return
         }
 
-        if incomingURL.host == "join-home" {
-            routeToHomeInvite(url: incomingURL)
+        guard incomingURL.scheme?.lowercased() == "sporkcast",
+              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" else {
             return
         }
 
@@ -407,14 +407,27 @@ extension AppContent {
         routeToRecipeImport(url: sharedURL)
     }
 
+    private func isHomeInviteURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https",
+              url.host?.lowercased() == SupabaseHomeInviteLink.host,
+              pathComponents(for: url).first == "join" else {
+            return false
+        }
+
+        return pathComponents(for: url).count == 2
+    }
+
     private func routeToHomeInvite(url: URL) {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+        guard let token = pathComponents(for: url).dropFirst().first,
               !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
 
         households.pendingSupabaseInvite = SupabaseHomeInviteLink(token: token)
+    }
+
+    private func pathComponents(for url: URL) -> [String] {
+        url.pathComponents.filter { $0 != "/" }
     }
 
     private func routeToRecipeImport(url: URL) {

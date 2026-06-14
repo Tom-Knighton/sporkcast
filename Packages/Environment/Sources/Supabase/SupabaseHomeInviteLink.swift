@@ -8,6 +8,8 @@
 import Foundation
 
 public struct SupabaseHomeInviteLink: Identifiable, Sendable, Equatable {
+    public static let host = "sporkast.tom-knighton.com"
+
     public let token: String
 
     public var id: String { token }
@@ -18,11 +20,9 @@ public struct SupabaseHomeInviteLink: Identifiable, Sendable, Equatable {
 
     public var url: URL {
         var components = URLComponents()
-        components.scheme = "sporkcast"
-        components.host = "join-home"
-        components.queryItems = [
-            URLQueryItem(name: "token", value: token)
-        ]
-        return components.url ?? URL(string: "sporkcast://join-home?token=\(token)")!
+        components.scheme = "https"
+        components.host = Self.host
+        components.path = "/join/\(token)"
+        return components.url ?? URL(string: "https://\(Self.host)/join/\(token)")!
     }
 }

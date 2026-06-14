@@ -266,7 +266,7 @@ public final class MockHouseholdService: HouseholdServiceProtocol {
     }
     
     public func createSupabaseInviteLink() async throws -> URL? {
-        URL(string: "sporkcast://join-home?token=mock-token")
+        URL(string: "https://sporkast.tom-knighton.com/join/mock-token")
     }
 
     public func acceptSupabaseInvite(token: String) async throws -> UUID? {

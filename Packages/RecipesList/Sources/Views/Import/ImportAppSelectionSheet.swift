@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Environment
 
 struct ImportAppSelectionSheet: View {
     let onSelect: (ImportAppSource) -> Void

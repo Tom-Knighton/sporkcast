@@ -132,6 +132,16 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		E22D71052FDDF504005BF420 /* Exceptions for "sporkcast" folder in "Copy Bundle Resources" phase from "sporkcast" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = E2BBA8F72E59224700846D3E /* Resources */;
+			membershipExceptions = (
+				sporkcast.entitlements,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E23AC6A92E88A16E00A1CC8E /* countdownextension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -161,6 +171,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				E2DEAAA12E7F633F00EB8B01 /* Exceptions for "sporkcast" folder in "sporkcast" target */,
+				E22D71052FDDF504005BF420 /* Exceptions for "sporkcast" folder in "Copy Bundle Resources" phase from "sporkcast" target */,
 			);
 			path = sporkcast;
 			sourceTree = "<group>";
