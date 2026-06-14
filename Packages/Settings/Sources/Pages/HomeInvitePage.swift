@@ -19,7 +19,7 @@ public struct HomeInvitePage: View {
     let title: String
     let ownerName: String
     let ownerEmail: String?
-    var supabaseToken: String?
+    var inviteToken: String?
     
     @State private var state: JoinState = .start
     @State private var showError: Bool = false
@@ -31,7 +31,7 @@ public struct HomeInvitePage: View {
     }
 
     public init(supabaseToken: String) {
-        self.supabaseToken = supabaseToken
+        self.inviteToken = supabaseToken
         self.title = "Shared Home"
         self.ownerName = "Your friend"
         self.ownerEmail = nil
@@ -48,7 +48,7 @@ public struct HomeInvitePage: View {
         self.ownerEmail = demoEmail
         self.ownerName = demoOwnerName
         
-        self.supabaseToken = nil
+        self.inviteToken = nil
     }
     
     public var body: some View {
@@ -119,7 +119,7 @@ public struct HomeInvitePage: View {
                 self.showError = true
             }
         }
-        .alert("Error", isPresented: $showError) {
+        .alert("Couldn't Join Home", isPresented: $showError) {
             Button(role: .close) {}
         } message: {
             Text("Something went wrong joining this home. Please try again or ask for a new invite.")
@@ -147,7 +147,7 @@ public struct HomeInvitePage: View {
         Task {
             self.state = .pending
 
-            if let supabaseToken {
+            if let inviteToken {
                 let existingHomeId = homes.home?.id
                 if !overrideInHome && homes.home != nil {
                     self.showInHomeError = true
@@ -156,7 +156,7 @@ public struct HomeInvitePage: View {
                 }
 
                 do {
-                    let joinedHomeId = try await homes.acceptSupabaseInvite(token: supabaseToken)
+                    let joinedHomeId = try await homes.acceptSupabaseInvite(token: inviteToken)
                     if joinedHomeId == existingHomeId {
                         self.showSameHomeError = true
                         self.state = .start
@@ -164,7 +164,7 @@ public struct HomeInvitePage: View {
                     }
                     self.state = .success
                 } catch {
-                    print("Supabase invite accept failed \(error.localizedDescription)")
+                    print("Home invite accept failed \(error.localizedDescription)")
                     self.state = .fail
                 }
                 return

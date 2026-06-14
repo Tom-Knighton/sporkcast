@@ -1,6 +1,8 @@
 package.json
 package-lock.json
-/supabase/
+/supabase/*
+!/supabase/migrations/
+!/supabase/migrations/*
 node_modules/
 *.resolved
 

@@ -81,6 +81,7 @@ public actor SupabaseSyncService {
         guard await bootstrapAnonymousSessionIfNeeded() else { return }
         await drainOutbox()
         await backfillLocalRecipeImages()
+        await restoreHomeMembershipFromICloudIfNeeded()
         await pullHomesAndRecipes(startRealtime: true)
     }
 
@@ -209,6 +210,10 @@ public actor SupabaseSyncService {
                 }
             }
 
+            for home in homes {
+                await registerHomeRestoreCredential(homeId: home.id)
+            }
+
             await pullScope(homeId: nil)
 
             for home in homes {
@@ -231,6 +236,11 @@ public actor SupabaseSyncService {
         }
 
         await drainOutbox()
+        await restoreHomeMembershipFromICloudIfNeeded()
+        if await shouldPullHomesAfterRestoreAttempt() {
+            await pullHomesAndRecipes(startRealtime: true)
+            return
+        }
         await startRealtimeForCurrentHomes()
     }
 
@@ -276,6 +286,7 @@ public actor SupabaseSyncService {
 
     public func syncHomeImmediately(_ home: DBHome) async throws {
         try await upsert(home)
+        await registerHomeRestoreCredential(homeId: home.id)
     }
 
     public func homeResidents(homeId: UUID) async throws -> [HomeResident] {
@@ -325,6 +336,7 @@ public actor SupabaseSyncService {
                 .execute(db)
         }
 
+        await registerHomeRestoreCredential(homeId: homeId)
         await pullScope(homeId: homeId)
         await startRealtimeForCurrentHomes()
         return homeId
@@ -333,6 +345,10 @@ public actor SupabaseSyncService {
     public func leaveHome(homeId: UUID, disbandIfOwner: Bool) async throws {
         guard await bootstrapAnonymousSessionIfNeeded() else { throw SupabaseSyncError.authUnavailable }
 
+        if disbandIfOwner {
+            await deleteRecipeImageStorageForHome(homeId)
+        }
+
         try await client
             .rpc(
                 "leave_home",
@@ -340,6 +356,7 @@ public actor SupabaseSyncService {
             )
             .execute()
 
+        HomeRestoreCredentialStore.clear(homeId: homeId)
         await stopRealtime()
         await startRealtimeForCurrentHomes()
     }
@@ -356,6 +373,70 @@ public actor SupabaseSyncService {
                 ]
             )
             .execute()
+    }
+
+    private func restoreHomeMembershipFromICloudIfNeeded() async {
+        let hasLocalHome = ((try? await database.read { db in
+            try DBHome.fetchCount(db)
+        }) ?? 0) > 0
+
+        guard !hasLocalHome else {
+            RecipeDebugDiagnostics.logAppEvent("supabase iCloud home restore skipped reason=localHomeExists")
+            return
+        }
+
+        guard let credential = HomeRestoreCredentialStore.credential() else {
+            RecipeDebugDiagnostics.logAppEvent("supabase iCloud home restore skipped reason=noCredential")
+            return
+        }
+
+        do {
+            let didRestore: Bool = try await client
+                .rpc(
+                    "restore_home_membership",
+                    params: SupabaseRestoreHomeMembershipParams(
+                        homeId: credential.homeId,
+                        restoreToken: credential.token
+                    )
+                )
+                .execute()
+                .value
+
+            if didRestore {
+                RecipeDebugDiagnostics.logAppEvent("supabase restored home membership from iCloud homeId=\(credential.homeId)")
+            } else {
+                HomeRestoreCredentialStore.clear(homeId: credential.homeId)
+                RecipeDebugDiagnostics.logAppEvent("supabase iCloud home restore rejected homeId=\(credential.homeId)")
+            }
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase iCloud home restore failed homeId=\(credential.homeId) error=\(error)")
+        }
+    }
+
+    private func shouldPullHomesAfterRestoreAttempt() async -> Bool {
+        let hasLocalHome = ((try? await database.read { db in
+            try DBHome.fetchCount(db)
+        }) ?? 0) > 0
+
+        return !hasLocalHome && HomeRestoreCredentialStore.credential() != nil
+    }
+
+    private func registerHomeRestoreCredential(homeId: UUID) async {
+        let credential = HomeRestoreCredentialStore.credential(for: homeId)
+        do {
+            try await client
+                .rpc(
+                    "register_home_restore_credential",
+                    params: SupabaseRegisterHomeRestoreCredentialParams(
+                        homeId: credential.homeId,
+                        restoreToken: credential.token
+                    )
+                )
+                .execute()
+            RecipeDebugDiagnostics.logAppEvent("supabase registered iCloud home restore credential homeId=\(homeId)")
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase register iCloud home restore credential failed homeId=\(homeId) error=\(error)")
+        }
     }
 
     public func deleteRecipe(_ recipeId: UUID, homeId: UUID?) async {
@@ -529,6 +610,9 @@ public actor SupabaseSyncService {
     }
 
     private func softDeleteRecipe(_ recipeId: UUID) async throws {
+        await deleteRecipeImageStorage(recipeIds: [recipeId])
+        try await deleteRecipeImageRows(recipeIds: [recipeId])
+
         try await client
             .from("recipes")
             .update(["deleted_at": ISO8601DateFormatter().string(from: Date())])
@@ -704,7 +788,7 @@ public actor SupabaseSyncService {
 
     private func recipeImageRowForUpload(_ image: DBRecipeImage) async -> SupabaseRecipeImageRow {
         guard let imageData = image.imageData, !imageData.isEmpty else {
-            return SupabaseRecipeImageRow(image)
+            return await recipeImageRowPreservingRemoteStoragePath(image)
         }
 
         let path = recipeImageStoragePath(for: image.recipeId)
@@ -721,6 +805,26 @@ public actor SupabaseSyncService {
             RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage upload failed recipeId=\(image.recipeId) path=\(path) error=\(error)")
             return SupabaseRecipeImageRow(image)
         }
+    }
+
+    private func recipeImageRowPreservingRemoteStoragePath(_ image: DBRecipeImage) async -> SupabaseRecipeImageRow {
+        do {
+            let rows: [SupabaseRecipeImageRow] = try await client
+                .from("recipe_images")
+                .select()
+                .eq("recipe_id", value: image.recipeId.uuidString)
+                .limit(1)
+                .execute()
+                .value
+
+            if let existing = rows.first {
+                return SupabaseRecipeImageRow(image, storagePath: existing.storagePath)
+            }
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage path lookup failed recipeId=\(image.recipeId) error=\(error)")
+        }
+
+        return SupabaseRecipeImageRow(image)
     }
 
     private nonisolated func recipeImageStoragePath(for recipeId: UUID) -> String {
@@ -744,7 +848,71 @@ public actor SupabaseSyncService {
             .value
 
         let staleRecipeIds = Set(remoteRecipes.map(\.id)).subtracting(localRecipeIds)
+        await deleteRecipeImageStorage(recipeIds: staleRecipeIds)
+        try await deleteRecipeImageRows(recipeIds: staleRecipeIds)
         try await softDeleteRemoteRows(table: "recipes", ids: staleRecipeIds)
+    }
+
+    private func deleteRecipeImageStorageForHome(_ homeId: UUID) async {
+        do {
+            let recipes: [SupabaseRecipeRow] = try await client
+                .from("recipes")
+                .select()
+                .eq("home_id", value: homeId.uuidString)
+                .execute()
+                .value
+
+            await deleteRecipeImageStorage(recipeIds: Set(recipes.map(\.id)))
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage home lookup failed homeId=\(homeId) error=\(error)")
+        }
+    }
+
+    private func deleteRecipeImageStorage(recipeIds: Set<UUID>) async {
+        guard !recipeIds.isEmpty else { return }
+
+        do {
+            let paths = try await recipeImageStoragePaths(recipeIds: recipeIds)
+            guard !paths.isEmpty else { return }
+
+            for chunk in paths.chunked(into: detailLookupChunkSize) {
+                _ = try await client.storage
+                    .from(recipeImageBucket)
+                    .remove(paths: chunk)
+            }
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage removed count=\(paths.count)")
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("supabase recipe image storage remove failed recipeIds=\(recipeIds.map(\.uuidString).sorted().joined(separator: ",")) error=\(error)")
+        }
+    }
+
+    private func recipeImageStoragePaths(recipeIds: Set<UUID>) async throws -> [String] {
+        guard !recipeIds.isEmpty else { return [] }
+
+        var images: [SupabaseRecipeImageRow] = []
+        for chunk in recipeIds.map(\.uuidString).chunked(into: detailLookupChunkSize) {
+            let rows: [SupabaseRecipeImageRow] = try await client
+                .from("recipe_images")
+                .select()
+                .in("recipe_id", values: chunk)
+                .execute()
+                .value
+            images.append(contentsOf: rows)
+        }
+
+        return Array(Set(images.compactMap(\.storagePath))).sorted()
+    }
+
+    private func deleteRecipeImageRows(recipeIds: Set<UUID>) async throws {
+        guard !recipeIds.isEmpty else { return }
+
+        for chunk in recipeIds.map(\.uuidString).chunked(into: detailLookupChunkSize) {
+            try await client
+                .from("recipe_images")
+                .delete()
+                .in("recipe_id", values: chunk)
+                .execute()
+        }
     }
 
     private func pushRecipe(recipeId: UUID) async throws {

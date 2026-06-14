@@ -969,7 +969,7 @@ extension RecipePage {
     private func unavailableFileReimportMessage(for vendor: RecipeImportVendor) -> String {
         switch vendor {
         case .pestle:
-            return "This recipe came from a Pestle export file. Automatic re-import is not possible without that file, and some video-based Pestle recipes do not expose a stable source URL."
+            return "This recipe came from a Pestle export file. Re-import it by selecting that export file again."
         case .sporkcast:
             return "This recipe came from a Sporkast export file. Re-import it by selecting that export file again."
         case .crouton:

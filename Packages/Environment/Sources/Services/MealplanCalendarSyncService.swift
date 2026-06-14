@@ -149,7 +149,7 @@ public actor MealplanCalendarSyncService: MealplanCalendarSyncing {
                     lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
                 }
         } catch {
-            currentSnapshot.lastError = "Failed to load calendars: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't load your calendars. Please try again."
             publishSnapshot()
             return []
         }
@@ -199,7 +199,7 @@ public actor MealplanCalendarSyncService: MealplanCalendarSyncing {
         } catch {
             currentSnapshot.isEnabled = false
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Failed to connect Calendar: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't connect Calendar. Please try again."
             publishSnapshot()
         }
     }
@@ -256,7 +256,7 @@ public actor MealplanCalendarSyncService: MealplanCalendarSyncing {
         } catch {
             currentSnapshot.isEnabled = false
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Failed to connect Calendar: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't connect Calendar. Please try again."
             publishSnapshot()
         }
     }
@@ -268,7 +268,7 @@ public actor MealplanCalendarSyncService: MealplanCalendarSyncing {
         do {
             try await removeLinkedEvents(using: loadSettings())
         } catch {
-            currentSnapshot.lastError = "Failed to remove synced Calendar events: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't remove synced Calendar events. Please try again."
         }
 
         await updateSettings { settings in
@@ -415,7 +415,7 @@ private extension MealplanCalendarSyncService {
             currentSnapshot.lastSyncAt = Date()
         } catch {
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Mealplan calendar sync failed: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't sync your mealplan to Calendar. Please try again."
         }
     }
 

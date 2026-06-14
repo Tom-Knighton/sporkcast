@@ -110,7 +110,7 @@ public struct EditRecipePage: View {
         .onChange(of: self.errorMessage) { _, newValue in
             self.showErrorMessage = newValue != nil
         }
-        .alert("Error", isPresented: $showErrorMessage) {
+        .alert("Couldn't Save Recipe", isPresented: $showErrorMessage) {
             Button(role: .confirm) { self.errorMessage = nil }
         } message: {
             Text(errorMessage ?? "Something went wrong")

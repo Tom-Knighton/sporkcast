@@ -150,7 +150,7 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
                     lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
                 }
         } catch {
-            currentSnapshot.lastError = "Failed to load Reminders lists: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't load your Reminders lists. Please try again."
             publishSnapshot()
             return []
         }
@@ -192,7 +192,7 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
         } catch {
             currentSnapshot.isEnabled = false
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Failed to connect Reminders: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't connect Reminders. Please try again."
             publishSnapshot()
         }
     }
@@ -240,7 +240,7 @@ public actor ShoppingListRemindersSyncService: ShoppingListRemindersSyncing {
         } catch {
             currentSnapshot.isEnabled = false
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Failed to connect Reminders: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't connect Reminders. Please try again."
             publishSnapshot()
         }
     }
@@ -415,7 +415,7 @@ private extension ShoppingListRemindersSyncService {
             currentSnapshot.needsGroceriesSetupPrompt = settings.remindersNeedsGroceriesSetupPrompt
         } catch {
             currentSnapshot.connectionState = .failed
-            currentSnapshot.lastError = "Shopping list sync failed: \(error.localizedDescription)"
+            currentSnapshot.lastError = "We couldn't sync your shopping list. Please try again."
         }
     }
 

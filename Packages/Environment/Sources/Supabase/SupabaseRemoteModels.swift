@@ -84,6 +84,26 @@ struct SupabaseLeaveHomeParams: Codable, Sendable {
     }
 }
 
+struct SupabaseRegisterHomeRestoreCredentialParams: Codable, Sendable {
+    let homeId: UUID
+    let restoreToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case homeId = "p_home_id"
+        case restoreToken = "p_restore_token"
+    }
+}
+
+struct SupabaseRestoreHomeMembershipParams: Codable, Sendable {
+    let homeId: UUID
+    let restoreToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case homeId = "p_home_id"
+        case restoreToken = "p_restore_token"
+    }
+}
+
 struct SupabaseRecipeRow: Codable, Sendable, Identifiable, SupabaseOriginTracked {
     let id: UUID
     var homeId: UUID?

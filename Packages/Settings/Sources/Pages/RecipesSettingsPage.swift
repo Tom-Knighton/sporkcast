@@ -70,7 +70,7 @@ struct RecipesSettingsPage: View {
             } header: {
                 Text("Danger Zone")
             } footer: {
-                Text("This removes every recipe and its recipe-linked data from this device and Supabase sync.")
+                Text("This removes every recipe and related recipe data from this device and any shared homes.")
             }
         }
         .listStyle(.insetGrouped)
@@ -111,7 +111,7 @@ struct RecipesSettingsPage: View {
         .alert("Recipes Action Failed", isPresented: $isErrorPresented, actions: {
             Button("OK", role: .cancel) {}
         }, message: {
-            Text(errorMessage ?? "An unknown error occurred.")
+            Text(errorMessage ?? "We couldn't finish that recipe action. Please try again.")
         })
     }
 
@@ -138,7 +138,7 @@ struct RecipesSettingsPage: View {
                 cleanupURLs = exportPackage.cleanupURLs
                 isShareSheetPresented = true
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                errorMessage = exportErrorMessage(for: error)
                 isErrorPresented = true
             }
         }
@@ -163,10 +163,31 @@ struct RecipesSettingsPage: View {
             do {
                 try await repository.deleteAllRecipes()
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                errorMessage = CustomerFacingErrorMessage.message(
+                    for: error,
+                    fallback: "We couldn't delete your recipes right now. Please try again."
+                )
                 isErrorPresented = true
             }
         }
+    }
+
+    private func exportErrorMessage(for error: Error) -> String {
+        if let exportError = error as? RecipeExportError {
+            switch exportError {
+            case .noRecipesAvailable:
+                return "No recipes are available to export."
+            case .failedToEncodeRecipe:
+                return "We couldn't prepare one of your recipes for export. Please try again."
+            case .failedToCreateArchive:
+                return "We couldn't create the export file. Please try again."
+            }
+        }
+
+        return CustomerFacingErrorMessage.message(
+            for: error,
+            fallback: "We couldn't export your recipes right now. Please try again."
+        )
     }
 }
 

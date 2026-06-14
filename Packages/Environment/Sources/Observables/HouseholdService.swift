@@ -119,7 +119,10 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             errorMessage = nil
             return Home(from: newDBHome)
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't create your home right now. Please try again."
+            )
             return nil
         }
     }
@@ -147,7 +150,10 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             return true
         } catch {
             print(error.localizedDescription)
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't leave this home right now. Please try again."
+            )
             return false
         }
         
@@ -163,7 +169,10 @@ public final class HouseholdService: HouseholdServiceProtocol, @unchecked Sendab
             
             errorMessage = nil
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't rename this home right now. Please try again."
+            )
         }
     }
 

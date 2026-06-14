@@ -236,7 +236,10 @@ struct RecipeOrganizationAssignmentSheet: View {
     }
 
     private func present(_ error: Error) {
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        errorMessage = CustomerFacingErrorMessage.message(
+            for: error,
+            fallback: "We couldn't update this recipe's folders and tags. Please try again."
+        )
         isErrorPresented = true
     }
 }
@@ -458,7 +461,10 @@ public struct RecipeOrganizationManagePage: View {
     }
 
     private func present(_ error: Error) {
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        errorMessage = CustomerFacingErrorMessage.message(
+            for: error,
+            fallback: "We couldn't update your folders and tags. Please try again."
+        )
         isErrorPresented = true
     }
 }

@@ -84,10 +84,10 @@ public struct SettingsPage: View {
         .sheet(isPresented: $isShareSheetPresented, onDismiss: cleanupSharedArtifacts) {
             ShareSheet(items: shareItems)
         }
-        .alert("Error", isPresented: $isErrorPresented, actions: {
+        .alert("Settings Unavailable", isPresented: $isErrorPresented, actions: {
             Button("OK", role: .cancel) {}
         }, message: {
-            Text(errorMessage ?? "An unknown error occurred.")
+            Text(errorMessage ?? "We couldn't finish that settings action. Please try again.")
         })
     }
 
@@ -173,7 +173,10 @@ public struct SettingsPage: View {
     }
 
     private func presentError(_ error: Error) {
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        errorMessage = CustomerFacingErrorMessage.message(
+            for: error,
+            fallback: "We couldn't finish that settings action. Please try again."
+        )
         isErrorPresented = true
     }
 

@@ -59,7 +59,7 @@ struct OCRImportSheet: View {
                                 .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
                         )
 
-                    Text("Only extracted text is used for API fallback; raw images are not uploaded.")
+                    Text("Only extracted text is used for import; raw images are not uploaded.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

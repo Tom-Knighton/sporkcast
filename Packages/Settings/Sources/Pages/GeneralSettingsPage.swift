@@ -58,7 +58,7 @@ struct GeneralSettingsPage: View {
             if flagKit.isEnabled(.recipeDiagnosticsExport, default: false) {
                 Section("Diagnostics") {
                     Button(action: exportRecipeDebugLogs) {
-                        Label("Export Recipe Debug Logs", systemImage: "doc.text")
+                        Label("Export Support Logs", systemImage: "doc.text")
                     }
                 }
             }

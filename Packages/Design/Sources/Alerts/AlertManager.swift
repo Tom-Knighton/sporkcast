@@ -15,8 +15,8 @@ public final class AlertManager {
     public static let shared = AlertManager()
         
     public var isShowingAlert: Bool = false
-    public var title: String = "Error"
-    public var message: String? = "An unknown error occurred"
+    public var title: String = "Something Went Wrong"
+    public var message: String? = "Please try again."
     
     public init() {}
     

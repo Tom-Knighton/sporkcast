@@ -116,7 +116,10 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
             errorMessage = nil
         } catch {
             guard !isUserCancelled(error) else { return }
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't complete your purchase right now. Please try again."
+            )
         }
     }
 
@@ -130,7 +133,10 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
             apply(customerInfo: customerInfo)
             errorMessage = nil
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't restore your purchases right now. Please try again."
+            )
         }
     }
 
@@ -140,7 +146,10 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
             apply(customerInfo: customerInfo)
             errorMessage = nil
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't check your subscription right now. Please try again."
+            )
         }
     }
 
@@ -161,7 +170,10 @@ public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendab
                 .sorted { $0.duration.sortIndex < $1.duration.sortIndex }
             errorMessage = nil
         } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorMessage = CustomerFacingErrorMessage.message(
+                for: error,
+                fallback: "We couldn't load plans right now. Please try again."
+            )
         }
     }
 

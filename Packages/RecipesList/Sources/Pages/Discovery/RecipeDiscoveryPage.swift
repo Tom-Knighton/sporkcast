@@ -397,14 +397,10 @@ private extension RecipeDiscoveryPage {
 
 private extension RecipeDiscoveryPage {
     func mapDiscoveryError(_ error: Error) -> String {
-        if let localized = error as? LocalizedError,
-           let description = localized.errorDescription,
-           !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return description
-        }
-
-        let description = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        return description.isEmpty ? "Discovery is unavailable right now." : description
+        CustomerFacingErrorMessage.message(
+            for: error,
+            fallback: "Discovery is unavailable right now. Please try again."
+        )
     }
 
     func mapImportError(_ error: Error) -> String {
