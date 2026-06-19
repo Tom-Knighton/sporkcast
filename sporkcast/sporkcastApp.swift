@@ -29,10 +29,15 @@ struct SporkcastApp: App {
             })
             $0.defaultDatabase = appDatabase
         }
+        
+        PlannedMealSpotlightIndexer.shared.start(database: appDatabase)
+        
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")
         Task {
             await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
+            await PlannedMealSpotlightIndexer.shared.reindexAll()
+            
             await SupabaseSyncService.shared.start()
         }
     }

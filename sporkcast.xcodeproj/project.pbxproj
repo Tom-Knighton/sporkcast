@@ -912,6 +912,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Show local weather in meal planning and improve recipe discovery suggestions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
@@ -959,6 +960,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Show local weather in meal planning and improve recipe discovery suggestions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";

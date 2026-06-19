@@ -28,7 +28,7 @@ struct AppContent: View {
 
     @Namespace private var appRouterNamespace
     
-    @State private var appRouter: AppRouter
+    @State private var appRouter = AppRouter.shared
     @State private var alarmManager = RecipeTimerStore.shared
     @State private var alertManager = AlertManager.shared
     @State private var households = HouseholdService.shared
@@ -53,7 +53,6 @@ struct AppContent: View {
     @Environment(\.mealplanCalendarSync) private var mealplanCalendarSync
     
     public init() {
-        self._appRouter = State(wrappedValue: AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab))
         self.flagKit = .init(mobileKey: "mob-0e75d9dd-fb2e-4080-b627-83dfaf403079", subscriptionTier: "free")
         self._cachedRecipeOrganizationFeatureAccess = State(
             initialValue: Self.cachedRecipeOrganizationFeatureAccess

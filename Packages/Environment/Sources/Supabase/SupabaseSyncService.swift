@@ -2390,6 +2390,12 @@ public actor SupabaseSyncService {
                 try upsertIfChanged(row.localRow(), in: db)
             }
         }
+
+        if row.deletedAt != nil {
+            MealplanSpotlightEvents.requestDelete(ids: [row.id])
+        } else {
+            MealplanSpotlightEvents.requestIndex(ids: [row.id])
+        }
     }
 
     private func deleteMealplanEntryLocally(_ id: UUID) async throws {
@@ -2397,6 +2403,7 @@ public actor SupabaseSyncService {
 
             try DBMealplanEntry.find(id).delete().execute(db)
         }
+        MealplanSpotlightEvents.requestDelete(ids: [id])
     }
 
     private func apply(_ row: SupabaseShoppingListRow) async throws {

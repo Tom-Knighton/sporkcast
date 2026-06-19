@@ -61,6 +61,14 @@ public enum AppSheet: SheetType {
 
 public typealias AppRouter = Router<AppTab, AppDestination, AppSheet>
 
+public extension AppRouter {
+    func selectTab(_ tab: AppTab) {
+        self.selectedTab = tab
+    }
+    
+    static let shared = AppRouter(initialTab: SettingsStore().settings.preferredLaunchTab)
+}
+
 @Observable
 public class ZoomManager {
     public let zoomNamespace: Namespace.ID
