@@ -19,21 +19,23 @@ struct OpenMealplanShortcut: AppShortcutsProvider {
             systemImageName: "calendar"
         )
         
-        AppShortcut(
-            intent: GetPlannedMealIntent(),
-            phrases: [
-                "What is on my mealplan in \(.applicationName)",
-                "What is on my mealplan \(\.$period) in \(.applicationName)",
-                "What's on my mealplan \(\.$period) in \(.applicationName)",
-                "What am I eating \(\.$period) in \(.applicationName)",
-                "Show my mealplan in \(.applicationName)",
-                "Show my mealplan \(\.$period) in \(.applicationName)",
-                "What do I have for dinner \(\.$period) in \(.applicationName)",
-                "What's on the mealplan \(\.$period) in \(.applicationName)",
-                "What meals are planned \(\.$period) in \(.applicationName)"
-            ],
-            shortTitle: "Mealplan",
-            systemImageName: "fork.knife"
-        )
+        if #available(iOS 27.0, *) {
+            AppShortcut(
+                intent: GetPlannedMealIntent(),
+                phrases: [
+                    "What is on my mealplan in \(.applicationName)",
+                    "What is on my mealplan \(\.$period) in \(.applicationName)",
+                    "What's on my mealplan \(\.$period) in \(.applicationName)",
+                    "What am I eating \(\.$period) in \(.applicationName)",
+                    "Show my mealplan in \(.applicationName)",
+                    "Show my mealplan \(\.$period) in \(.applicationName)",
+                    "What do I have for dinner \(\.$period) in \(.applicationName)",
+                    "What's on the mealplan \(\.$period) in \(.applicationName)",
+                    "What meals are planned \(\.$period) in \(.applicationName)"
+                ],
+                shortTitle: "Mealplan",
+                systemImageName: "fork.knife"
+            )
+        }
     }
 }

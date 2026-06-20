@@ -8,6 +8,7 @@
 import SwiftUI
 import AppIntents
 
+@available(anyAppleOS 27.0, *)
 public struct MealplanSnippetView: View {
     
     let title: String
@@ -44,6 +45,7 @@ public struct MealplanSnippetView: View {
     }
 }
 
+@available(anyAppleOS 27.0, *)
 #Preview {
     MealplanSnippetView(title: MealPlanPeriod.thisWeek.displayName, plannedMeals: [])
 }

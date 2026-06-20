@@ -12,6 +12,7 @@ import Foundation
 import Models
 import Persistence
 
+@available(anyAppleOS 27.0, *)
 final class PlannedMealSpotlightIndexer {
     static let shared = PlannedMealSpotlightIndexer()
 

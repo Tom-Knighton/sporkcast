@@ -5,6 +5,7 @@
 //  Created by Tom Knighton on 18/06/2026.
 //
 
+@available(anyAppleOS 27.0, *)
 public enum MealplanDialogBuilder {
     nonisolated static func dialog(for meals: [PlannedMealEntity], range: MealPlanPeriod) -> String {
         guard !meals.isEmpty else {

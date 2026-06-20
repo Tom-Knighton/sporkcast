@@ -10,8 +10,8 @@ import AppIntents
 import Environment
 import SwiftUI
 
-@AppIntent(schema: .system.search)
-public struct GetPlannedMealIntent {
+@available(anyAppleOS 27.0, *)
+public struct GetPlannedMealIntent: AppIntent {
     
     @MainActor
     private var repository = MealplanRepository()

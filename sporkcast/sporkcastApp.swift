@@ -30,13 +30,17 @@ struct SporkcastApp: App {
             $0.defaultDatabase = appDatabase
         }
         
-        PlannedMealSpotlightIndexer.shared.start(database: appDatabase)
+        if #available(iOS 27.0, *) {
+            PlannedMealSpotlightIndexer.shared.start(database: appDatabase)
+        }
         
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")
         Task {
             await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
-            await PlannedMealSpotlightIndexer.shared.reindexAll()
+            if #available(iOS 27.0, *) {
+                await PlannedMealSpotlightIndexer.shared.reindexAll()
+            }
             
             await SupabaseSyncService.shared.start()
         }

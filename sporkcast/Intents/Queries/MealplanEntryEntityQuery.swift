@@ -9,6 +9,7 @@ import AppIntents
 import Environment
 import CoreSpotlight
 
+@available(anyAppleOS 27.0, *)
 public struct PlannedMealQuery: EnumerableEntityQuery, EntityStringQuery {
 
     @MainActor
