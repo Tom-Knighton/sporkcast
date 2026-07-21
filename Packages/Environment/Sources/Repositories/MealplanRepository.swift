@@ -40,11 +40,48 @@ public final class MealplanRepository {
         updateWidgetSnapshot()
     }
 
+    public func entries(startDate: Date, endDate: Date) async throws -> [MealplanEntry] {
+        try await database.read { db in
+            try DBMealplanEntry
+                .full(startDate: startDate, endDate: endDate)
+                .fetchAll(db)
+                .compactMap { $0.toDomainModel() }
+        }
+    }
+    
+    public func getById(_ ids: [MealplanEntry.ID]) async throws -> [MealplanEntry] {
+        try await database.read { db in
+            try DBMealplanEntry
+                .full(ids: ids)
+                .fetchAll(db)
+                .compactMap { $0.toDomainModel() }
+        }
+    }
+    
+    public func getByLookup(_ lookup: String) async throws -> [MealplanEntry] {
+        try await database.read { db in
+            try DBMealplanEntry
+                .full(lookup: lookup)
+                .fetchAll(db)
+                .compactMap { $0.toDomainModel()}
+        }
+    }
+    
+    public func getAllEntries() async throws -> [MealplanEntry] {
+        try await database.read { db in
+            try DBMealplanEntry
+                .full
+                .fetchAll(db)
+                .compactMap { $0.toDomainModel() }
+        }
+    }
+
     public func addRecipeEntry(date: Date, index: Int, recipeId: UUID, homeId: UUID?) async throws {
         let newEntry = DBMealplanEntry(id: UUID(), date: date, index: index, noteText: nil, recipeId: recipeId, homeId: homeId)
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        indexMealplanEntries(ids: [newEntry.id])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await syncSupabaseEntries([newEntry.id], homeId: homeId)
@@ -55,6 +92,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        indexMealplanEntries(ids: [newEntry.id])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await syncSupabaseEntries([newEntry.id], homeId: homeId)
@@ -65,6 +103,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.find(id).update { $0.noteText = text }.execute(db)
         }
+        indexMealplanEntries(ids: [id])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await syncSupabaseEntries([id], homeId: homeId)
@@ -76,6 +115,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.find(id).delete().execute(db)
         }
+        MealplanSpotlightEvents.requestDelete(ids: [id])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await SupabaseSyncService.shared.deleteMealplanEntry(id, homeId: homeId)
@@ -92,6 +132,7 @@ public final class MealplanRepository {
         try await database.write { db in
             try DBMealplanEntry.insert { newEntry }.execute(db)
         }
+        indexMealplanEntries(ids: [newEntry.id])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await syncSupabaseEntries([newEntry.id], homeId: homeId)
@@ -115,6 +156,7 @@ public final class MealplanRepository {
                     .execute(db)
             }
         }
+        indexMealplanEntries(ids: [entryId])
         await refreshWidgetSnapshot()
         await MealplanCalendarSyncService.shared.scheduleSync(trigger: .localMutation)
         await syncSupabaseEntries([entryId] + existingEntries.map(\.id), homeId: homeId)
@@ -153,5 +195,9 @@ public final class MealplanRepository {
         try await database.read { db in
             try DBMealplanEntry.find(id).fetchOne(db)?.homeId
         }
+    }
+
+    private func indexMealplanEntries(ids: [MealplanEntry.ID]) {
+        MealplanSpotlightEvents.requestIndex(ids: ids)
     }
 }

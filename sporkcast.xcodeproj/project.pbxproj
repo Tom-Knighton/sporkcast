@@ -79,7 +79,6 @@
 		E241B2032F9C000100A1CC8E /* recipeShareServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = recipeShareServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
-		E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tomja.xcodeproj; sourceTree = "<group>"; };
 		E2F3719F2FC78D4B00477F2B /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -279,13 +278,6 @@
 			path = ci_scripts;
 			sourceTree = "<group>";
 		};
-		E2BC10E62EF85E6500C86006 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -374,7 +366,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E2BBA8FB2E59224700846D3E /* sporkcast */,
-				E2BBA90B2E5B2BBB00846D3E /* Packages */,
 			);
 			name = sporkcast;
 			packageProductDependencies = (
@@ -429,12 +420,6 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E2BBA8FA2E59224700846D3E /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = E2BC10E62EF85E6500C86006 /* Products */;
-					ProjectRef = E2BC10E42EF85E6500C86006 /* Tomja.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				E2BBA8F82E59224700846D3E /* sporkcast */,
@@ -912,6 +897,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Show local weather in meal planning and improve recipe discovery suggestions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";
@@ -959,6 +945,7 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Show local weather in meal planning and improve recipe discovery suggestions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Import recipe photos to scan text.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Sync your shopping list with Apple Reminders.";
 				INFOPLIST_KEY_NSRemindersUsageDescription = "Sync your shopping list with Apple Reminders.";

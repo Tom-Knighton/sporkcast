@@ -31,8 +31,10 @@ public struct RecipeListPage: View {
     @State private var importFailureFeedbackToken: Int = 0
     @State private var repository = RecipesRepository()
     @State private var organizationRepository = RecipeOrganizationRepository()
+    @State private var searchHandoff = RecipeSearchHandoff.shared
     @State private var showDeleteConfirmId: UUID?
     @State private var searchText: String = ""
+    @FocusState private var isSearchFocused: Bool
     @State private var isFilterSheetPresented = false
     @State private var isProPaywallPresented = false
     @State private var organizationRecipe: Recipe?
@@ -107,6 +109,16 @@ public struct RecipeListPage: View {
         .navigationTitle(navigationTitle)
         .toolbar { toolbarContent }
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search recipes, ingredients..."))
+        .searchFocused($isSearchFocused)
+        .onChange(of: searchHandoff.request, initial: true) { _, request in
+            guard let request else { return }
+            searchText = request.query
+            guard request.shouldFocusSearch else { return }
+            Task { @MainActor in
+                await Task.yield()
+                isSearchFocused = true
+            }
+        }
         .sheet(isPresented: $importState.isAddRecipeSheetPresented) {
             AddRecipeSheet(options: addRecipeOptions, hasProAccess: hasSocialRecipeImportProAccess) { action in
                 handleAddAction(action)

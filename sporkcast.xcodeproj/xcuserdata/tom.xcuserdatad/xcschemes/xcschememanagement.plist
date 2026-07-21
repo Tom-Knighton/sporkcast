@@ -7,22 +7,22 @@
 		<key>Associations (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>13</integer>
+			<integer>18</integer>
 		</dict>
 		<key>MyPlayground (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>14</integer>
+			<integer>19</integer>
 		</dict>
 		<key>Tour (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>15</integer>
+			<integer>20</integer>
 		</dict>
 		<key>TransactionObserver (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>16</integer>
+			<integer>21</integer>
 		</dict>
 		<key>countdownextensionExtension.xcscheme_^#shared#^_</key>
 		<dict>

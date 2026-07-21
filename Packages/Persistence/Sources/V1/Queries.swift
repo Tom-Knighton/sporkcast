@@ -160,6 +160,39 @@ public extension DBMealplanEntry {
     static func full(startDate: Date, endDate: Date) -> DBQuery<FullDBMealplanEntry> {
         full.where { $0.date >= startDate && $0.date <= endDate }
     }
+    
+    static func full(ids: [DBMealplanEntry.ID]) -> DBQuery<FullDBMealplanEntry> {
+        full.where { ids.contains($0.id) }
+    }
+    
+    static func full(lookup: String) -> DBQuery<FullDBMealplanEntry> {
+        DBQuery<FullDBMealplanEntry> { db, query in
+            let matchingRecipeIds = Set(
+                try DBRecipe.all
+                    .fetchAll(db)
+                    .filter { $0.title.localizedCaseInsensitiveContains(lookup) }
+                    .map(\.id)
+            )
+
+            let entries = try DBMealplanEntry.all
+                .where((query.condition ?? SQLCondition(sql: "1")) && matchingRecipeIds.contains(DBColumn(name: "recipeId")))
+                .order(by: \.date)
+                .fetchAll(db)
+            let recipeIds = Set(entries.compactMap(\.recipeId))
+            let recipes = try DBRecipe.all.fetchAll(db)
+                .filter { recipeIds.contains($0.id) }
+                .dictionaryById()
+            let images = try DBRecipeImage.all.fetchAll(db).dictionaryById()
+
+            return entries.map { entry in
+                FullDBMealplanEntry(
+                    mealplanEntry: entry,
+                    recipe: entry.recipeId.flatMap { recipes[$0] },
+                    image: entry.recipeId.flatMap { images[$0] }
+                )
+            }
+        }
+    }
 
     static var full: DBQuery<FullDBMealplanEntry> {
         DBQuery<FullDBMealplanEntry> { db, query in

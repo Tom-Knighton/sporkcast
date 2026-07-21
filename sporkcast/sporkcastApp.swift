@@ -11,6 +11,7 @@ import SwiftData
 import Persistence
 import Design
 import Environment
+import AppIntents
 
 @main
 struct SporkcastApp: App {
@@ -29,10 +30,22 @@ struct SporkcastApp: App {
             })
             $0.defaultDatabase = appDatabase
         }
+        
+        if #available(iOS 27.0, *) {
+            PlannedMealSpotlightIndexer.shared.start(database: appDatabase)
+            RecipeSpotlightIndexer.shared.start(database: appDatabase)
+        }
+        
 
         RecipeDebugDiagnostics.logAppEvent("app init completed")
         Task {
             await RecipeDebugDiagnostics.logRecipeCounts("app init", database: appDatabase)
+            if #available(iOS 27.0, *) {
+                OpenMealplanShortcut.updateAppShortcutParameters()
+                await PlannedMealSpotlightIndexer.shared.reindexAll()
+                await RecipeSpotlightIndexer.shared.reindexAll()
+            }
+            
             await SupabaseSyncService.shared.start()
         }
     }
