@@ -150,6 +150,13 @@ public struct DBColumn: Sendable {
             SQLCondition(column: name, op: "IS NOT", value: value as? any DatabaseValueConvertible)
         }
     }
+
+    public func contains(_ value: String) -> SQLCondition {
+        SQLCondition(
+            sql: "instr(lower(\(name)), lower(?)) > 0",
+            arguments: [value.databaseValue]
+        )
+    }
 }
 
 public struct SQLCondition: Sendable {
@@ -215,6 +222,15 @@ public extension Array where Element: DatabaseValueConvertible {
             sql: "\(column.name) IN (\(placeholders))",
             arguments: StatementArguments(map(\.databaseValue))
         )
+    }
+}
+
+public extension Array where Element == DBColumn {
+    func containsText(_ value: String) -> SQLCondition {
+        guard let first else { return SQLCondition(sql: "0", arguments: []) }
+        return dropFirst().reduce(first.contains(value)) { condition, column in
+            condition || column.contains(value)
+        }
     }
 }
 

@@ -36,6 +36,8 @@ struct AppContent: View {
     @State private var widgetMealplanRepository = MealplanRepository()
     @State private var flagKit: FlagService
     @State private var proAccess = ProAccessService.shared
+    @State private var recipeSearchHandoff = RecipeSearchHandoff.shared
+    @State private var recipeNavigationHandoff = RecipeNavigationHandoff.shared
     
     @State private var alerting: RecipeTimerRowModel?
     @State private var showAlert = false
@@ -124,6 +126,8 @@ struct AppContent: View {
         }
         .task {
             await SupabaseSyncService.shared.resumeRealtimeSync()
+            routePendingRecipeOpenIfNeeded()
+            routePendingRecipeSearchIfNeeded()
             if let sharedURL = consumePendingSharedImportURLFromDefaults() {
                 routeToRecipeImport(url: sharedURL)
             }
@@ -133,6 +137,8 @@ struct AppContent: View {
                 Task {
                     await SupabaseSyncService.shared.resumeRealtimeSync()
                 }
+                routePendingRecipeOpenIfNeeded()
+                routePendingRecipeSearchIfNeeded()
             }
 
             guard newPhase == .active,
@@ -231,6 +237,10 @@ struct AppContent: View {
                 await refreshMealplanWidgets()
             }
         }
+        .onChange(of: recipeNavigationHandoff.request) { _, request in
+            guard let request else { return }
+            routeToRecipe(id: request.recipeId)
+        }
     }
     
     @ContentBuilder
@@ -281,7 +291,8 @@ struct AppContent: View {
 
     private func seedRecipesStackIfNeeded() {
         guard appRouter.selectedTab == .recipes,
-              !didSeedRecipesStack else {
+              !didSeedRecipesStack,
+              appRouter[.recipes].isEmpty else {
             return
         }
 
@@ -383,12 +394,17 @@ extension AppContent {
         }
 
         guard incomingURL.scheme?.lowercased() == "sporkcast",
-              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" else {
+              incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" || incomingURL.host == "recipe" else {
             return
         }
 
         if incomingURL.host == "mealplan" {
             appRouter.selectedTab = .mealplan
+            return
+        }
+
+        if incomingURL.host == "recipe" {
+            routeToRecipe(url: incomingURL)
             return
         }
 
@@ -404,6 +420,54 @@ extension AppContent {
 
         guard let sharedURL = consumePendingSharedImportURLFromDefaults() else { return }
         routeToRecipeImport(url: sharedURL)
+    }
+
+    private func routeToRecipe(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let idString = recipeIdString(from: components),
+              let recipeId = UUID(uuidString: idString) else {
+            return
+        }
+
+        routeToRecipe(id: recipeId)
+    }
+
+    private func routeToRecipe(id recipeId: UUID) {
+        Task { @MainActor in
+            do {
+                let repository = RecipesRepository()
+                guard let recipe = try await repository.getById([recipeId]).first else { return }
+                appRouter.selectedTab = .recipes
+                didSeedRecipesStack = true
+                appRouter[.recipes] = [.recipe(recipe: recipe)]
+            } catch {
+                RecipeDebugDiagnostics.logAppEvent("recipe deep link failed id=\(recipeId) error=\(error)")
+            }
+        }
+    }
+
+    private func routePendingRecipeOpenIfNeeded() {
+        guard let recipeId = recipeNavigationHandoff.consumePendingRecipeId() else { return }
+        routeToRecipe(id: recipeId)
+    }
+
+    private func routePendingRecipeSearchIfNeeded() {
+        guard recipeSearchHandoff.consumePendingSearch() != nil else { return }
+
+        appRouter.selectedTab = .recipes
+        appRouter[.recipes] = [.recipes()]
+        didSeedRecipesStack = true
+    }
+
+    private func recipeIdString(from components: URLComponents) -> String? {
+        if let queryId = components.queryItems?.first(where: { $0.name == "id" })?.value {
+            return queryId
+        }
+
+        return components.path
+            .split(separator: "/")
+            .last
+            .map(String.init)
     }
 
     private func isHomeInviteURL(_ url: URL) -> Bool {

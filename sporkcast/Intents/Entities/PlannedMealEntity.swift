@@ -242,7 +242,7 @@ public struct PlannedMealEntity: IndexedEntity, Identifiable, Sendable {
     @Property(title: "Calendar")
     public var calendar: MealplanCalendarEntity
 
-    @Property(title: "Recurrence")+6
+    @Property(title: "Recurrence")
     public var recurrence: Calendar.RecurrenceRule?
 
     @Property(title: "Attendees")

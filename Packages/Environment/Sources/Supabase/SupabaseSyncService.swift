@@ -1555,6 +1555,7 @@ public actor SupabaseSyncService {
                 try upsertIfChanged(recipe, in: db)
             }
         }
+        RecipeSpotlightEvents.requestIndex(ids: remoteLocalRows.map(\.id))
 
         try await pullRecipeImages(recipeIds: remoteRecipes.map(\.id))
 
@@ -1608,6 +1609,7 @@ public actor SupabaseSyncService {
                 try upsertIfChanged(image, in: db)
             }
         }
+        RecipeSpotlightEvents.requestIndex(ids: resolvedLocalImages.map(\.recipeId))
     }
 
     private func pullRecipeDetails(recipeIds: [UUID]) async throws {
@@ -1841,6 +1843,7 @@ public actor SupabaseSyncService {
                 try upsertIfChanged(linkedIngredient.localRow(), in: db)
             }
         }
+        RecipeSpotlightEvents.requestIndex(ids: recipeIds)
     }
 
     private func pullMealplan(homeId: UUID?) async throws {
@@ -2202,6 +2205,11 @@ public actor SupabaseSyncService {
                 try upsertIfChanged(row.localRow(), in: db)
             }
         }
+        if row.deletedAt != nil {
+            RecipeSpotlightEvents.requestDelete(ids: [row.id])
+        } else {
+            RecipeSpotlightEvents.requestIndex(ids: [row.id])
+        }
     }
 
     private func apply(_ row: SupabaseRecipeImageRow) async throws {
@@ -2213,6 +2221,7 @@ public actor SupabaseSyncService {
         try await database.write { db in
             try upsertIfChanged(localImage, in: db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [row.recipeId])
     }
 
     private func localRecipeImage(from row: SupabaseRecipeImageRow, preserving existing: DBRecipeImage?) async -> DBRecipeImage {
@@ -2236,42 +2245,49 @@ public actor SupabaseSyncService {
         try await database.write { db in
             try upsertIfChanged(row.ingredientGroup, in: db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [row.recipeId])
     }
 
     private func apply(_ row: SupabaseRecipeIngredientRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.localRow(), in: db)
         }
+        await requestRecipeIndexForIngredientGroup(row.ingredientGroupId)
     }
 
     private func apply(_ row: SupabaseRecipeStepSectionRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.stepGroup, in: db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [row.recipeId])
     }
 
     private func apply(_ row: SupabaseRecipeStepRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.localRow(), in: db)
         }
+        await requestRecipeIndexForStepGroup(row.groupId)
     }
 
     private func apply(_ row: SupabaseRecipeStepTimingRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.localRow(), in: db)
         }
+        await requestRecipeIndexForStep(row.recipeStepId)
     }
 
     private func apply(_ row: SupabaseRecipeStepTemperatureRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.localRow(), in: db)
         }
+        await requestRecipeIndexForStep(row.recipeStepId)
     }
 
     private func apply(_ row: SupabaseRecipeStepLinkedIngredientRow) async throws {
         try await database.write { db in
             try upsertIfChanged(row.localRow(), in: db)
         }
+        await requestRecipeIndexForStep(row.recipeStepId)
     }
 
     private func apply(_ row: SupabaseRecipeFolderRow) async throws {
@@ -2308,48 +2324,142 @@ public actor SupabaseSyncService {
         try await database.write { db in
             try DBRecipeImage.find(recipeId).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId])
     }
 
     private func deleteRecipeIngredientSectionLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForIngredientGroup(id)
         try await database.write { db in
             try DBRecipeIngredientGroup.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeIngredientLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForIngredient(id)
         try await database.write { db in
             try DBRecipeIngredient.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeStepSectionLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForStepGroup(id)
         try await database.write { db in
             try DBRecipeStepGroup.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeStepLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForStep(id)
         try await database.write { db in
             try DBRecipeStep.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeStepTimingLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForStepTiming(id)
         try await database.write { db in
             try DBRecipeStepTiming.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeStepTemperatureLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForStepTemperature(id)
         try await database.write { db in
             try DBRecipeStepTemperature.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
     }
 
     private func deleteRecipeStepLinkedIngredientLocally(_ id: UUID) async throws {
+        let recipeId = try await recipeIdForStepLinkedIngredient(id)
         try await database.write { db in
             try DBRecipeStepLinkedIngredient.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
+    }
+
+    private func requestRecipeIndexForIngredientGroup(_ groupId: UUID) async {
+        do {
+            let recipeId = try await recipeIdForIngredientGroup(groupId)
+            RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("recipe spotlight ingredient group lookup failed id=\(groupId) error=\(error)")
+        }
+    }
+
+    private func requestRecipeIndexForStepGroup(_ groupId: UUID) async {
+        do {
+            let recipeId = try await recipeIdForStepGroup(groupId)
+            RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("recipe spotlight step group lookup failed id=\(groupId) error=\(error)")
+        }
+    }
+
+    private func requestRecipeIndexForStep(_ stepId: UUID) async {
+        do {
+            let recipeId = try await recipeIdForStep(stepId)
+            RecipeSpotlightEvents.requestIndex(ids: [recipeId].compactMap { $0 })
+        } catch {
+            RecipeDebugDiagnostics.logAppEvent("recipe spotlight step lookup failed id=\(stepId) error=\(error)")
+        }
+    }
+
+    private func recipeIdForIngredient(_ ingredientId: UUID) async throws -> UUID? {
+        let groupId = try await database.read { db in
+            try DBRecipeIngredient.find(ingredientId).fetchOne(db)?.ingredientGroupId
+        }
+        guard let groupId else { return nil }
+        return try await recipeIdForIngredientGroup(groupId)
+    }
+
+    private func recipeIdForIngredientGroup(_ groupId: UUID) async throws -> UUID? {
+        try await database.read { db in
+            try DBRecipeIngredientGroup.find(groupId).fetchOne(db)?.recipeId
+        }
+    }
+
+    private func recipeIdForStep(_ stepId: UUID) async throws -> UUID? {
+        let groupId = try await database.read { db in
+            try DBRecipeStep.find(stepId).fetchOne(db)?.groupId
+        }
+        guard let groupId else { return nil }
+        return try await recipeIdForStepGroup(groupId)
+    }
+
+    private func recipeIdForStepGroup(_ groupId: UUID) async throws -> UUID? {
+        try await database.read { db in
+            try DBRecipeStepGroup.find(groupId).fetchOne(db)?.recipeId
+        }
+    }
+
+    private func recipeIdForStepTiming(_ timingId: UUID) async throws -> UUID? {
+        let stepId = try await database.read { db in
+            try DBRecipeStepTiming.find(timingId).fetchOne(db)?.recipeStepId
+        }
+        guard let stepId else { return nil }
+        return try await recipeIdForStep(stepId)
+    }
+
+    private func recipeIdForStepTemperature(_ temperatureId: UUID) async throws -> UUID? {
+        let stepId = try await database.read { db in
+            try DBRecipeStepTemperature.find(temperatureId).fetchOne(db)?.recipeStepId
+        }
+        guard let stepId else { return nil }
+        return try await recipeIdForStep(stepId)
+    }
+
+    private func recipeIdForStepLinkedIngredient(_ linkedIngredientId: UUID) async throws -> UUID? {
+        let stepId = try await database.read { db in
+            try DBRecipeStepLinkedIngredient.find(linkedIngredientId).fetchOne(db)?.recipeStepId
+        }
+        guard let stepId else { return nil }
+        return try await recipeIdForStep(stepId)
     }
 
     private func deleteRecipeFolderLocally(_ id: UUID) async throws {
@@ -2442,6 +2552,7 @@ public actor SupabaseSyncService {
         try await database.write { db in
             try DBRecipe.find(id).delete().execute(db)
         }
+        RecipeSpotlightEvents.requestDelete(ids: [id])
     }
 
     private func deleteShoppingListLocally(_ id: UUID) async throws {

@@ -55,11 +55,169 @@ public final class RecipesRepository {
         }
     }
 
-    public init() {
+    public init(observesChanges: Bool = true) {
+        guard observesChanges else { return }
+
         recipesObservation = observeAll(database, query: DBRecipe.list) { error in
             RecipeDebugDiagnostics.logAppEvent("recipes observation failed error=\(error)")
         } onChange: { [weak self] recipes in
             self?.dbRecipes = recipes
+        }
+    }
+    
+    public func getById(_ ids: [Recipe.ID]) async throws -> [Recipe] {
+        let dbRecipes: [FullDBRecipe] = try await database.read { db in
+            try DBRecipe
+                .full
+                .where { ids.contains($0.id) }
+                .fetchAll(db)
+        }
+        
+        let recipe = dbRecipes.compactMap { $0.toDomainModel() }
+        return recipe
+    }
+    
+    public func getByLookup(_ lookup: String) async throws -> [Recipe] {
+        let trimmedLookup = lookup.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLookup.isEmpty else {
+            return try await getAllRecipes()
+        }
+
+        let dbRecipes: [FullDBRecipe] = try await database.read { db in
+            try DBRecipe
+                .full
+                .where { [$0.title, $0.author, $0.description].containsText(trimmedLookup) }
+                .fetchAll(db)
+        }
+        
+        var recipesById = Dictionary(uniqueKeysWithValues: dbRecipes.map { ($0.id, $0.toDomainModel()) })
+        for recipe in try await getAllRecipes() where recipe.matchesLookup(trimmedLookup) {
+            recipesById[recipe.id] = recipe
+        }
+
+        return recipesById.values.sorted {
+            $0.title.localizedStandardCompare($1.title) == .orderedAscending
+        }
+    }
+
+    public func getAllRecipes() async throws -> [Recipe] {
+        try await database.read { db in
+            try DBRecipe
+                .full
+                .fetchAll(db)
+                .map { $0.toDomainModel() }
+        }
+    }
+
+    public func getIntentSuggestions(limit: Int = 20) async throws -> [RecipeIntentSummary] {
+        try await database.read { db in
+            let recipes = try DBRecipe.all
+                .order(by: \.dateModified)
+                .fetchAll(db)
+                .prefix(limit)
+            let imageURLStringsByRecipeId = try Self.imageURLStringsByRecipeId(for: Set(recipes.map(\.id)), in: db)
+
+            return recipes.map { recipe in
+                Self.intentSummary(recipe: recipe, ingredientNames: [], imageURLString: imageURLStringsByRecipeId[recipe.id])
+            }
+        }
+    }
+
+    public func getIntentSummariesById(_ ids: [Recipe.ID]) async throws -> [RecipeIntentSummary] {
+        guard !ids.isEmpty else { return [] }
+
+        return try await database.read { db in
+            let recipes = try DBRecipe.all
+                .where { ids.contains($0.id) }
+                .fetchAll(db)
+
+            let ingredientNamesByRecipeId = try Self.ingredientNamesByRecipeId(for: Set(ids), in: db)
+            let imageURLStringsByRecipeId = try Self.imageURLStringsByRecipeId(for: Set(ids), in: db)
+            return recipes.map { recipe in
+                Self.intentSummary(
+                    recipe: recipe,
+                    ingredientNames: ingredientNamesByRecipeId[recipe.id] ?? [],
+                    imageURLString: imageURLStringsByRecipeId[recipe.id]
+                )
+            }
+        }
+    }
+
+    public func getIntentSummariesByLookup(
+        _ lookup: String,
+        limit: Int = 8,
+        returnsSuggestionsForEmptyLookup: Bool = true
+    ) async throws -> [RecipeIntentSummary] {
+        let trimmedLookup = lookup.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lookupTokens = RecipeSearchNormalizer.tokens(for: trimmedLookup)
+        guard !lookupTokens.isEmpty else {
+            return returnsSuggestionsForEmptyLookup
+                ? try await getIntentSuggestions(limit: limit)
+                : []
+        }
+
+        return try await database.read { db in
+            let recipes = try DBRecipe.all.fetchAll(db)
+            let matchingRecipeIdsFromRecipeRows = Set(
+                recipes
+                    .filter { recipe in
+                        [
+                            recipe.title,
+                            recipe.description,
+                            recipe.author,
+                            recipe.serves,
+                            recipe.summarisedSuggestion
+                        ]
+                        .compactMap { $0 }
+                        .contains { RecipeSearchNormalizer.matches($0, tokens: lookupTokens) }
+                    }
+                    .map(\.id)
+            )
+
+            let ingredientGroups = try DBRecipeIngredientGroup.all.fetchAll(db)
+            let recipeIdByIngredientGroupId = Dictionary(uniqueKeysWithValues: ingredientGroups.map { ($0.id, $0.recipeId) })
+            let ingredients = try DBRecipeIngredient.all.fetchAll(db)
+
+            var ingredientNamesByRecipeId: [UUID: [String]] = [:]
+            var matchingRecipeIdsFromIngredients: Set<UUID> = []
+
+            for ingredient in ingredients {
+                guard let recipeId = recipeIdByIngredientGroupId[ingredient.ingredientGroupId] else { continue }
+
+                let ingredientValues = [
+                    ingredient.rawIngredient,
+                    ingredient.ingredient,
+                    ingredient.extra
+                ].compactMap { $0 }
+
+                ingredientNamesByRecipeId[recipeId, default: []].append(ingredient.rawIngredient)
+
+                if ingredientValues.contains(where: { RecipeSearchNormalizer.matches($0, tokens: lookupTokens) }) {
+                    matchingRecipeIdsFromIngredients.insert(recipeId)
+                }
+            }
+
+            let matchingRecipeIds = matchingRecipeIdsFromRecipeRows.union(matchingRecipeIdsFromIngredients)
+            let matchingRecipes = Array(
+                recipes
+                    .filter { matchingRecipeIds.contains($0.id) }
+                    .sorted {
+                        $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                    }
+                    .prefix(limit)
+            )
+            let imageURLStringsByRecipeId = try Self.imageURLStringsByRecipeId(for: Set(matchingRecipes.map(\.id)), in: db)
+            let imageDataByRecipeId = try Self.imageDataByRecipeId(for: Set(matchingRecipes.map(\.id)), in: db)
+
+            return matchingRecipes
+                .map { recipe in
+                    Self.intentSummary(
+                        recipe: recipe,
+                        ingredientNames: ingredientNamesByRecipeId[recipe.id] ?? [],
+                        imageURLString: imageURLStringsByRecipeId[recipe.id],
+                        imageData: imageDataByRecipeId[recipe.id]
+                    )
+                }
         }
     }
 
@@ -70,21 +228,30 @@ public final class RecipesRepository {
             try RecipeManualCascade.deleteAllRecipeLinkedData(in: db)
             try DBRecipe.delete().execute(db)
         }
+        RecipeSpotlightEvents.requestDeleteAll()
         await RecipeDebugDiagnostics.logRecipeCounts("after deleteAllRecipes", database: database)
     }
     
     public func delete(_ id: Recipe.ID) async throws  {
         RecipeDebugDiagnostics.logAppEvent("deleteRecipe requested recipeId=\(id)")
         await RecipeDebugDiagnostics.logRecipeCounts("before deleteRecipe recipeId=\(id)", database: database)
-        let homeId = try await database.read { db in
-            try DBRecipe.find(id).fetchOne(db)?.homeId
+        let deletionContext = try await database.read { db in
+            (
+                homeId: try DBRecipe.find(id).fetchOne(db)?.homeId,
+                mealplanEntryIds: try DBMealplanEntry
+                    .where { $0.recipeId.eq(id) }
+                    .select(\.id)
+                    .fetchAll(db)
+            )
         }
         try await database.write { db in
             try RecipeManualCascade.deleteRecipeLinkedData(for: id, in: db)
             try DBRecipe.find(id).delete().execute(db)
             try DBMealplanEntry.where { $0.recipeId.eq(id) }.delete().execute(db)
         }
-        await SupabaseSyncService.shared.deleteRecipe(id, homeId: homeId)
+        RecipeSpotlightEvents.requestDelete(ids: [id])
+        MealplanSpotlightEvents.requestDelete(ids: deletionContext.mealplanEntryIds)
+        await SupabaseSyncService.shared.deleteRecipe(id, homeId: deletionContext.homeId)
         await RecipeDebugDiagnostics.logRecipeCounts("after deleteRecipe recipeId=\(id)", database: database)
     }
 
@@ -140,6 +307,7 @@ public final class RecipesRepository {
         }
 
         let supabaseRecipes = entityBatch.map { ($0.0.id, $0.0.homeId) }
+        RecipeSpotlightEvents.requestIndex(ids: entityBatch.map { $0.0.id })
         Task(priority: .utility) { [weak self, supabaseRecipes] in
             await self?.syncSupabaseRecipeUpserts(supabaseRecipes)
         }
@@ -278,6 +446,7 @@ public final class RecipesRepository {
         }
 
         await RecipeDebugDiagnostics.logRecipeCounts("after replaceImportedRecipe recipeId=\(existingRecipeId)", database: database)
+        RecipeSpotlightEvents.requestIndex(ids: [newRecipe.id])
         await syncSupabaseRecipeUpserts([(newRecipe.id, newRecipe.homeId)])
         scheduleImportedImageHydration(for: [recipe])
     }
@@ -398,6 +567,7 @@ public final class RecipesRepository {
                 }
             }
             await RecipeDebugDiagnostics.logRecipeCounts("after persistHydratedImageBatch count=\(batch.count)", database: database)
+            RecipeSpotlightEvents.requestIndex(ids: batch.map(\.recipeId))
             do {
                 try await SupabaseSyncService.shared.pushRecipes(recipeIds: batch.map(\.recipeId))
             } catch {
@@ -406,6 +576,128 @@ public final class RecipesRepository {
         } catch {
             RecipeDebugDiagnostics.logAppEvent("persistHydratedImageBatch failed count=\(batch.count) error=\(error)")
             print("Error hydrating imported images: \(error)")
+        }
+    }
+}
+
+private extension RecipesRepository {
+    nonisolated static func ingredientNamesByRecipeId(for recipeIds: Set<UUID>, in db: Database) throws -> [UUID: [String]] {
+        guard !recipeIds.isEmpty else { return [:] }
+
+        let ingredientGroups = try DBRecipeIngredientGroup.all.fetchAll(db)
+            .filter { recipeIds.contains($0.recipeId) }
+        let recipeIdByIngredientGroupId = Dictionary(uniqueKeysWithValues: ingredientGroups.map { ($0.id, $0.recipeId) })
+        let ingredientGroupIds = Set(ingredientGroups.map(\.id))
+        let ingredients = try DBRecipeIngredient.all.fetchAll(db)
+            .filter { ingredientGroupIds.contains($0.ingredientGroupId) }
+
+        var ingredientNamesByRecipeId: [UUID: [String]] = [:]
+        for ingredient in ingredients {
+            guard let recipeId = recipeIdByIngredientGroupId[ingredient.ingredientGroupId] else { continue }
+            ingredientNamesByRecipeId[recipeId, default: []].append(ingredient.rawIngredient)
+        }
+        return ingredientNamesByRecipeId
+    }
+
+    nonisolated static func imageURLStringsByRecipeId(for recipeIds: Set<UUID>, in db: Database) throws -> [UUID: String] {
+        guard !recipeIds.isEmpty else { return [:] }
+
+        let placeholders = Array(repeating: "?", count: recipeIds.count).joined(separator: ", ")
+        let rows = try Row.fetchAll(
+            db,
+            sql: "SELECT recipeId, imageSourceUrl FROM RecipeImages WHERE recipeId IN (\(placeholders)) AND imageSourceUrl IS NOT NULL",
+            arguments: StatementArguments(recipeIds.map(\.uuidString))
+        )
+
+        var imageURLStringsByRecipeId: [UUID: String] = [:]
+        for row in rows {
+            guard let idString: String = row["recipeId"],
+                  let recipeId = UUID(uuidString: idString),
+                  let imageURLString: String = row["imageSourceUrl"],
+                  !imageURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                continue
+            }
+
+            imageURLStringsByRecipeId[recipeId] = imageURLString
+        }
+
+        return imageURLStringsByRecipeId
+    }
+
+    nonisolated static func imageDataByRecipeId(for recipeIds: Set<UUID>, in db: Database) throws -> [UUID: Data] {
+        guard !recipeIds.isEmpty else { return [:] }
+
+        let placeholders = Array(repeating: "?", count: recipeIds.count).joined(separator: ", ")
+        let rows = try Row.fetchAll(
+            db,
+            sql: "SELECT recipeId, imageData FROM RecipeImages WHERE recipeId IN (\(placeholders)) AND imageData IS NOT NULL",
+            arguments: StatementArguments(recipeIds.map(\.uuidString))
+        )
+
+        var imageDataByRecipeId: [UUID: Data] = [:]
+        for row in rows {
+            guard let idString: String = row["recipeId"],
+                  let recipeId = UUID(uuidString: idString),
+                  let imageData: Data = row["imageData"],
+                  !imageData.isEmpty else {
+                continue
+            }
+
+            imageDataByRecipeId[recipeId] = imageData
+        }
+
+        return imageDataByRecipeId
+    }
+
+    nonisolated static func intentSummary(recipe: DBRecipe, ingredientNames: [String]) -> RecipeIntentSummary {
+        intentSummary(recipe: recipe, ingredientNames: ingredientNames, imageURLString: nil)
+    }
+
+    nonisolated static func intentSummary(recipe: DBRecipe, ingredientNames: [String], imageURLString: String?, imageData: Data? = nil) -> RecipeIntentSummary {
+        let keywords = [
+            recipe.title,
+            recipe.description,
+            recipe.author,
+            recipe.serves,
+            recipe.summarisedSuggestion
+        ]
+        .compactMap { $0 }
+        + ingredientNames
+
+        return RecipeIntentSummary(
+            id: recipe.id,
+            title: recipe.title,
+            summary: recipe.description,
+            author: recipe.author,
+            keywords: Array(Set(keywords.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })),
+            ingredientNames: ingredientNames,
+            totalMinutes: recipe.totalMins,
+            prepMinutes: recipe.minutesToPrepare,
+            serves: recipe.serves,
+            imageURLString: imageURLString,
+            imageData: imageData
+        )
+    }
+}
+
+private extension Recipe {
+    func matchesLookup(_ lookup: String) -> Bool {
+        let searchableValues = [
+            title,
+            description,
+            author,
+            serves,
+            summarisedTip
+        ].compactMap { $0 }
+            + ingredientSections.flatMap(\.ingredients).flatMap {
+                [$0.ingredientText, $0.ingredientPart, $0.extraInformation].compactMap { $0 }
+            }
+            + stepSections.flatMap(\.steps).map(\.instructionText)
+            + tags.map(\.name)
+            + folders.map(\.name)
+
+        return searchableValues.contains {
+            $0.localizedCaseInsensitiveContains(lookup)
         }
     }
 }
