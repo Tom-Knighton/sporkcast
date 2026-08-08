@@ -30,6 +30,8 @@ public struct MealplanRowView: View {
     @Binding private var isDragging: Bool
     
     @State private var showAddSheet: Bool = false
+    @State private var showRandomWheelSheet: Bool = false
+    @State private var randomWheelSheetDetent = PresentationDetent.fraction(0.92)
     @State private var noteDraft: NoteDraft? = nil
     
     @State private var recipeImages: [UUID: UIImage] = [:]
@@ -83,7 +85,13 @@ public struct MealplanRowView: View {
                                 Label("Add Meal", systemImage: "plus.circle")
                             }
                             Button(action: { Task { try? await insertRandomMeal() } }) {
-                                Label("Random Meal", systemImage: "arrow.trianglehead.swap")
+                                Label("Quick Select Meal", systemImage: "arrow.trianglehead.swap")
+                            }
+                            Button(action: {
+                                self.randomWheelSheetDetent = .fraction(0.92)
+                                self.showRandomWheelSheet = true
+                            }) {
+                                Label("Random Meal", systemImage: "fireworks")
                             }
                             Divider()
                             
@@ -159,6 +167,12 @@ public struct MealplanRowView: View {
             })
             .sheet(isPresented: $showAddSheet) {
                 selectorSheetView()
+            }
+            .sheet(isPresented: $showRandomWheelSheet) {
+                RandomMealWheelSheet { recipe in
+                    try await repository.addRecipeEntry(date: day, index: entries.count, recipeId: recipe.id, homeId: homes.home?.id)
+                }
+                .presentationDetents([.fraction(0.92), .large], selection: $randomWheelSheetDetent)
             }
             .sheet(item: $noteDraft) { draft in
                 NoteSheetView(initialText: draft.text, title: draft.id == nil ? "Add Note" : "Edit Note") { newText in
@@ -370,6 +384,7 @@ private struct MealplanWeatherBadge: View {
         .accessibilityLabel("\(weather.condition), \(Int(weather.temperatureC.rounded())) degrees")
     }
 }
+
 
 private struct DropGap: View {
     let index: Int
