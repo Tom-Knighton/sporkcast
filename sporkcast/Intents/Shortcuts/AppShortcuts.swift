@@ -69,6 +69,58 @@ struct OpenMealplanShortcut: AppShortcutsProvider {
                 shortTitle: "Mealplan",
                 systemImageName: "fork.knife"
             )
+
+            AppShortcut(
+                intent: ImportRecipeFromWebsiteAndAddToMealplanIntent(),
+                phrases: [
+                    "Import this website into \(.applicationName) and add it to mealplan",
+                    "Import this recipe into \(.applicationName) and add it to mealplan",
+                    "Save this recipe to \(.applicationName) and plan it"
+                ],
+                shortTitle: "Import and Plan",
+                systemImageName: "calendar.badge.plus"
+            )
+
+            AppShortcut(
+                intent: AddRecipeToMealplanIntent(),
+                phrases: [
+                    "Add \(\.$recipe) to my mealplan in \(.applicationName)",
+                    "Plan \(\.$recipe) in \(.applicationName)"
+                ],
+                shortTitle: "Plan Recipe",
+                systemImageName: "calendar.badge.plus"
+            )
+
+            AppShortcut(
+                intent: AddRandomMealToMealplanIntent(),
+                phrases: [
+                    "Add a random meal to my mealplan in \(.applicationName)",
+                    "Plan a random meal in \(.applicationName)"
+                ],
+                shortTitle: "Random Meal",
+                systemImageName: "shuffle"
+            )
+
+            AppShortcut(
+                intent: RemoveMealFromMealplanIntent(),
+                phrases: [
+                    "Remove \(\.$meal) from mealplan in \(.applicationName)",
+                    "Delete \(\.$meal) from mealplan in \(.applicationName)"
+                ],
+                shortTitle: "Remove Meal",
+                systemImageName: "calendar.badge.minus"
+            )
+
+            AppShortcut(
+                intent: AddGroceryItemIntent(),
+                phrases: [
+                    "Add a grocery item in \(.applicationName)",
+                    "Add something to groceries in \(.applicationName)",
+                    "Put something on my grocery list in \(.applicationName)"
+                ],
+                shortTitle: "Add Grocery",
+                systemImageName: "cart.badge.plus"
+            )
         }
     }
 }

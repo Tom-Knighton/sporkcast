@@ -7,6 +7,7 @@
 
 import SwiftUI
 import API
+import AppIntents
 import Environment
 import AlarmKit
 import RecipeTimersList
@@ -90,13 +91,13 @@ struct AppContent: View {
         } mealplans: {
             NavigationStack(path: $appRouter[.mealplan]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
-                    MealplanPage()
+                    contextualMealplanPage
                 }
             }
         } shoppingLists: {
             NavigationStack(path: $appRouter[.shoppingLists]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
-                    ShoppingListsPage()
+                    contextualGroceriesPage
                 }
             }
         } settings: {
@@ -243,6 +244,33 @@ struct AppContent: View {
         }
     }
     
+    @ContentBuilder
+    private var contextualMealplanPage: some View {
+        if #available(iOS 27.0, *) {
+            MealplanPage()
+                .appEntityIdentifier(EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id))
+                .userActivity("online.tomk.sporkcast.view-mealplan") { activity in
+                    activity.title = "Sporkcast Mealplan"
+                    activity.webpageURL = URL(string: "sporkcast://mealplan")
+                    activity.appEntityIdentifier = EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id)
+                    activity.isEligibleForSearch = true
+                    activity.isEligibleForPrediction = true
+                }
+        } else {
+            MealplanPage()
+        }
+    }
+
+    @ContentBuilder
+    private var contextualGroceriesPage: some View {
+        ShoppingListsPage()
+            .userActivity("online.tomk.sporkcast.view-groceries") { activity in
+                activity.title = "Sporkcast Groceries"
+                activity.isEligibleForSearch = true
+                activity.isEligibleForPrediction = true
+            }
+    }
+
     @ContentBuilder
     private var bottomAccessory: some View {
         if let first = alarmManager.timers.first {

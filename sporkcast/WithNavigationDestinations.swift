@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import AppIntents
 import Recipe
 import RecipesList
 import Environment
@@ -49,16 +50,33 @@ struct WithNavigationDestinations<Content: View>: View {
                         socialRecipeImportFeatureAccessFallback: socialRecipeImportFeatureAccessFallback
                     )
                 case let .recipe(recipe, suffix):
-                    RecipePage(
-                        recipe,
-                        mealplanEntryId: suffix.flatMap(UUID.init(uuidString:))
-                    )
-                        .navigationTransition(.zoom(
-                            sourceID: "zoom-\(recipe.id.uuidString)\(suffix != nil ? "-\(suffix!)" : "")",
-                            in: namespace
-                        ))
+                    contextualRecipePage(recipe: recipe, suffix: suffix)
                 }
             }
+    }
+
+    @ViewBuilder
+    private func contextualRecipePage(recipe: Models.Recipe, suffix: String?) -> some View {
+        let mealplanEntryId = suffix.flatMap(UUID.init(uuidString:))
+        let page = RecipePage(recipe, mealplanEntryId: mealplanEntryId)
+            .navigationTransition(.zoom(
+                sourceID: "zoom-\(recipe.id.uuidString)\(suffix != nil ? "-\(suffix!)" : "")",
+                in: namespace
+            ))
+
+        if #available(iOS 27.0, *) {
+            page
+                .appEntityIdentifier(EntityIdentifier(for: RecipeEntity.self, identifier: recipe.id))
+                .userActivity("online.tomk.sporkcast.view-recipe", element: recipe.id) { recipeId, activity in
+                    activity.title = recipe.title
+                    activity.webpageURL = URL(string: "sporkcast://recipe/\(recipeId.uuidString)")
+                    activity.appEntityIdentifier = EntityIdentifier(for: RecipeEntity.self, identifier: recipeId)
+                    activity.isEligibleForSearch = true
+                    activity.isEligibleForPrediction = true
+                }
+        } else {
+            page
+        }
     }
 }
 

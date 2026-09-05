@@ -25,13 +25,59 @@ public struct ShoppingListImportPayload: Sendable, Hashable {
     }
 }
 
-public final class ShoppingListMutationRepository {
+public final class ShoppingListMutationRepository: @unchecked Sendable {
 
     @Dependency(\.defaultDatabase) private var database
 
     private let classifier = ShoppingCategoryClassifier()
 
     public init() {}
+
+    @MainActor
+    public func activeShoppingLists(homeId: UUID?) async throws -> [ShoppingList] {
+        try await database.read { db in
+            try DBShoppingList.full
+                .where(SQLCondition(sql: "isArchived = 0"))
+                .fetchAll(db)
+                .filter { $0.shoppingList.homeId == homeId }
+                .map { $0.toDomain() }
+        }
+    }
+
+    @MainActor
+    public func shoppingListItems(homeId: UUID?) async throws -> [ShoppingListItem] {
+        try await activeShoppingLists(homeId: homeId)
+            .flatMap(\.itemGroups)
+            .flatMap(\.items)
+    }
+
+    @MainActor
+    public func shoppingListItems(ids: [UUID]) async throws -> [ShoppingListItem] {
+        guard !ids.isEmpty else { return [] }
+
+        return try await database.read { db in
+            try DBShoppingListItem
+                .where { ids.contains($0.id) }
+                .fetchAll(db)
+                .map {
+                    ShoppingListItem(
+                        id: $0.id,
+                        title: $0.title,
+                        isComplete: $0.isComplete,
+                        categoryId: $0.categoryIdentifier ?? ShoppingCategory.unknown.rawValue,
+                        categoryName: $0.categoryDisplayName,
+                        categorySource: $0.categorySource
+                    )
+                }
+        }
+    }
+
+    @MainActor
+    public func listIdForItem(_ itemId: UUID) async throws -> UUID? {
+        try await database.read { db in
+            try DBShoppingListItem.find(itemId).fetchOne(db)?.listId
+        }
+    }
 
     @MainActor
     public func createShoppingList(homeId: UUID?, title: String = "Shopping List") async throws -> UUID {
@@ -212,6 +258,36 @@ public final class ShoppingListMutationRepository {
         }
 
         await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await syncSupabaseSnapshotForList(listId)
+    }
+
+    @MainActor
+    public func deleteItem(itemId: UUID, listId: UUID?) async throws {
+        try await ShoppingListRemindersSyncService.shared.prepareForLocalItemDeletion(itemIDs: [itemId])
+
+        try await database.write { db in
+            try DBShoppingListItemIngredientLink
+                .where { $0.shoppingListItemId.eq(itemId) }
+                .delete()
+                .execute(db)
+
+            try DBShoppingListItemMealplanLink
+                .where { $0.shoppingListItemId.eq(itemId) }
+                .delete()
+                .execute(db)
+
+            try DBShoppingListItem.find(itemId).delete().execute(db)
+
+            if let listId {
+                try DBShoppingList.find(listId).update {
+                    $0.modifiedAt = Date()
+                }
+                .execute(db)
+            }
+        }
+
+        await ShoppingListRemindersSyncService.shared.scheduleSync(trigger: .localMutation)
+        await SupabaseSyncService.shared.deleteShoppingListItems([itemId])
         await syncSupabaseSnapshotForList(listId)
     }
 
