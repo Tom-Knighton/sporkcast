@@ -69,7 +69,7 @@ struct WithNavigationDestinations<Content: View>: View {
                 .appEntityIdentifier(EntityIdentifier(for: RecipeEntity.self, identifier: recipe.id))
                 .userActivity("online.tomk.sporkcast.view-recipe", element: recipe.id) { recipeId, activity in
                     activity.title = recipe.title
-                    activity.webpageURL = URL(string: "sporkcast://recipe/\(recipeId.uuidString)")
+                    activity.targetContentIdentifier = "sporkcast://recipe/\(recipeId.uuidString)"
                     activity.appEntityIdentifier = EntityIdentifier(for: RecipeEntity.self, identifier: recipeId)
                     activity.isEligibleForSearch = true
                     activity.isEligibleForPrediction = true

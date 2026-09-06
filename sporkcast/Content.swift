@@ -251,7 +251,7 @@ struct AppContent: View {
                 .appEntityIdentifier(EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id))
                 .userActivity("online.tomk.sporkcast.view-mealplan") { activity in
                     activity.title = "Sporkcast Mealplan"
-                    activity.webpageURL = URL(string: "sporkcast://mealplan")
+                    activity.targetContentIdentifier = "sporkcast://mealplan"
                     activity.appEntityIdentifier = EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id)
                     activity.isEligibleForSearch = true
                     activity.isEligibleForPrediction = true
