@@ -16,28 +16,31 @@ public struct RecipeHeadingView<Image: View>: View {
     }
     
     public var body: some View {
-        GeometryReader { reader in
-            ZStack(alignment: .bottom) {
-                image
-                    .frame(height: 400)
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.00),
-                        .init(color: .black, location: 0.99),
-                        .init(color: .black, location: 1.00)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .blendMode(.destinationOut)
-                .allowsHitTesting(false)
-                .frame(height: 200)
+        Color.clear
+            .frame(height: 400)
+            .background {
+                GeometryReader { reader in
+                    ZStack(alignment: .bottom) {
+                        image
+                            .frame(width: reader.size.width, height: reader.size.height)
+                            .clipped()
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.00),
+                                .init(color: .black, location: 0.99),
+                                .init(color: .black, location: 1.00)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .blendMode(.destinationOut)
+                        .allowsHitTesting(false)
+                        .frame(height: 200)
+                    }
+                    .frame(width: reader.size.width, height: reader.size.height)
+                    .compositingGroup()
+                }
+                .ignoresSafeArea(.container, edges: [.top, .trailing])
             }
-            .ignoresSafeArea()
-            .compositingGroup()
-        }
-        .frame(height: 400)
     }
 }

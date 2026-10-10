@@ -72,7 +72,7 @@ struct AppContent: View {
             isMealplanTabEnabled: appSettings.settings.showMealplanPage,
             isGroceriesTabEnabled: appSettings.settings.showGroceriesPage
         ) {
-            NavigationStack(path: $appRouter[.recipes]) {
+            RecipeLibraryNavigationView(startsWithFolders: hasRecipeOrganizationFeatureAccess) {
                 WithNavigationDestinations(
                     namespace: appRouterNamespace,
                     pendingSharedImportURL: $pendingSharedImportURL,

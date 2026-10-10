@@ -125,11 +125,14 @@ public struct RecipePage: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.networkClient) private var client
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.recipeCookingColumnsAllowed) private var cookingColumnsAllowed
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.flagKit) private var flagKit
     @Environment(\.proAccess) private var proAccess
     @Environment(\.appSettings) private var appSettings
     @Dependency(\.defaultDatabase) private var db
     
+    @State private var hasWideCookingArea = false
     @State private var viewModel: RecipeViewModel
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
     @State private var commentsSnapshot: UIImage?
@@ -161,6 +164,10 @@ public struct RecipePage: View {
         self.viewModel.dominantColour = Color(hex: recipe.dominantColorHex ?? "") ?? .clear
     }
     
+    private var usesCookingColumns: Bool {
+        cookingColumnsAllowed && hasWideCookingArea && !dynamicTypeSize.isAccessibilitySize
+    }
+
     public var body: some View {
         ZStack(alignment: .top) {
             ScrollView(.vertical) {
@@ -170,7 +177,7 @@ public struct RecipePage: View {
                             .mask(Rectangle().ignoresSafeArea(edges: .top))
                     }
                     .stretchy()
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(.container, edges: .top)
                     
                     RecipeTitleView(
                         title: viewModel.recipe.title,
@@ -245,82 +252,64 @@ public struct RecipePage: View {
                         
                         Spacer().frame(height: 20)
                         HStack {
-                            Picker("", selection: $viewModel.segment) {
-                                Text("Ingredients")
-                                    .tag(1)
-                                Text("Steps").tag(2)
-                                
-                                if shouldShowRecipeChatInline, let commentsUIImage = commentsSnapshot {
-                                    Image(uiImage: commentsUIImage)
-                                        .tag(3)
-                                } else {
-                                    Text("Comments")
-                                        .tag(3)
-                                }
-                                
-                                if shouldShowRecipeChatTab {
-                                    Text("Chat")
-                                        .tag(4)
-                                }
-                            }
-                            .pickerStyle(.segmented)
+                            RecipeSectionPicker(selection: $viewModel.segment, usesCookingColumns: usesCookingColumns,
+                                                suggestionsImage: shouldShowRecipeChatInline ? commentsSnapshot : nil,
+                                                showsChat: shouldShowRecipeChatTab)
                             Spacer()
                         }
                         .onScrollVisibilityChange { visible in
                             inlinePickerVisible = visible
                         }
                         
-                        if viewModel.segment == 1 {
-                            HStack(spacing: 10) {
-                                ingredientScaleToggleButton
-                                ingredientUnitToggleButton
-                                
-                                Spacer()
-                            }
-                            .padding(.top, 8)
-                            
-                            if showingIngredientScaleControls {
-                                RecipeIngredientScaleControl(
-                                    scale: viewModel.recipe.ingredientScale,
-                                    tint: viewModel.dominantColour
-                                ) { newScale in
-                                    saveIngredientScale(newScale)
-                                } onReset: {
-                                    resetIngredientScale()
-                                } onClose: {
-                                    toggleIngredientScaleControls()
-                                }
-                                .padding(.top, 8)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                            
-                            if showingIngredientUnitControls {
-                                RecipeIngredientUnitControl(
-                                    selectedUnitSystem: viewModel.recipe.ingredientUnitSystem,
-                                    tint: viewModel.dominantColour
-                                ) { newUnitSystem in
-                                    saveIngredientUnitSystem(newUnitSystem)
-                                } onReset: {
-                                    resetIngredientUnitSystem()
-                                } onClose: {
-                                    toggleIngredientUnitControls()
-                                }
-                                .padding(.top, 8)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                        }
-                        
-                        Spacer().frame(height: 24)
+                        Spacer().frame(height: viewModel.segment == 1 && !usesCookingColumns ? 0 : 24)
                         
                         switch viewModel.segment {
                         case 1:
-                            RecipeIngredientsListView(
+                            RecipeCookingContent(
+                                usesColumns: usesCookingColumns,
                                 tint: viewModel.dominantColour,
                                 completedIngredientIDs: completedMealplanIngredientIDs,
                                 showMealplanShoppingTicks: mealplanEntryId != nil,
                                 showIngredientEmojis: showIngredientEmojis
-                            )
-                            .tint(viewModel.dominantColour)
+                            ) {
+                                HStack(spacing: 10) {
+                                    ingredientScaleToggleButton
+                                    ingredientUnitToggleButton
+
+                                    Spacer()
+                                }
+                                .padding(.top, 8)
+
+                                if showingIngredientScaleControls {
+                                    RecipeIngredientScaleControl(
+                                        scale: viewModel.recipe.ingredientScale,
+                                        tint: viewModel.dominantColour
+                                    ) { newScale in
+                                        saveIngredientScale(newScale)
+                                    } onReset: {
+                                        resetIngredientScale()
+                                    } onClose: {
+                                        toggleIngredientScaleControls()
+                                    }
+                                    .padding(.top, 8)
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                }
+
+                                if showingIngredientUnitControls {
+                                    RecipeIngredientUnitControl(
+                                        selectedUnitSystem: viewModel.recipe.ingredientUnitSystem,
+                                        tint: viewModel.dominantColour
+                                    ) { newUnitSystem in
+                                        saveIngredientUnitSystem(newUnitSystem)
+                                    } onReset: {
+                                        resetIngredientUnitSystem()
+                                    } onClose: {
+                                        toggleIngredientUnitControls()
+                                    }
+                                    .padding(.top, 8)
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                }
+                            }
                         case 2:
                             RecipeStepsView(
                                 tint: viewModel.dominantColour,
@@ -350,6 +339,14 @@ public struct RecipePage: View {
             .scrollBounceBehavior(.always, axes: .vertical)
             .coordinateSpace(name: "recipeScroll")
         }
+        .onGeometryChange(for: Bool.self) { geometry in
+            geometry.size.width >= 760
+        } action: { hasWideCookingArea = $0 }
+        .onChange(of: usesCookingColumns) { _, usesColumns in
+            if usesColumns, viewModel.segment == 2 {
+                viewModel.segment = 1
+            }
+        }
         .navigationAllowDismissalGestures(allowDismissalGesture)
         .task {
             Task {
@@ -357,8 +354,7 @@ public struct RecipePage: View {
                 allowDismissalGesture = .all
             }
         }
-        .edgesIgnoringSafeArea(.top)
-        .ignoresSafeArea(.all, edges: .all.subtracting(.bottom))
+        .ignoresSafeArea(.container, edges: .top)
         .environment(viewModel)
         .colorScheme(.dark)
         .background(recipeBackdrop)
@@ -433,25 +429,9 @@ public struct RecipePage: View {
         }
         .safeAreaBar(edge: .top) {
             if !inlinePickerVisible {
-                Picker("", selection: $viewModel.segment) {
-                    Text("Ingredients")
-                        .tag(1)
-                    Text("Steps").tag(2)
-                    
-                    if shouldShowRecipeChatInline, let commentsUIImage = commentsSnapshot {
-                        Image(uiImage: commentsUIImage)
-                            .tag(3)
-                    } else {
-                        Text("Comments")
-                            .tag(3)
-                    }
-                    
-                    if shouldShowRecipeChatTab {
-                        Text("Chat")
-                            .tag(4)
-                    }
-                }
-                .pickerStyle(.segmented)
+                RecipeSectionPicker(selection: $viewModel.segment, usesCookingColumns: usesCookingColumns,
+                                    suggestionsImage: shouldShowRecipeChatInline ? commentsSnapshot : nil,
+                                    showsChat: shouldShowRecipeChatTab)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .padding(.horizontal)
                 .padding(.bottom, 8)
