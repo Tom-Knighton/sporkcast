@@ -133,6 +133,9 @@ public struct RecipePage: View {
     @Dependency(\.defaultDatabase) private var db
     
     @State private var hasWideCookingArea = false
+    @State private var scrollMetrics = RecipeScrollMetrics()
+    @State private var recipeTitleBottom: CGFloat?
+    @State private var scrollPosition = ScrollPosition()
     @State private var viewModel: RecipeViewModel
     @State private var allowDismissalGesture: AllowedNavigationDismissalGestures = .none
     @State private var commentsSnapshot: UIImage?
@@ -154,7 +157,6 @@ public struct RecipePage: View {
     @State private var recipeChatSeperateTab = false
     @State private var shouldCollapseTab = false
     @State private var showIngredientEmojis = true
-    @State private var showNavTitle = false
     private let mealplanEntryId: UUID?
     
     
@@ -168,21 +170,25 @@ public struct RecipePage: View {
         cookingColumnsAllowed && hasWideCookingArea && !dynamicTypeSize.isAccessibilitySize
     }
 
+    private var showNavTitle: Bool {
+        guard let recipeTitleBottom else { return false }
+        return scrollMetrics.visibleTop >= recipeTitleBottom
+    }
+
     public var body: some View {
         ZStack(alignment: .top) {
             ScrollView(.vertical) {
                 VStack(spacing: 0) {
-                    RecipeHeadingView {
+                    RecipeHeadingView(pullDown: scrollMetrics.pullDown) {
                         image()
                             .mask(Rectangle().ignoresSafeArea(edges: .top))
                     }
-                    .stretchy()
                     .ignoresSafeArea(.container, edges: .top)
                     
                     RecipeTitleView(
                         title: viewModel.recipe.title,
                         author: viewModel.recipe.author,
-                        showNavTitle: $showNavTitle
+                        titleBottom: $recipeTitleBottom
                     )
                     
                     VStack {
@@ -257,8 +263,10 @@ public struct RecipePage: View {
                                                 showsChat: shouldShowRecipeChatTab)
                             Spacer()
                         }
-                        .onScrollVisibilityChange { visible in
-                            inlinePickerVisible = visible
+                        .onGeometryChange(for: Bool.self) { geometry in
+                            geometry.frame(in: .named("recipeScroll")).maxY <= 0
+                        } action: { isAboveViewport in
+                            inlinePickerVisible = !isAboveViewport
                         }
                         
                         Spacer().frame(height: viewModel.segment == 1 && !usesCookingColumns ? 0 : 24)
@@ -332,12 +340,34 @@ public struct RecipePage: View {
                     .padding(.horizontal)
                     .scrollTargetLayout()
                 }
+                .coordinateSpace(name: "recipeContent")
             }
             .scrollClipDisabled(true)
             .fontDesign(.rounded)
             .tabBarMinimizeBehavior(shouldCollapseTab ? .onScrollDown : .automatic)
             .scrollBounceBehavior(.always, axes: .vertical)
             .coordinateSpace(name: "recipeScroll")
+            .scrollPosition($scrollPosition)
+            .onScrollGeometryChange(for: RecipeScrollMetrics.self) { geometry in
+                RecipeScrollMetrics(
+                    visibleTop: geometry.visibleRect.minY,
+                    pullDown: max(0, -(geometry.contentOffset.y + geometry.contentInsets.top))
+                )
+            } action: { _, metrics in
+                scrollMetrics = metrics
+            }
+            .ignoresSafeArea(.container, edges: .top)
+
+            RecipeSectionPicker(selection: $viewModel.segment, usesCookingColumns: usesCookingColumns,
+                                suggestionsImage: shouldShowRecipeChatInline ? commentsSnapshot : nil,
+                                showsChat: shouldShowRecipeChatTab)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                .background(.bar)
+                .opacity(inlinePickerVisible ? 0 : 1)
+                .allowsHitTesting(!inlinePickerVisible)
+                .accessibilityHidden(inlinePickerVisible)
+                .animation(.easeInOut(duration: 0.2), value: inlinePickerVisible)
         }
         .onGeometryChange(for: Bool.self) { geometry in
             geometry.size.width >= 760
@@ -354,12 +384,12 @@ public struct RecipePage: View {
                 allowDismissalGesture = .all
             }
         }
-        .ignoresSafeArea(.container, edges: .top)
         .environment(viewModel)
         .colorScheme(.dark)
         .background(recipeBackdrop)
         .toolbarTitleDisplayMode(.inline)
-        .scrollEdgeEffectStyle(showNavTitle ? .hard : .soft, for: .top)
+        .modifier(RecipeNavigationBarBehavior())
+        .scrollEdgeEffectStyle(showNavTitle ? .soft : .soft, for: .top)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.recipe.title)
@@ -427,17 +457,6 @@ public struct RecipePage: View {
                 }
             }
         }
-        .safeAreaBar(edge: .top) {
-            if !inlinePickerVisible {
-                RecipeSectionPicker(selection: $viewModel.segment, usesCookingColumns: usesCookingColumns,
-                                    suggestionsImage: shouldShowRecipeChatInline ? commentsSnapshot : nil,
-                                    showsChat: shouldShowRecipeChatTab)
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: inlinePickerVisible)
         .onChange(of: self.viewModel.recipe, initial: true) { _, newValue in
             if let domC = newValue.dominantColorHex {
                 viewModel.dominantColour = Color(hex: domC) ?? .clear

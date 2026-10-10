@@ -10,8 +10,10 @@ import SwiftUI
 public struct RecipeHeadingView<Image: View>: View {
     
     private let image: Image
+    private let pullDown: CGFloat
     
-    public init (@ContentBuilder imageContent: () -> Image) {
+    public init(pullDown: CGFloat = 0, @ContentBuilder imageContent: () -> Image) {
+        self.pullDown = max(0, pullDown)
         self.image = imageContent()
     }
     
@@ -20,9 +22,10 @@ public struct RecipeHeadingView<Image: View>: View {
             .frame(height: 400)
             .background {
                 GeometryReader { reader in
+                    let height = reader.size.height + pullDown
                     ZStack(alignment: .bottom) {
                         image
-                            .frame(width: reader.size.width, height: reader.size.height)
+                            .frame(width: reader.size.width, height: height)
                             .clipped()
                         LinearGradient(
                             stops: [
@@ -37,7 +40,8 @@ public struct RecipeHeadingView<Image: View>: View {
                         .allowsHitTesting(false)
                         .frame(height: 200)
                     }
-                    .frame(width: reader.size.width, height: reader.size.height)
+                    .frame(width: reader.size.width, height: height)
+                    .offset(y: -pullDown)
                     .compositingGroup()
                 }
                 .ignoresSafeArea(.container, edges: [.top, .trailing])
