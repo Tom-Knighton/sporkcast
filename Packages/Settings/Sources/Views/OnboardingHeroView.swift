@@ -9,18 +9,16 @@ import SwiftUI
 
 struct OnboardingHeroView: View {
     let step: OnboardingStep
+    var diameter: CGFloat = 140
 
     var body: some View {
-        GlassEffectContainer(spacing: 18) {
-            Image(systemName: step.symbolName)
-                .font(.system(size: 78, weight: .semibold))
-                .foregroundStyle(step.tint)
-                .frame(width: 172, height: 172)
-                .glassEffect(.regular.tint(step.tint.opacity(0.12)), in: .circle)
-                .accessibilityHidden(true)
-        }
+        Image(systemName: step.symbolName)
+            .font(.system(size: diameter * 0.45, weight: .semibold))
+            .foregroundStyle(step.tint)
+            .frame(width: diameter, height: diameter)
+            .background(step.tint.opacity(0.12), in: .circle)
+            .accessibilityHidden(true)
         .frame(maxWidth: .infinity)
-        .frame(height: 236)
     }
 }
 
