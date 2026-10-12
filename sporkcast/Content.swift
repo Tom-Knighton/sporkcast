@@ -102,11 +102,7 @@ struct AppContent: View {
                 }
             }
         } settings: {
-            NavigationStack(path: $appRouter[.settings]) {
-                WithNavigationDestinations(namespace: appRouterNamespace) {
-                    SettingsPage()
-                }
-            }
+            SettingsPage()
         }
         .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())
