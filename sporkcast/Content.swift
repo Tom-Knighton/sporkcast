@@ -94,6 +94,7 @@ struct AppContent: View {
                     contextualMealplanPage
                 }
             }
+            .environment(\.recipeCookingColumnsAllowed, true)
         } shoppingLists: {
             NavigationStack(path: $appRouter[.shoppingLists]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {

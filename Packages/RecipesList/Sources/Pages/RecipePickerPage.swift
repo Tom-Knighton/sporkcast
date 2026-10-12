@@ -9,9 +9,12 @@ import SwiftUI
 import Models
 import Environment
 
-public struct RecipePickerPage: View {
+public struct RecipePickerPage<Header: View>: View {
+    private let header: () -> Header
 
     private let onRecipeSelected: (UUID) async -> Void
+    private let title: String
+    private let isEmbedded: Bool
 
     @State private var repository = RecipesRepository()
     @State private var searchText: String = ""
@@ -35,11 +38,100 @@ public struct RecipePickerPage: View {
         return sortedRecipes(filtered)
     }
 
-    public init(_ onRecipeSelected: @escaping (UUID) async -> Void) {
+    public init(_ onRecipeSelected: @escaping (UUID) async -> Void, title: String = "Select A Recipe", isEmbedded: Bool = false, @ViewBuilder header: @escaping () -> Header) {
+        self.header = header
         self.onRecipeSelected = onRecipeSelected
+        self.title = title
+        self.isEmbedded = isEmbedded
     }
 
     public var body: some View {
+        Group {
+            if isEmbedded {
+                recipeList
+                    .safeAreaBar(edge: .top, spacing: 0) {
+                        VStack(spacing: 0) {
+                            header()
+                            embeddedSearchControls
+                        }
+                        .background {
+                            Rectangle()
+                                .fill(.regularMaterial)
+                                .overlay(Color.layer1.opacity(0.85))
+                                .mask {
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: .black, location: 0),
+                                            .init(color: .black, location: 0.8),
+                                            .init(color: .clear, location: 1)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                }
+                                .padding(.bottom, -28)
+                        }
+                    }
+                    .scrollEdgeEffectStyle(.soft, for: .top)
+                    .scrollBounceBehavior(.always, axes: .vertical)
+            } else {
+                recipeList
+                    .navigationTitle(title)
+                    .toolbar {
+                        DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                        ToolbarSpacer(.flexible, placement: .bottomBar)
+                        ToolbarItem(placement: .bottomBar) {
+                            Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
+                        }
+                    }
+                    .searchable(text: $searchText, placement: .automatic, prompt: Text("Search recipes, ingredients..."))
+            }
+        }
+        .sheet(isPresented: $isFilterSheetPresented) {
+            RecipeFiltersSheet(
+                filters: $filters,
+                folderSummaries: [],
+                tagSummaries: [],
+                isRecipeOrganizationEnabled: false
+            )
+        }
+    }
+
+    private var embeddedSearchControls: some View {
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("Search recipes", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .submitLabel(.search)
+                        .autocorrectionDisabled()
+                        .accessibilityLabel("Search recipes and ingredients")
+                    if !searchText.isEmpty {
+                        Button("Clear Search", systemImage: "xmark.circle.fill") { searchText = "" }
+                            .labelStyle(.iconOnly)
+                            .foregroundStyle(.secondary)
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .frame(minHeight: 44)
+                .glassEffect(.regular.interactive(), in: .capsule)
+
+                Button(action: presentFilters) {
+                    Label("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+                        .labelStyle(.iconOnly)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 12)
+    }
+
+    private var recipeList: some View {
         List(filteredRecipes) { recipe in
             Button(action: { selectRecipe(recipe.id) }) {
                 RecipeCardView(recipe: recipe, enablePreview: false)
@@ -61,24 +153,16 @@ public struct RecipePickerPage: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.layer1)
-        .navigationTitle("Select A Recipe")
-        .toolbar {
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-            ToolbarSpacer(.flexible, placement: .bottomBar)
-            ToolbarItem(placement: .bottomBar) {
-                Button(action: presentFilters) {
-                    Image(systemName: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+        .overlay {
+            if filteredRecipes.isEmpty {
+                if repository.recipes.isEmpty {
+                    ContentUnavailableView("No Recipes", systemImage: "book.closed", description: Text("Add recipes to your library to start planning meals."))
+                } else if !searchTokens.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                } else {
+                    ContentUnavailableView("No Matching Recipes", systemImage: "line.3.horizontal.decrease", description: Text("Try adjusting your filters."))
                 }
             }
-        }
-        .searchable(text: $searchText, placement: .automatic, prompt: Text("Search recipes, ingredients..."))
-        .sheet(isPresented: $isFilterSheetPresented) {
-            RecipeFiltersSheet(
-                filters: $filters,
-                folderSummaries: [],
-                tagSummaries: [],
-                isRecipeOrganizationEnabled: false
-            )
         }
     }
 
@@ -142,6 +226,12 @@ public struct RecipePickerPage: View {
                 }
             }
         }
+    }
+}
+
+extension RecipePickerPage where Header == EmptyView {
+    public init(_ onRecipeSelected: @escaping (UUID) async -> Void, title: String = "Select A Recipe", isEmbedded: Bool = false) {
+        self.init(onRecipeSelected, title: title, isEmbedded: isEmbedded) { EmptyView() }
     }
 }
 

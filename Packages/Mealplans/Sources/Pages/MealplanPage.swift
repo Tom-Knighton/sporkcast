@@ -12,6 +12,9 @@ import Persistence
 import Models
 
 public struct MealplanPage: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.homeServices) private var homes
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.calendar) private var calendar
     @Environment(\.appSettings) private var appSettings
@@ -21,7 +24,14 @@ public struct MealplanPage: View {
     @State private var startDate = MealplanPage.currentWeekRange(containing: .now, firstWeekday: 2).lowerBound
     @State private var endDate = MealplanPage.currentWeekRange(containing: .now, firstWeekday: 2).upperBound
     @State private var now = Date()
-    @State private var scrollPosition: ScrollPosition = .init(id: 1)
+    @State private var scrollPosition = ScrollPosition(id: Calendar.current.startOfDay(for: Date.now), anchor: .top)
+    @State private var hasScrolledToToday = false
+    @State private var hasRoomForPicker = false
+    @State private var selectedDay = Calendar.current.startOfDay(for: Date.now)
+    @State private var showingRecipePicker = false
+    @State private var isAddingEntry = false
+    @State private var additionConfirmation: String?
+    @State private var additionError: String?
     @State private var isDraggingEntry: Bool = false
     @State private var repository = MealplanRepository()
     @State private var mealplanWeather = MealplanWeatherService.shared
@@ -49,39 +59,43 @@ public struct MealplanPage: View {
     }
     
     public var body: some View {
-        ZStack {
-            Color.layer1.ignoresSafeArea()
-            ScrollViewReader { reader in
-                ScrollView {
-                    LazyVStack {
-                        ForEach(days, id: \.self) { day in
-                            let mealplanEntries = repository.entries
-                                .filter { calendar.isDate($0.date, inSameDayAs: day)}
-                                .sorted(by: { $0.index < $1.index })
-                            MealplanRowView(
-                                for: day,
-                                with: mealplanEntries,
-                                currentDate: now,
-                                weather: shouldShowWeather ? mealplanWeather.forecast(for: day, calendar: calendar) : nil,
-                                shouldGreyOutPastDays: appSettings.settings.greyOutPastMealplanDays,
-                                isDraggingEntry: $isDraggingEntry
-                            )
-                                .id(day.formatted(date: .numeric, time: .omitted))
-                                .onAppear {
-                                    extendDaysIfNeeded(currentDay: day)
-                                }
-                        }
-                    }
-                    .scrollTargetLayout()
-                    .scrollContentBackground(.hidden)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            reader.scrollTo(now.formatted(date: .numeric, time: .omitted), anchor: .top)
-                        }
-                    }
-                }
-                .contentMargins(.horizontal, 16, for: .scrollContent)
-                .environment(\.isMealplanDragging, isDraggingEntry)
+        MealplanPickerLayout(showsPicker: showsInlinePicker) {
+            MealplanDaysView(
+                days: days,
+                entries: repository.entries,
+                currentDate: now,
+                selectedDay: showsInlinePicker ? selectedDay : nil,
+                weatherService: shouldShowWeather ? mealplanWeather : nil,
+                shouldGreyOutPastDays: appSettings.settings.greyOutPastMealplanDays,
+                isDraggingEntry: $isDraggingEntry,
+                scrollPosition: $scrollPosition,
+                hasScrolledToToday: $hasScrolledToToday,
+                onAddMeal: selectDayForAdding,
+                onDayAppeared: extendDaysIfNeeded
+            )
+
+        } picker: {
+            MealplanRecipePickerView(
+                day: selectedDay,
+                isAddingEntry: isAddingEntry,
+                confirmation: additionConfirmation,
+                onRecipeSelected: addRecipe,
+                onQuickSelect: quickSelectMeal,
+                onRandomRecipeSelected: addRandomRecipe,
+                onNoteSaved: addNote
+            )
+        }
+        .background(Color.layer1.ignoresSafeArea())
+        .onGeometryChange(for: Bool.self) { geometry in
+            geometry.size.width >= 700 && geometry.size.width > geometry.size.height
+        } action: { hasRoomForPicker = $0 }
+        .onChange(of: showsInlinePicker) { _, isInline in
+            if isInline { showingRecipePicker = false }
+        }
+        .onChange(of: now) { _, date in
+            if selectedDay < calendar.startOfDay(for: date) {
+                selectedDay = calendar.startOfDay(for: date)
+                additionConfirmation = nil
             }
         }
         .environment(repository)
@@ -99,6 +113,26 @@ public struct MealplanPage: View {
                 initialStartDate: startDate,
                 initialEndDate: endDate
             )
+        }
+        .sheet(isPresented: $showingRecipePicker) {
+            MealplanRecipePickerView(
+                day: selectedDay,
+                isAddingEntry: isAddingEntry,
+                confirmation: additionConfirmation,
+                onRecipeSelected: addRecipe,
+                onQuickSelect: quickSelectMeal,
+                onRandomRecipeSelected: addRandomRecipe,
+                onNoteSaved: addNote,
+                onClose: { showingRecipePicker = false }
+            )
+        }
+        .alert("Couldn't Add Meal", isPresented: Binding(
+            get: { additionError != nil },
+            set: { if !$0 { additionError = nil } }
+        )) {
+            Button("OK", role: .cancel) { additionError = nil }
+        } message: {
+            Text(additionError ?? "Please try again.")
         }
         .task(id: [startDate, endDate]) {
             await updateQuery()
@@ -138,6 +172,72 @@ public struct MealplanPage: View {
         }
     }
     
+    private var showsInlinePicker: Bool {
+        horizontalSizeClass == .regular && hasRoomForPicker && !dynamicTypeSize.isAccessibilitySize
+    }
+
+    private func selectDayForAdding(_ day: Date) {
+        selectedDay = calendar.startOfDay(for: day)
+        additionConfirmation = nil
+        if !showsInlinePicker { showingRecipePicker = true }
+    }
+
+    private func addRecipe(_ recipeId: UUID) async {
+        do {
+            try await addRandomRecipe(recipeId, to: selectedDay)
+        } catch {
+            additionError = error.localizedDescription
+        }
+    }
+
+    private func addRandomRecipe(_ recipeId: UUID, to day: Date) async throws {
+        try await performAddition(to: day) { index in
+            try await repository.addRecipeEntry(
+                date: day, index: index, recipeId: recipeId, homeId: homes.home?.id
+            )
+        }
+    }
+
+    private func quickSelectMeal(for day: Date) async {
+        do {
+            try await performAddition(to: day) { index in
+                try await repository.insertRandomMeal(date: day, index: index, homeId: homes.home?.id)
+            }
+        } catch {
+            additionError = error.localizedDescription
+        }
+    }
+
+    private func addNote(_ text: String, to day: Date) async -> Bool {
+        do {
+            try await performAddition(to: day) { index in
+                try await repository.addNoteEntry(date: day, index: index, text: text, homeId: homes.home?.id)
+            }
+            return true
+        } catch {
+            additionError = error.localizedDescription
+            return false
+        }
+    }
+
+    private func performAddition(to day: Date, operation: (Int) async throws -> Void) async throws {
+        guard !isAddingEntry else { throw CancellationError() }
+        isAddingEntry = true
+        additionConfirmation = nil
+        defer { isAddingEntry = false }
+
+        let existingEntries = try await repository.entries(startDate: day, endDate: day)
+        let nextIndex = (existingEntries.map(\.index).max() ?? -1) + 1
+        try await operation(nextIndex)
+        await updateQuery()
+        if calendar.isDate(selectedDay, inSameDayAs: day) {
+            let confirmation = "Added to \(day.formatted(date: .abbreviated, time: .omitted))"
+            additionConfirmation = confirmation
+            AccessibilityNotification.Announcement(confirmation).post()
+            if !showsInlinePicker { showingRecipePicker = false }
+        }
+    }
+
     private func extendDaysIfNeeded(currentDay: Date) {
         let threshold = calendar.date(byAdding: .day, value: -7, to: endDate)!
         if currentDay >= threshold {
@@ -224,9 +324,7 @@ public struct MealplanPage: View {
         }
     })
     
-    NavigationStack {
-        MealplanPage()
-    }
+    NavigationStack { MealplanPage() }
     .environment(AppRouter(initialTab: .mealplan))
     .environment(ZoomManager(zm))
     .environment(\.homeServices, MockHouseholdService())

@@ -41,6 +41,9 @@ public struct MealplanRowView: View {
     public let currentDate: Date
     public let weather: MealplanWeatherForecast?
     public let shouldGreyOutPastDays: Bool
+    private let isSelected: Bool
+    private let onAddMeal: (() -> Void)?
+    private let onSelectDay: (() -> Void)?
     
     private var isInPast: Bool {
         dayDifferenceFromNow(for: day) < 0
@@ -52,7 +55,10 @@ public struct MealplanRowView: View {
         currentDate: Date,
         weather: MealplanWeatherForecast? = nil,
         shouldGreyOutPastDays: Bool = true,
-        isDraggingEntry: Binding<Bool>
+        isDraggingEntry: Binding<Bool>,
+        isSelected: Bool = false,
+        onAddMeal: (() -> Void)? = nil,
+        onSelectDay: (() -> Void)? = nil
     ) {
         self.day = day
         self.entries = entries
@@ -60,6 +66,9 @@ public struct MealplanRowView: View {
         self.weather = weather
         self.shouldGreyOutPastDays = shouldGreyOutPastDays
         self._isDragging = isDraggingEntry
+        self.isSelected = isSelected
+        self.onAddMeal = onAddMeal
+        self.onSelectDay = onSelectDay
     }
     
     public var body: some View {
@@ -71,17 +80,28 @@ public struct MealplanRowView: View {
             VStack(spacing: 0) {
                 HStack {
                     HStack(spacing: 8) {
-                        Text(dayTitle(for: day))
-                            .bold()
+                        if let onSelectDay, !isInPast {
+                            Button(action: onSelectDay) {
+                                Text(dayTitle(for: day)).bold()
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                    .contentShape(.rect)
+                                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Plan meals for \(day.formatted(date: .complete, time: .omitted))")
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+                        } else {
+                            Text(dayTitle(for: day)).bold()
+                        }
                         if let weather {
                             MealplanWeatherBadge(weather: weather)
                         }
                     }
                     Spacer()
                     
-                    if !isInPast {
+                    if !isInPast && onSelectDay == nil {
                         Menu {
-                            Button(action: { self.showAddSheet = true }) {
+                            Button(action: addMeal) {
                                 Label("Add Meal", systemImage: "plus.circle")
                             }
                             Button(action: { Task { try? await insertRandomMeal() } }) {
@@ -102,12 +122,13 @@ public struct MealplanRowView: View {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundStyle(.white, .blue)
                                 .font(.title)
-                                .frame(width: 28, height: 28)
+                                .frame(width: 44, height: 44)
                                 .contentShape(.rect)
                                 .fixedSize()
                         }
                         .menuStyle(.button)
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Add meal or note to \(dayTitle(for: day))")
                     }
                 }
                 .padding(.vertical, 8)
@@ -155,6 +176,7 @@ public struct MealplanRowView: View {
                     .stroke(style: .init(lineWidth: isGreyedPastDay ? 2 : 4, dash: isGreyedPastDay ? [5] : []))
                     .fill(isGreyedPastDay ? .gray : calendar.isDateInToday(day) ? .blue : .clear)
             }
+            .background(isSelected ? Color.accentColor.opacity(0.08) : Color.clear)
             .overlay {
                 if isGreyedPastDay {
                     Color.gray.opacity(0.25).allowsHitTesting(false)
@@ -310,6 +332,14 @@ public struct MealplanRowView: View {
                     Button(role: .close) { self.showAddSheet = false }
                 }
             }
+        }
+    }
+
+    private func addMeal() {
+        if let onAddMeal {
+            onAddMeal()
+        } else {
+            showAddSheet = true
         }
     }
     
