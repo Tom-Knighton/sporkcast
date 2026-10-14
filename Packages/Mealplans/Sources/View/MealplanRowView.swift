@@ -215,15 +215,14 @@ public struct MealplanRowView: View {
         if let recipe = entry.recipe {
             let cached = recipeImages[recipe.id]
             
-            SwipeView {
-                RecipeCardView(
-                    recipe: recipe,
-                    enablePreview: false,
-                    preloadedImage: cached,
-                    onImageLoaded: { img in
-                        recipeImages[recipe.id] = img
-                    }
-                )
+            RecipeCardView(
+                recipe: recipe,
+                enablePreview: false,
+                preloadedImage: cached,
+                onImageLoaded: { img in
+                    recipeImages[recipe.id] = img
+                }
+            )
                 .padding(4)
                 .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)-\(entry.id.uuidString)", in: zm.zoomNamespace)
                 .containerShape(.rect(cornerRadius: 10))
@@ -250,50 +249,35 @@ public struct MealplanRowView: View {
                     self.draggingId = nil
                     self.router.navigateTo(.recipe(recipe: recipe, zoomSuffix: entry.id.uuidString))
                 }
-            } trailingActions: { _ in
-                SwipeAction {
+                .adaptiveDeleteSwipeAction {
                     Task { try? await removeEntry(id: entry.id) }
-                } label: { _ in
-                    Label("Delete", systemImage: "trash")
-                } background: { _ in
-                    Color.red
                 }
-                .allowSwipeToTrigger()
-            }
 
         } else if let note = entry.note {
-            SwipeView {
-                NoteView(text: note)
-                    .draggable(entry) {
-                        NoteView(text: note)
-                            .onAppear {
-                                self.draggingId = entry.id
-                            }
-                    }
-                    .transition(.opacity)
-                    .padding(4)
-                    .containerShape(.rect(cornerRadius: 10))
-                    .contextMenu {
-                        Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
-                            Label("Edit", systemImage: "pencil")
+            NoteView(text: note)
+                .draggable(entry) {
+                    NoteView(text: note)
+                        .onAppear {
+                            self.draggingId = entry.id
                         }
-                        Divider()
-                        Button(role: .destructive, action: {
-                            Task { try? await removeEntry(id: entry.id) }
-                        }) {
-                            Label("Remove note", systemImage: "trash")
-                        }
-                    }
-            } trailingActions: { _ in
-                SwipeAction {
-                    Task { try? await removeEntry(id: entry.id) }
-                } label: { _ in
-                    Label("Delete", systemImage: "trash")
-                } background: { _ in
-                    Color.red
                 }
-                .allowSwipeToTrigger()
-            }
+                .transition(.opacity)
+                .padding(4)
+                .containerShape(.rect(cornerRadius: 10))
+                .contextMenu {
+                    Button(action: { self.noteDraft = .init(id: entry.id, text: note)}) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive, action: {
+                        Task { try? await removeEntry(id: entry.id) }
+                    }) {
+                        Label("Remove note", systemImage: "trash")
+                    }
+                }
+                .adaptiveDeleteSwipeAction {
+                    Task { try? await removeEntry(id: entry.id) }
+                }
             
         }
     }
@@ -515,6 +499,7 @@ private struct DropGap: View {
                     MealplanRowView(for: calendar.date(byAdding: .day, value: 1, to: today)!, with: [], currentDate: today, isDraggingEntry: $isDraggingEntry)
                 }
             }
+            .adaptiveSwipeActionsContainer()
             .contentMargins(.horizontal, 16, for: .scrollContent)
         }
         .environment(\.isMealplanDragging, isDraggingEntry)

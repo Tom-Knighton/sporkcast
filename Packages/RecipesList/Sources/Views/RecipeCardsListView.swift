@@ -106,22 +106,15 @@ struct RecipeCardsListView: View {
                     if usesGrid {
                         card
                     } else {
-                        SwipeView {
-                            card
-                        } trailingActions: { _ in
-                            SwipeAction {
+                        card
+                            .adaptiveDeleteSwipeAction {
                                 showDeleteConfirmId = recipe.id
-                            } label: { _ in
-                                Label("Delete", systemImage: "trash")
-                            } background: { _ in
-                                Color.red
                             }
-                            .allowSwipeToTrigger()
-                        }
                     }
                 }
             }
         }
+        .adaptiveSwipeActionsContainer()
         .contentMargins(.horizontal, 16, for: .scrollContent)
     }
 }

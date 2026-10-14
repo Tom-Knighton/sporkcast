@@ -1,4 +1,5 @@
 import Environment
+import Design
 import Models
 import SwiftUI
 
@@ -40,6 +41,7 @@ struct MealplanDaysView: View {
                 }
                 .scrollTargetLayout()
             }
+            .adaptiveSwipeActionsContainer()
             .scrollPosition($scrollPosition)
             .contentMargins(.horizontal, 16, for: .scrollContent)
             .environment(\.isMealplanDragging, isDraggingEntry)
