@@ -21,6 +21,8 @@ public struct RecipeListPage: View {
     @Environment(\.networkClient) private var client
     @Environment(\.appSettings) private var appSettings
     @Environment(\.flagKit) private var flagKit
+    @Environment(\.recipeLibraryNavigation) private var libraryNavigation
+    @Environment(\.recipeBrowsingSessions) private var browsingSessions
 
     @Binding private var pendingSharedImportURL: URL?
     private let initialFolderID: UUID?
@@ -87,8 +89,10 @@ public struct RecipeListPage: View {
             RecipeCardsListView(
                 recipes: filteredRecipes,
                 zoomNamespace: zm.zoomNamespace,
+                presentation: libraryNavigation?.activePresentation ?? .grid,
+                selectedRecipeID: libraryNavigation?.activePresentation == .listAndDetail ? libraryNavigation?.selectedRecipe?.id : nil,
                 onOpen: { recipe in
-                    router.navigateTo(.recipe(recipe: recipe))
+                    openRecipe(recipe)
                 },
                 onDelete: { id in
                     Task {
@@ -106,7 +110,11 @@ public struct RecipeListPage: View {
                 showDeleteConfirmId: $showDeleteConfirmId
             )
         }
+        .onAppear(perform: restoreBrowsingSession)
+        .onChange(of: searchText) { _, _ in saveBrowsingSession() }
+        .onChange(of: filters) { _, _ in saveBrowsingSession() }
         .navigationTitle(navigationTitle)
+        .toolbarTitleDisplayMode(.large)
         .toolbar { toolbarContent }
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search recipes, ingredients..."))
         .searchFocused($isSearchFocused)
@@ -271,52 +279,61 @@ private extension RecipeListPage {
 
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
-        ToolbarItem {
-            Button(action: presentFilters) {
-                Image(systemName: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+        if #available(iOS 27.0, *) {
+            ToolbarItemGroup {
+                Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
+                Button("Add Recipe", systemImage: "plus", action: presentAddRecipe)
             }
-        }
-        
-        if hasRecipeOrganizationProAccess {
-            ToolbarItem {
-                NavigationLink {
-                    RecipeOrganizationManagePage(
-                        repository: organizationRepository,
-                        homeId: homes.home?.id
-                    )
-                } label: {
-                    Label("Folders & Tags", systemImage: "folder.badge.gearshape")
-                }
+            .visibilityPriority(.high)
+
+            ToolbarOverflowMenu {
+                RecipeLibraryViewPicker()
+                RecipeLibrarySecondaryActions(
+                    canOrganize: hasRecipeOrganizationProAccess,
+                    showsDiscovery: appSettings.settings.showDiscoveryPage && !isRecipeDiscoverySeparateTabEnabled,
+                    repository: organizationRepository,
+                    homeID: homes.home?.id
+                )
             }
         } else {
-            ToolbarItem {
-                NavigationLink {
-                    RecipeOrganizationLockedPage()
-                } label: {
-                    Label("Folders & Tags", systemImage: "folder.badge.gearshape")
+            ToolbarItemGroup {
+                Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
+                Button("Add Recipe", systemImage: "plus", action: presentAddRecipe)
+                Menu("More", systemImage: "ellipsis") {
+                    RecipeLibraryViewPicker()
+                    RecipeLibrarySecondaryActions(
+                        canOrganize: hasRecipeOrganizationProAccess,
+                        showsDiscovery: appSettings.settings.showDiscoveryPage && !isRecipeDiscoverySeparateTabEnabled,
+                        repository: organizationRepository,
+                        homeID: homes.home?.id
+                    )
                 }
             }
         }
-        
-        ToolbarSpacer(.fixed)
+    }
 
-        if appSettings.settings.showDiscoveryPage && !isRecipeDiscoverySeparateTabEnabled {
-            ToolbarItem {
-                NavigationLink {
-                    RecipeDiscoveryPage()
-                } label: {
-                    Label("Discover Recipes", systemImage: "sparkles")
-                }
-            }
-        }
+    func presentAddRecipe() {
+        importState.isAddRecipeSheetPresented = true
+    }
 
-        ToolbarItem {
-            Button {
-                importState.isAddRecipeSheetPresented = true
-            } label: {
-                Label("Add Recipe", systemImage: "plus")
-            }
+    func openRecipe(_ recipe: Recipe) {
+        if let libraryNavigation, libraryNavigation.activePresentation == .listAndDetail {
+            libraryNavigation.select(recipe)
+        } else {
+            router.navigateTo(.recipe(recipe: recipe))
         }
+    }
+
+    var browsingSessionKey: String { initialFolderID?.uuidString ?? "all" }
+
+    func restoreBrowsingSession() {
+        guard let snapshot = browsingSessions?.snapshots[browsingSessionKey] else { return }
+        searchText = snapshot.searchText
+        filters = snapshot.filters
+    }
+
+    func saveBrowsingSession() {
+        browsingSessions?.snapshots[browsingSessionKey] = RecipeBrowsingSnapshot(searchText: searchText, filters: filters)
     }
 
     var addRecipeOptions: [AddRecipeAction] {
@@ -355,6 +372,9 @@ private extension RecipeListPage {
     func deleteRecipe(id: UUID) async {
         do {
             try await repository.delete(id)
+            if libraryNavigation?.selectedRecipe?.id == id {
+                libraryNavigation?.clearSelection()
+            }
         } catch {
             print(error)
         }

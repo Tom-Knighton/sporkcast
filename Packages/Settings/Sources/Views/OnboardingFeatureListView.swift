@@ -16,6 +16,7 @@ struct OnboardingFeatureListView: View {
             ForEach(features, id: \.self) { feature in
                 Label(feature, systemImage: "checkmark.circle.fill")
                     .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(.primary)
                     .labelStyle(.titleAndIcon)
                     .symbolRenderingMode(.palette)
@@ -23,7 +24,7 @@ struct OnboardingFeatureListView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .glassEffect(.regular.tint(tint.opacity(0.08)), in: .rect(cornerRadius: 14))
+                    .background(tint.opacity(0.08), in: .rect(cornerRadius: 14))
             }
         }
     }

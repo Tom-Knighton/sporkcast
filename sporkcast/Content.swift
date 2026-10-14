@@ -72,7 +72,7 @@ struct AppContent: View {
             isMealplanTabEnabled: appSettings.settings.showMealplanPage,
             isGroceriesTabEnabled: appSettings.settings.showGroceriesPage
         ) {
-            NavigationStack(path: $appRouter[.recipes]) {
+            RecipeLibraryNavigationView(startsWithFolders: hasRecipeOrganizationFeatureAccess) {
                 WithNavigationDestinations(
                     namespace: appRouterNamespace,
                     pendingSharedImportURL: $pendingSharedImportURL,
@@ -94,6 +94,7 @@ struct AppContent: View {
                     contextualMealplanPage
                 }
             }
+            .environment(\.recipeCookingColumnsAllowed, true)
         } shoppingLists: {
             NavigationStack(path: $appRouter[.shoppingLists]) {
                 WithNavigationDestinations(namespace: appRouterNamespace) {
@@ -101,11 +102,7 @@ struct AppContent: View {
                 }
             }
         } settings: {
-            NavigationStack(path: $appRouter[.settings]) {
-                WithNavigationDestinations(namespace: appRouterNamespace) {
-                    SettingsPage()
-                }
-            }
+            SettingsPage()
         }
         .appSheet($appRouter.presentedSheet, alarmManager: alarmManager, alertManager: alertManager)
         .preferredColorScheme(getColorScheme())

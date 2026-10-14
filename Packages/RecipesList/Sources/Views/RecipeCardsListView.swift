@@ -11,19 +11,29 @@ import Models
 import Environment
 
 struct RecipeCardsListView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let recipes: [Recipe]
     let zoomNamespace: Namespace.ID
+    var presentation: RecipeLibraryPresentation = .grid
+    var selectedRecipeID: UUID?
     let onOpen: (Recipe) -> Void
     let onDelete: (UUID) -> Void
     var canOrganize: Bool = false
     var canShowOrganizeUpsell: Bool = false
     var onOrganize: (Recipe) -> Void = { _ in }
     var onOrganizeUpsell: () -> Void = {}
-    
-    @State private var isSwiping: Bool = false
-    
+
+    private var usesGrid: Bool {
+        presentation == .grid && horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 16), count: usesGrid ? 2 : 1)
+    }
+
     @Binding var showDeleteConfirmId: UUID?
-    
+
     private var alertIsPresented: Binding<Bool> {
         Binding(
             get: { showDeleteConfirmId != nil },
@@ -34,71 +44,77 @@ struct RecipeCardsListView: View {
             }
         )
     }
-    
+
     var body: some View {
         ScrollView {
-            LazyVStack {
+            LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(recipes) { recipe in
-                    SwipeView {
-                        NavigationLink(value: AppDestination.recipe(recipe: recipe)) {
-                            RecipeCardView(recipe: recipe)
-                                .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zoomNamespace)
-                                .contentShape(.rect(cornerRadius: 20))
-                                .containerShape(.rect(cornerRadius: 20))
-                                .contextMenu {
-                                    Button(action: { onOpen(recipe) }) {
-                                        Label("Open", systemImage: "hand.point.up")
-                                    }
+                    let card = Button {
+                        onOpen(recipe)
+                    } label: {
+                        RecipeCardView(recipe: recipe, usesTileLayout: usesGrid)
+                            .matchedTransitionSource(id: "zoom-\(recipe.id.uuidString)", in: zoomNamespace)
+                            .contentShape(.rect(cornerRadius: 20))
+                            .containerShape(.rect(cornerRadius: 20))
+                            .contextMenu {
+                                Button(action: { onOpen(recipe) }) {
+                                    Label("Open", systemImage: "hand.point.up")
+                                }
 
-                                    if canOrganize {
-                                        Button(action: { onOrganize(recipe) }) {
-                                            Label("Folders & Tags", systemImage: "folder.badge.plus")
-                                        }
-                                    } else if canShowOrganizeUpsell {
-                                        Button(action: onOrganizeUpsell) {
-                                            Label("Folders & Tags", systemImage: "folder.badge.plus")
-                                        }
+                                if canOrganize {
+                                    Button(action: { onOrganize(recipe) }) {
+                                        Label("Folders & Tags", systemImage: "folder.badge.plus")
                                     }
-                                    
-                                    Divider()
-                                    
-                                    Button(role: .destructive) {
-                                        showDeleteConfirmId = recipe.id
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                            .tint(.red)
+                                } else if canShowOrganizeUpsell {
+                                    Button(action: onOrganizeUpsell) {
+                                        Label("Folders & Tags", systemImage: "folder.badge.plus")
                                     }
                                 }
-                                .confirmationDialog(
-                                    "Are you sure you want to delete this recipe? This cannot be undone.",
-                                    isPresented: alertIsPresented,
-                                    titleVisibility: .visible,
-                                    presenting: showDeleteConfirmId
-                                ) { id in
-                                    Button(role: .destructive) {
-                                        onDelete(id)
-                                    } label: {
-                                        Text("Delete")
-                                    }
-                                    Button("Cancel", role: .cancel) {}
+
+                                Divider()
+
+                                Button(role: .destructive) {
+                                    showDeleteConfirmId = recipe.id
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                        .tint(.red)
                                 }
+                            }
+                            .confirmationDialog(
+                                "Are you sure you want to delete this recipe? This cannot be undone.",
+                                isPresented: alertIsPresented,
+                                titleVisibility: .visible,
+                                presenting: showDeleteConfirmId
+                            ) { id in
+                                Button(role: .destructive) {
+                                    onDelete(id)
+                                } label: {
+                                    Text("Delete")
+                                }
+                                Button("Cancel", role: .cancel) {}
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .overlay {
+                        if selectedRecipeID == recipe.id {
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(.tint, lineWidth: 3)
                         }
-                        .buttonStyle(.plain)
-                        .navigationLinkIndicatorVisibility(.hidden)
-                    } trailingActions: { _ in
-                        SwipeAction {
-                            onDelete(recipe.id)
-                        } label: { _ in
-                            Label("Delete", systemImage: "trash")
-                        } background: { _ in
-                            Color.red
-                        }
-                        .allowSwipeToTrigger()
+                    }
+                    .accessibilityAddTraits(selectedRecipeID == recipe.id ? .isSelected : [])
+
+                    if usesGrid {
+                        card
+                    } else {
+                        card
+                            .adaptiveDeleteSwipeAction {
+                                showDeleteConfirmId = recipe.id
+                            }
                     }
                 }
             }
         }
+        .adaptiveSwipeActionsContainer()
         .contentMargins(.horizontal, 16, for: .scrollContent)
-        .scrollDisabled(isSwiping)
     }
 }

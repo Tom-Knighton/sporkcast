@@ -16,6 +16,7 @@ struct RandomMealWheelSheet: View {
     private let stepAmount = 5
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var repository = RecipesRepository(observesChanges: false)
     @State private var allRecipes: [Recipe] = []
     @State private var wheelRecipes: [Recipe] = []
@@ -35,53 +36,54 @@ struct RandomMealWheelSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                if isLoading {
-                    ProgressView("Loading recipes")
-                        .frame(maxWidth: .infinity, minHeight: 320)
-                } else if allRecipes.isEmpty {
-                    ContentUnavailableView("No Recipes", systemImage: "fork.knife", description: Text("Add a recipe before spinning for a random meal."))
-                        .frame(maxWidth: .infinity, minHeight: 320)
-                } else {
-                    VStack(spacing: 18) {
-                        RandomMealWheelControls(
-                            mealLimit: mealLimit,
-                            selectedCount: wheelRecipes.count,
-                            totalCount: allRecipes.count,
-                            includesAllRecipes: includesAllRecipes,
-                            canDecrease: canDecreaseMealLimit,
-                            canIncrease: canIncreaseMealLimit,
-                            isDisabled: isSpinning || isAddingMeal || selectedRecipe != nil,
-                            onDecrease: decreaseMealLimit,
-                            onIncrease: increaseMealLimit,
-                            onToggleAll: toggleAllRecipes,
-                            onShuffle: refreshWheelRecipes
-                        )
-
-                        RandomMealWheel(recipes: wheelRecipes, rotation: rotation)
-                            .frame(width: 320, height: 320)
-                            .frame(maxWidth: .infinity)
-                            .onTapGesture {
-                                spin()
+            GeometryReader { geometry in
+                ScrollView {
+                    if isLoading {
+                        ProgressView("Loading recipes")
+                            .frame(maxWidth: .infinity, minHeight: 240)
+                    } else if allRecipes.isEmpty {
+                        ContentUnavailableView("No Recipes", systemImage: "fork.knife", description: Text("Add a recipe before spinning for a random meal."))
+                    } else if allRecipes.count == 1 {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("One recipe available")
+                                .font(.headline)
+                            Text("Add this meal, or grow your library for more random choices.")
+                                .foregroundStyle(.secondary)
+                            if let recipe = allRecipes.first {
+                                RecipeCardView(recipe: recipe, enablePreview: false)
+                                    .frame(height: 160)
+                                Button("Add Meal", systemImage: "plus") { addSelectedRecipe() }
+                                    .buttonStyle(.glassProminent)
+                                    .disabled(isAddingMeal)
                             }
-                            .accessibilityLabel("Random meal wheel")
-                            .accessibilityHint("Tap to spin and add a random meal to this day.")
-
-                        RandomMealWheelStatus(
-                            statusText: statusText,
-                            errorMessage: errorMessage,
-                            selectedRecipe: selectedRecipe,
-                            isSpinning: isSpinning,
-                            isAddingMeal: isAddingMeal,
-                            onAdd: addSelectedRecipe,
-                            onSpinAgain: spinAgain
-                        )
-                        .frame(minHeight: selectedRecipe == nil ? 72 : 164)
+                            if let errorMessage {
+                                Text(errorMessage).foregroundStyle(.red)
+                            }
+                        }
+                        .frame(maxWidth: 480, alignment: .leading)
+                        .frame(maxWidth: .infinity)
+                    } else if geometry.size.width >= 600 && !dynamicTypeSize.isAccessibilitySize {
+                        HStack(alignment: .center, spacing: 28) {
+                            wheel(diameter: min(260, max(180, geometry.size.height - 48)))
+                            VStack(spacing: 20) {
+                                wheelControls
+                                wheelStatus
+                            }
+                            .frame(maxWidth: 400)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: max(0, geometry.size.height - 32))
+                    } else {
+                        VStack(spacing: 20) {
+                            wheelControls
+                            wheel(diameter: min(260, max(180, geometry.size.width - 48)))
+                            wheelStatus
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
+                .padding()
+                .scrollEdgeEffectStyle(.soft, for: .top)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding()
             .navigationTitle("Random Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -95,13 +97,50 @@ struct RandomMealWheelSheet: View {
             .sensoryFeedback(.success, trigger: successTrigger)
             .sensoryFeedback(.selection, trigger: spinHapticTrigger)
             .overlay {
-                if selectedRecipe != nil {
+                if selectedRecipe != nil && allRecipes.count > 1 {
                     RandomMealConfettiBurstView()
                         .id(confettiID)
                         .allowsHitTesting(false)
                 }
             }
         }
+    }
+
+    private var wheelControls: some View {
+        RandomMealWheelControls(
+            mealLimit: mealLimit,
+            selectedCount: wheelRecipes.count,
+            totalCount: allRecipes.count,
+            includesAllRecipes: includesAllRecipes,
+            canDecrease: canDecreaseMealLimit,
+            canIncrease: canIncreaseMealLimit,
+            isDisabled: isSpinning || isAddingMeal || selectedRecipe != nil,
+            onDecrease: decreaseMealLimit,
+            onIncrease: increaseMealLimit,
+            onToggleAll: toggleAllRecipes,
+            onShuffle: refreshWheelRecipes
+        )
+    }
+
+    private func wheel(diameter: CGFloat) -> some View {
+        RandomMealWheel(recipes: wheelRecipes, rotation: rotation)
+            .frame(width: diameter, height: diameter)
+            .frame(maxWidth: .infinity)
+            .onTapGesture { spin() }
+            .accessibilityLabel("Random meal wheel")
+            .accessibilityHint("Tap to choose a random meal.")
+    }
+
+    private var wheelStatus: some View {
+        RandomMealWheelStatus(
+            statusText: statusText,
+            errorMessage: errorMessage,
+            selectedRecipe: selectedRecipe,
+            isSpinning: isSpinning,
+            isAddingMeal: isAddingMeal,
+            onAdd: addSelectedRecipe,
+            onSpinAgain: spinAgain
+        )
     }
 
     private var statusText: String {
@@ -127,6 +166,7 @@ struct RandomMealWheelSheet: View {
             mealLimit = min(defaultMealLimit, max(allRecipes.count, 1))
             includesAllRecipes = allRecipes.count <= defaultMealLimit
             refreshWheelRecipes()
+            if allRecipes.count == 1 { selectedRecipe = allRecipes.first }
         } catch {
             errorMessage = "Failed to load recipes."
         }
@@ -362,9 +402,10 @@ private struct StepperButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.headline)
-                .frame(width: 42, height: 36)
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
         .disabled(!isEnabled)
         .accessibilityLabel(systemImage == "plus" ? "Increase meal count" : "Decrease meal count")
     }

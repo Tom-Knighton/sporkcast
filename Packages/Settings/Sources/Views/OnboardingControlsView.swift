@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct OnboardingControlsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let selectedIndex: Int
     let totalSteps: Int
     let isLastStep: Bool
@@ -18,40 +20,58 @@ struct OnboardingControlsView: View {
 
     var body: some View {
         GlassEffectContainer(spacing: 14) {
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 OnboardingPageIndicatorView(selectedIndex: selectedIndex, totalSteps: totalSteps)
 
-                if showsProCTA {
-                    Button(action: showPro) {
-                        Label("See Sporkast Pro", systemImage: "sparkles")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glassProminent)
+                let actionsLayout = !dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(HStackLayout(spacing: 12))
+                    : AnyLayout(VStackLayout(spacing: 12))
 
-                    Button(action: finish) {
-                        Text("Start Cooking")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glass)
-                } else {
-                    Button(action: next) {
-                        Text(isLastStep ? "Start Cooking" : "Continue")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glassProminent)
+                actionsLayout {
+                    if showsProCTA {
+                        Button(action: showPro) {
+                            Label("Explore Pro", systemImage: "sparkles")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: 240, minHeight: 44)
 
-                    Button(action: finish) {
-                        Text("Skip")
-                            .frame(maxWidth: .infinity)
+                        Button(action: finish) {
+                            Text("Start Cooking")
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 12)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        Button(action: next) {
+                            Text(isLastStep ? "Start Cooking" : "Continue")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: 240, minHeight: 44)
+
+                        Button(action: finish) {
+                            Text("Skip")
+                                .padding(.horizontal, 12)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.glass)
                 }
             }
-            .padding(18)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 28))
+            .padding(12)
+            .glassEffect(.regular, in: .rect(cornerRadius: 24))
         }
+        .frame(maxWidth: 360)
         .padding(.horizontal, 20)
-        .padding(.bottom, 16)
+        .padding(.bottom, 12)
     }
 }
 

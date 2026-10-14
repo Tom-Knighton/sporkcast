@@ -102,6 +102,7 @@ public struct RecipeCardView: View {
     
     let recipe: Recipe
     let hasPreview: Bool
+    let usesTileLayout: Bool
     let preloadedImage: UIImage?
     let onImageLoaded: ((UIImage) -> Void)?
     
@@ -113,21 +114,24 @@ public struct RecipeCardView: View {
     public init(
         recipe: Recipe,
         enablePreview: Bool = true,
+        usesTileLayout: Bool = false,
         preloadedImage: UIImage? = nil,
         onImageLoaded: ((UIImage) -> Void)? = nil
     ) {
         self.recipe = recipe
         self.hasPreview = enablePreview
+        self.usesTileLayout = usesTileLayout
         self.preloadedImage = preloadedImage
         self.onImageLoaded = onImageLoaded
     }
     
     public var body: some View {
         ZStack {
-            RecipeRemoteImage(url: imageURL, data: recipe.image.imageThumbnailData, preloaded: preloadedImage, onLoaded: onImageLoaded)
+            Color.clear
+                .overlay {
+                    RecipeRemoteImage(url: imageURL, data: recipe.image.imageThumbnailData, preloaded: preloadedImage, onLoaded: onImageLoaded)
+                }
                 .clipped()
-                .frame(idealHeight: 135)
-                .fixedSize(horizontal: false, vertical: true)
             
             LinearGradient(colors: [.clear, .clear, .clear, .black.opacity(0.7)],
                            startPoint: .top,
@@ -188,7 +192,8 @@ public struct RecipeCardView: View {
             }
             .padding()
         }
-        .frame(maxWidth: .infinity, minHeight: 135)
+        .modifier(RecipeCardSizing(usesTileLayout: usesTileLayout))
+        .frame(maxWidth: .infinity)
         .clipShape(.rect(corners: .concentric))
         .fontDesign(.rounded)
         .contentShape(Rectangle())

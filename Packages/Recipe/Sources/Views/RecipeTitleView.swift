@@ -11,12 +11,12 @@ import Models
 public struct RecipeTitleView: View {
     private let title: String
     private let author: String?
-    @Binding private var showNavTitle: Bool
+    @Binding private var titleBottom: CGFloat?
     
-    public init(title: String, author: String?, showNavTitle: Binding<Bool>) {
+    public init(title: String, author: String?, titleBottom: Binding<CGFloat?>) {
         self.title = title
         self.author = author
-        self._showNavTitle = showNavTitle
+        self._titleBottom = titleBottom
     }
     
     public var body: some View {
@@ -26,23 +26,12 @@ public struct RecipeTitleView: View {
                 .opacity(0.6)
             Text(title)
                 .font(.title.weight(.bold))
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: TitleBottomYKey.self,
-                                value: Optional(proxy.frame(in: .named("recipeScroll")).maxY)
-                            )
-                    }
-                )
+                .onGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.frame(in: .named("recipeContent")).maxY
+                } action: { bottom in
+                    titleBottom = bottom
+                }
             Spacer()
-        }
-        .onPreferenceChange(TitleBottomYKey.self) { bottom in
-            guard let bottom, bottom.isFinite else { return }
-            let collapsed = max(0, bottom) < 75
-            if collapsed != showNavTitle {
-                showNavTitle = collapsed
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)

@@ -9,6 +9,7 @@ import Design
 import SwiftUI
 
 public struct OnboardingPage: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedStepID = OnboardingStep.all[0].id
     @State private var isPaywallPresented = false
 
@@ -41,9 +42,7 @@ public struct OnboardingPage: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-
-            VStack {
-                Spacer()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 OnboardingControlsView(
                     selectedIndex: selectedIndex,
                     totalSteps: OnboardingStep.all.count,
@@ -67,7 +66,7 @@ public struct OnboardingPage: View {
             return
         }
 
-        withAnimation(.snappy) {
+        withAnimation(reduceMotion ? nil : .snappy) {
             selectedStepID = OnboardingStep.all[selectedIndex + 1].id
         }
     }

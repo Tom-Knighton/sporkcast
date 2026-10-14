@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct OnboardingPageIndicatorView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let selectedIndex: Int
     let totalSteps: Int
 
@@ -17,7 +18,7 @@ struct OnboardingPageIndicatorView: View {
                 Capsule()
                     .fill(index == selectedIndex ? Color.primary : Color.secondary.opacity(0.35))
                     .frame(width: index == selectedIndex ? 24 : 7, height: 7)
-                    .animation(.snappy, value: selectedIndex)
+                    .animation(reduceMotion ? nil : .snappy, value: selectedIndex)
             }
         }
         .accessibilityElement(children: .ignore)
