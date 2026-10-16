@@ -409,6 +409,9 @@ public struct RecipePage: View {
                     }) {
                         Label("Edit Recipe", systemImage: "pencil")
                     }
+                    Button("Add to Meal Plan", systemImage: "calendar.badge.plus") {
+                        router.presentSheet(.recipeMealplan(recipe: viewModel.recipe))
+                    }
                     Button(action: { showingAddToShoppingSheet = true }) {
                         Label("Add Ingredients To Shopping", systemImage: "cart.badge.plus")
                     }

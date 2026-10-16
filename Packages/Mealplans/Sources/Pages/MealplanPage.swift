@@ -12,6 +12,7 @@ import Persistence
 import Models
 
 public struct MealplanPage: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.homeServices) private var homes
@@ -37,7 +38,11 @@ public struct MealplanPage: View {
     @State private var mealplanWeather = MealplanWeatherService.shared
     @State private var showingShoppingListFlow = false
     
-    public init() {}
+    private let recipeToAdd: Recipe?
+
+    public init(recipeToAdd: Recipe? = nil) {
+        self.recipeToAdd = recipeToAdd
+    }
     
     private var days: [Date] {
         var result: [Date] = []
@@ -64,7 +69,8 @@ public struct MealplanPage: View {
                 days: days,
                 entries: repository.entries,
                 currentDate: now,
-                selectedDay: showsInlinePicker ? selectedDay : nil,
+                selectedDay: showsInlinePicker || recipeToAdd != nil ? selectedDay : nil,
+                isSelectingDay: recipeToAdd != nil,
                 weatherService: shouldShowWeather ? mealplanWeather : nil,
                 shouldGreyOutPastDays: appSettings.settings.greyOutPastMealplanDays,
                 isDraggingEntry: $isDraggingEntry,
@@ -73,6 +79,7 @@ public struct MealplanPage: View {
                 onAddMeal: selectDayForAdding,
                 onDayAppeared: extendDaysIfNeeded
             )
+            .disabled(recipeToAdd != nil && isAddingEntry)
 
         } picker: {
             MealplanRecipePickerView(
@@ -85,6 +92,17 @@ public struct MealplanPage: View {
                 onNoteSaved: addNote
             )
         }
+        .safeAreaInset(edge: .bottom) {
+            if let recipeToAdd {
+                MealplanRecipeAdditionBar(
+                    recipeTitle: recipeToAdd.title,
+                    day: selectedDay,
+                    isAdding: isAddingEntry,
+                    onAdd: { Task { await addSelectedRecipe(recipeToAdd.id) } }
+                )
+            }
+        }
+        .interactiveDismissDisabled(recipeToAdd != nil && isAddingEntry)
         .background(Color.layer1.ignoresSafeArea())
         .onGeometryChange(for: Bool.self) { geometry in
             geometry.size.width >= 700 && geometry.size.width > geometry.size.height
@@ -99,13 +117,21 @@ public struct MealplanPage: View {
             }
         }
         .environment(repository)
-        .navigationTitle("Mealplan")
+        .navigationTitle(recipeToAdd == nil ? "Mealplan" : "Add to Meal Plan")
+        .navigationBarTitleDisplayMode(recipeToAdd == nil ? .automatic : .inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Add To Shopping", systemImage: "cart.badge.plus") {
-                    showingShoppingListFlow = true
+            if recipeToAdd != nil {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) { dismiss() }
+                        .disabled(isAddingEntry)
                 }
-                .accessibilityLabel("Add mealplan ingredients to shopping list")
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Add To Shopping", systemImage: "cart.badge.plus") {
+                        showingShoppingListFlow = true
+                    }
+                    .accessibilityLabel("Add mealplan ingredients to shopping list")
+                }
             }
         }
         .sheet(isPresented: $showingShoppingListFlow) {
@@ -173,13 +199,23 @@ public struct MealplanPage: View {
     }
     
     private var showsInlinePicker: Bool {
-        horizontalSizeClass == .regular && hasRoomForPicker && !dynamicTypeSize.isAccessibilitySize
+        recipeToAdd == nil && horizontalSizeClass == .regular && hasRoomForPicker && !dynamicTypeSize.isAccessibilitySize
     }
 
     private func selectDayForAdding(_ day: Date) {
         selectedDay = calendar.startOfDay(for: day)
         additionConfirmation = nil
-        if !showsInlinePicker { showingRecipePicker = true }
+        if recipeToAdd == nil && !showsInlinePicker { showingRecipePicker = true }
+    }
+
+    private func addSelectedRecipe(_ recipeId: UUID) async {
+        guard !isAddingEntry else { return }
+        do {
+            try await addRandomRecipe(recipeId, to: selectedDay)
+            dismiss()
+        } catch {
+            additionError = error.localizedDescription
+        }
     }
 
     private func addRecipe(_ recipeId: UUID) async {

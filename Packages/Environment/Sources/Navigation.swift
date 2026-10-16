@@ -57,6 +57,7 @@ public enum AppSheet: SheetType {
     case timersView
     case householdSettings
     case recipeEdit(recipe: Recipe)
+    case recipeMealplan(recipe: Recipe)
 }
 
 public typealias AppRouter = Router<AppTab, AppDestination, AppSheet>

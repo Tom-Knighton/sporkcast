@@ -41,6 +41,7 @@ public struct MealplanRowView: View {
     public let currentDate: Date
     public let weather: MealplanWeatherForecast?
     public let shouldGreyOutPastDays: Bool
+    private let isSelectingDay: Bool
     private let isSelected: Bool
     private let onAddMeal: (() -> Void)?
     private let onSelectDay: (() -> Void)?
@@ -56,6 +57,7 @@ public struct MealplanRowView: View {
         weather: MealplanWeatherForecast? = nil,
         shouldGreyOutPastDays: Bool = true,
         isDraggingEntry: Binding<Bool>,
+        isSelectingDay: Bool = false,
         isSelected: Bool = false,
         onAddMeal: (() -> Void)? = nil,
         onSelectDay: (() -> Void)? = nil
@@ -66,6 +68,7 @@ public struct MealplanRowView: View {
         self.weather = weather
         self.shouldGreyOutPastDays = shouldGreyOutPastDays
         self._isDragging = isDraggingEntry
+        self.isSelectingDay = isSelectingDay
         self.isSelected = isSelected
         self.onAddMeal = onAddMeal
         self.onSelectDay = onSelectDay
@@ -82,13 +85,21 @@ public struct MealplanRowView: View {
                     HStack(spacing: 8) {
                         if let onSelectDay, !isInPast {
                             Button(action: onSelectDay) {
-                                Text(dayTitle(for: day)).bold()
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                    .contentShape(.rect)
-                                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                                HStack {
+                                    Text(dayTitle(for: day)).bold()
+                                    if isSelectingDay {
+                                        Spacer()
+                                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                .contentShape(.rect)
+                                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Plan meals for \(day.formatted(date: .complete, time: .omitted))")
+                            .accessibilityLabel(isSelectingDay
+                                ? "Select \(day.formatted(date: .complete, time: .omitted))"
+                                : "Plan meals for \(day.formatted(date: .complete, time: .omitted))")
                             .accessibilityAddTraits(isSelected ? .isSelected : [])
                         } else {
                             Text(dayTitle(for: day)).bold()
@@ -167,6 +178,8 @@ public struct MealplanRowView: View {
                         }
                     }
                 }
+                .disabled(isSelectingDay)
+                .allowsHitTesting(!isSelectingDay)
             }
             .contentShape(.rect)
             .fontDesign(.rounded)

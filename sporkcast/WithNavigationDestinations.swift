@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Recipe
+import Mealplans
 import RecipesList
 import Environment
 import Models
@@ -83,6 +84,11 @@ extension View {
                     .environment(alarmManager)
             }
             
+        case .recipeMealplan(recipe: let recipe):
+            NavigationStack {
+                MealplanPage(recipeToAdd: recipe)
+            }
+
         case .recipeEdit(recipe: let recipe):
             NavigationStack {
                 EditRecipePage(recipe: recipe)

@@ -10,6 +10,7 @@ struct MealplanDaysView: View {
     let entries: [MealplanEntry]
     let currentDate: Date
     let selectedDay: Date?
+    var isSelectingDay = false
     let weatherService: MealplanWeatherService?
     let shouldGreyOutPastDays: Bool
     @Binding var isDraggingEntry: Bool
@@ -31,6 +32,7 @@ struct MealplanDaysView: View {
                             weather: weatherService?.forecast(for: day, calendar: calendar),
                             shouldGreyOutPastDays: shouldGreyOutPastDays,
                             isDraggingEntry: $isDraggingEntry,
+                            isSelectingDay: isSelectingDay,
                             isSelected: selectedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false,
                             onAddMeal: selectedDay == nil ? nil : { onAddMeal(day) },
                             onSelectDay: selectedDay == nil ? nil : { onAddMeal(day) }

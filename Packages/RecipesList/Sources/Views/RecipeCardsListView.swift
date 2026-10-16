@@ -11,6 +11,7 @@ import Models
 import Environment
 
 struct RecipeCardsListView: View {
+    @Environment(AppRouter.self) private var router
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let recipes: [Recipe]
@@ -59,6 +60,10 @@ struct RecipeCardsListView: View {
                             .contextMenu {
                                 Button(action: { onOpen(recipe) }) {
                                     Label("Open", systemImage: "hand.point.up")
+                                }
+
+                                Button("Add to Meal Plan", systemImage: "calendar.badge.plus") {
+                                    router.presentSheet(.recipeMealplan(recipe: recipe))
                                 }
 
                                 if canOrganize {
