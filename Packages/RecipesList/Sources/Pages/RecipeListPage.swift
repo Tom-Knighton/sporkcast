@@ -541,7 +541,13 @@ private extension RecipeListPage {
         }
 
         let coordinator = RecipeImportCoordinator(client: client)
-        let existingRecipes = await repository.recipesForDuplicateMatching()
+        let existingRecipes: [RecipeDuplicateSummary]
+        do {
+            existingRecipes = try await repository.duplicateSummaries(for: candidates.map(\.recipe))
+        } catch {
+            importState.presentFailure(mapImportError(error))
+            return
+        }
         let duplicates = coordinator.detectDuplicates(for: candidates, existing: existingRecipes)
 
         if duplicates.isEmpty {

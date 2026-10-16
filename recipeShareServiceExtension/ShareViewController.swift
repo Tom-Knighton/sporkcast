@@ -51,7 +51,11 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        guard let sharedURL = await firstSharedURL(in: items) else {
+        let safariPage = await safariPageSnapshot(in: items)
+        let sharedURL: URL?
+        if let safariPage { sharedURL = safariPage.url }
+        else { sharedURL = await firstSharedURL(in: items) }
+        guard let sharedURL else {
             applyState(.failed("Couldn't find a webpage URL to import."))
             return
         }
@@ -63,6 +67,7 @@ final class ShareViewController: UIViewController {
             return
         }
 
+        if let safariPage { persistSafariPage(safariPage) }
         persistSharedURL(sharedURL)
         importDeepLink = makeImportDeepLink(for: sharedURL)
 
@@ -72,6 +77,35 @@ final class ShareViewController: UIViewController {
         } else {
             applyState(.failed("Couldn't open Sporkast automatically. Tap below to try again."))
         }
+    }
+
+    private struct SafariPageSnapshot {
+        let url: URL
+        let jsonLD: [String]
+    }
+
+    private func safariPageSnapshot(in items: [NSExtensionItem]) async -> SafariPageSnapshot? {
+        for provider in items.flatMap({ $0.attachments ?? [] }) {
+            guard provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier),
+                  let item = await loadItem(from: provider, typeIdentifier: UTType.propertyList.identifier),
+                  let dictionary = item as? [String: Any],
+                  let results = dictionary[NSExtensionJavaScriptPreprocessingResultsKey] as? [String: Any],
+                  let address = results["url"] as? String,
+                  let url = URL(string: address), isWebURL(url),
+                  let scripts = results["jsonLD"] as? [String] else { continue }
+            return SafariPageSnapshot(url: url, jsonLD: scripts)
+        }
+        return nil
+    }
+
+    private func persistSafariPage(_ page: SafariPageSnapshot) {
+        let payload: [String: Any] = [
+            "url": page.url.absoluteString,
+            "createdAt": Date().timeIntervalSince1970,
+            "jsonLD": Array(page.jsonLD.prefix(40))
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload), data.count <= 1_000_000 else { return }
+        UserDefaults(suiteName: appGroupSuiteName)?.set(data, forKey: "share.recipePage.v1")
     }
 
     private func firstSharedURL(in items: [NSExtensionItem]) async -> URL? {

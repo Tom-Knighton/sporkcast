@@ -6,9 +6,11 @@
 //
 
 import Foundation
+import Models
 
 struct ParsedImportRecord: Sendable {
     var record: ImportedRecipeRecord
     var provenance: RecipeImportProvenance
+    var enrichedRecipe: Recipe? = nil
     var rawText: String
 }

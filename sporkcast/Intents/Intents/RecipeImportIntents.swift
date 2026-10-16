@@ -100,7 +100,7 @@ private enum RecipeIntentImporter {
             throw RecipeImportError.noRecipesDetected
         }
 
-        let existingRecipes = await repository.recipesForDuplicateMatching()
+        let existingRecipes = try await repository.duplicateSummaries(for: [candidate.recipe])
         let duplicates = coordinator.detectDuplicates(for: [candidate], existing: existingRecipes)
 
         if let duplicate = duplicates[candidate.id],

@@ -66,39 +66,32 @@ public struct DuplicateResolutionDecision: Sendable, Hashable {
 
 public extension Recipe {
     func duplicateSimilarity(with other: Recipe) -> (score: Double, reason: String) {
-        let lhsTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let rhsTitle = other.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        RecipeDuplicateSummary(recipe: self).duplicateSimilarity(with: RecipeDuplicateSummary(recipe: other))
+    }
+}
 
+public extension RecipeDuplicateSummary {
+    func duplicateSimilarity(with other: RecipeDuplicateSummary) -> (score: Double, reason: String) {
+        if let source = Self.sourceKey(sourceURL), source == Self.sourceKey(other.sourceURL) {
+            return (1, "Matching source URL")
+        }
+        let lhsTitle = Self.titleKey(title)
+        let rhsTitle = Self.titleKey(other.title)
         var score = 0.0
         var reasons: [String] = []
-
         if !lhsTitle.isEmpty && lhsTitle == rhsTitle {
             score += 0.70
             reasons.append("Matching title")
         }
-
-        let lhsIngredients = Set(ingredientSections.flatMap(\.ingredients).compactMap {
-            ($0.ingredientPart ?? $0.ingredientText)
-                .lowercased()
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }.filter { !$0.isEmpty })
-
-        let rhsIngredients = Set(other.ingredientSections.flatMap(\.ingredients).compactMap {
-            ($0.ingredientPart ?? $0.ingredientText)
-                .lowercased()
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }.filter { !$0.isEmpty })
-
+        let lhsIngredients = Set(ingredientNames.map(Self.titleKey).filter { !$0.isEmpty })
+        let rhsIngredients = Set(other.ingredientNames.map(Self.titleKey).filter { !$0.isEmpty })
         if !lhsIngredients.isEmpty && !rhsIngredients.isEmpty {
-            let overlap = lhsIngredients.intersection(rhsIngredients).count
-            let maxCount = max(lhsIngredients.count, rhsIngredients.count)
-            let overlapRatio = Double(overlap) / Double(maxCount)
-            if overlapRatio >= 0.5 {
-                score += 0.30 * overlapRatio
-                reasons.append("Ingredient overlap \(Int(overlapRatio * 100))%")
+            let ratio = Double(lhsIngredients.intersection(rhsIngredients).count) / Double(max(lhsIngredients.count, rhsIngredients.count))
+            if ratio >= 0.5 {
+                score += 0.30 * ratio
+                reasons.append("Ingredient overlap \(Int(ratio * 100))%")
             }
         }
-
-        return (min(1.0, score), reasons.joined(separator: ", "))
+        return (min(1, score), reasons.joined(separator: ", "))
     }
 }

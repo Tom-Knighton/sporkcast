@@ -6,6 +6,8 @@
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
+			<key>NSExtensionJavaScriptPreprocessingFile</key>
+			<string>RecipePreprocessor</string>
 			<key>NSExtensionActionWantsFullScreenPresentation</key>
 			<true/>
 			<key>NSExtensionActivationRule</key>

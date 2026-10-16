@@ -615,7 +615,7 @@ enum SocialRecipePageExtractor {
             || text.localizedCaseInsensitiveContains(".image")
     }
 
-    private static func decodeHTMLEntities(_ text: String) -> String {
+    static func decodeHTMLEntities(_ text: String) -> String {
         decodeNumericHTMLEntities(in: text)
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&#34;", with: "\"")

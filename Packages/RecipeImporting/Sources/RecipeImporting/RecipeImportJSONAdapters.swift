@@ -327,7 +327,7 @@ private struct PaprikaJSONImportAdapter: RecipeImportJSONAdapting {
     }
 }
 
-private enum RecipeImportJSONSupport {
+enum RecipeImportJSONSupport {
     static func extractRecipeObjects(
         from object: Any,
         collectionKeys: [String],

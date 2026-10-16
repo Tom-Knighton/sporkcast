@@ -55,6 +55,46 @@ public final class RecipesRepository {
         }
     }
 
+    public func duplicateSummaries(for candidates: [Recipe]) async throws -> [RecipeDuplicateSummary] {
+        let started = ProcessInfo.processInfo.systemUptime
+        defer { RecipeImportPerformance.record("duplicate-query", since: started) }
+        let sources = Set(candidates.compactMap { RecipeDuplicateSummary.sourceKey($0.sourceUrl) })
+        return try await database.read { db in
+            // Ingredient overlap alone cannot reach the duplicate threshold.
+            let rows = try Row.fetchAll(db, sql: "SELECT id, title, sourceUrl FROM Recipes")
+            let existingSources = Set(rows.compactMap { row in RecipeDuplicateSummary.sourceKey(row["sourceUrl"]) })
+            let titles = Set(candidates.filter { recipe in
+                guard let source = RecipeDuplicateSummary.sourceKey(recipe.sourceUrl) else { return true }
+                return !existingSources.contains(source)
+            }.map { RecipeDuplicateSummary.titleKey($0.title) }.filter { !$0.isEmpty })
+            let matches: [(UUID, String, String)] = rows.compactMap { row in
+                let title: String = row["title"]
+                let source: String = row["sourceUrl"]
+                guard titles.contains(RecipeDuplicateSummary.titleKey(title))
+                    || RecipeDuplicateSummary.sourceKey(source).map(sources.contains) == true else { return nil }
+                return (row["id"], title, source)
+            }
+            var ingredientsByID: [UUID: [String]] = [:]
+            let ids = matches.filter { titles.contains(RecipeDuplicateSummary.titleKey($0.1)) }.map(\.0)
+            for offset in stride(from: 0, to: ids.count, by: 200) {
+                let chunk = Array(ids[offset..<min(offset + 200, ids.count)])
+                let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ",")
+                let ingredients = try Row.fetchAll(db, sql: """
+                    SELECT g.recipeId, COALESCE(i.ingredient, i.rawIngredient) AS name
+                    FROM RecipeIngredients i
+                    JOIN RecipeIngredientGroups g ON g.id = i.ingredientGroupId
+                    WHERE g.recipeId IN (\(placeholders))
+                    """, arguments: StatementArguments(chunk))
+                for row in ingredients {
+                    let id: UUID = row["recipeId"]
+                    let name: String = row["name"]
+                    ingredientsByID[id, default: []].append(name)
+                }
+            }
+            return matches.map { RecipeDuplicateSummary(id: $0.0, title: $0.1, sourceURL: $0.2, ingredientNames: ingredientsByID[$0.0] ?? []) }
+        }
+    }
+
     public init(observesChanges: Bool = true) {
         guard observesChanges else { return }
 
