@@ -471,6 +471,16 @@ public struct RecipePage: View {
                 showingIngredientUnitControls = false
             }
         }
+        .onChange(of: viewModel.recipeChatMessages.last?.id) { _, _ in
+            guard (viewModel.segment == 4 && shouldShowRecipeChatTab)
+                || (viewModel.segment == 3 && shouldShowRecipeChatInline),
+                let message = viewModel.recipeChatMessages.last else { return }
+            if message.role == .assistant {
+                scrollPosition.scrollTo(id: message.id, anchor: .top)
+            } else {
+                scrollPosition.scrollTo(id: "recipe-chat-composer", anchor: .bottom)
+            }
+        }
         .onChange(of: shouldShowRecipeChatTab, initial: true) { _, isShown in
             if isShown == false, viewModel.segment == 4 {
                 viewModel.segment = 3
@@ -487,6 +497,10 @@ public struct RecipePage: View {
                 try? await viewModel.generateEmojis()
             }
             try? await viewModel.generateTipsAndSummary()
+        }
+        .onChange(of: flagKit.isEnabled(.recipePrivateCloudComputeEnabled, default: false), initial: true) { _, enabled in
+            viewModel.privateCloudComputeEnabled = enabled
+            if !viewModel.recipeChatResponding { viewModel.recipeChatRoute = nil }
         }
         .task {
             refreshFeatureFlags()
@@ -747,7 +761,7 @@ extension RecipePage {
     func generateCommentsLabel() {
         Task {
             let renderer = ImageRenderer(
-                content: buildPickerLabel(title: "Suggestions", systemImage: viewModel.recipe.summarisedTip == nil ? "" : "sparkles"), scale: self.displayScale)
+                content: buildPickerLabel(title: "Suggestions", systemImage: viewModel.recipe.summarisedTip == nil ? "" : "quote.bubble"), scale: self.displayScale)
             if let image = renderer.uiImage {
                 self.commentsSnapshot = image
             }
@@ -1003,7 +1017,7 @@ extension RecipePage {
     }
 
     private var shouldShowRecipeChat: Bool {
-        recipeChatEnabled && viewModel.supportsRecipeChat
+        recipeChatEnabled
     }
     
     private var shouldShowRecipeChatInline: Bool {

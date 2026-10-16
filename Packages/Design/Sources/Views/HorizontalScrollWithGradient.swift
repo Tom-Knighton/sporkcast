@@ -15,7 +15,7 @@ public struct HorizontalScrollWithGradient<Content: View>: View {
     
     let content: Content
     @State private var metrics = Metrics(offsetX: 0, contentWidth: 0, containerWidth: 0)
-    @State private var hasMoreToScroll = false
+    @Environment(\.layoutDirection) private var layoutDirection
     
     public init(@ContentBuilder content: () -> Content) {
         self.content = content()
@@ -34,13 +34,27 @@ public struct HorizontalScrollWithGradient<Content: View>: View {
                 contentWidth: g.contentSize.width,
                 containerWidth: g.containerSize.width
             )
-        } action: { newMetrics, _ in
+        } action: { _, newMetrics in
             metrics = newMetrics
-            let endVisibleX = metrics.offsetX + metrics.containerWidth
-            withAnimation {
-                self.hasMoreToScroll = metrics.contentWidth > metrics.containerWidth && endVisibleX < metrics.contentWidth - 1
-            }
         }
-        .mask(LinearGradient(gradient: Gradient(colors: [.black, .black, .black, hasMoreToScroll ? .clear : .black]), startPoint: .leading, endPoint: .trailing))
+        .mask {
+            let overflows = metrics.contentWidth > metrics.containerWidth + 1
+            let hasContentBefore = overflows && metrics.offsetX > 1
+            let hasContentAfter = overflows && metrics.offsetX + metrics.containerWidth < metrics.contentWidth - 1
+            let fadesLeading = layoutDirection == .leftToRight ? hasContentBefore : hasContentAfter
+            let fadesTrailing = layoutDirection == .leftToRight ? hasContentAfter : hasContentBefore
+            let fadeFraction = min(24 / max(metrics.containerWidth, 1), 0.5)
+
+            LinearGradient(
+                stops: [
+                    .init(color: fadesLeading ? .clear : .black, location: 0),
+                    .init(color: .black, location: fadeFraction),
+                    .init(color: .black, location: 1 - fadeFraction),
+                    .init(color: fadesTrailing ? .clear : .black, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
     }
 }

@@ -25,6 +25,7 @@ public struct AppFlagContext: Sendable {
 public enum FeatureFlag: String, Sendable {
     case recipeImportPaprikaEnabled = "recipe-import-paprika-support"
     case recipeChatEnabled = "recipe_chat_enabled"
+    case recipePrivateCloudComputeEnabled = "recipe-private-cloud-compute-enabled"
     case recipeChatSeperateTab = "recipe_chat_seperate_tab"
     case appCollapseTabBar = "app-collapse-tab-bar"
     case recipeOrganizationPro = "recipe-organization-pro"
@@ -83,6 +84,11 @@ public final class FlagService: FlagServiceProtocol, @unchecked Sendable {
         ) { [weak self] timedOut in
             guard let self else { return }
             self.hasStarted = true
+            LDClient.get()?.observe(key: FeatureFlag.recipePrivateCloudComputeEnabled.rawValue, owner: self) { [weak self] _ in
+                Task { @MainActor in
+                    self?.contextVersion += 1
+                }
+            }
             
 #if DEBUG
             if timedOut {

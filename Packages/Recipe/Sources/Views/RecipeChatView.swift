@@ -1,231 +1,143 @@
-//
-//  RecipeChatView.swift
-//  Recipe
-//
-//  Created by Tom Knighton on 12/04/2026.
-//
-
 import SwiftUI
-import Design
 
 struct RecipeChatView: View {
     @Environment(RecipeViewModel.self) private var viewModel
     @State private var draftMessage = ""
+    @State private var responseTask: Task<Void, Never>?
+    @State private var showsResetConfirmation = false
+    @FocusState private var composerFocused: Bool
 
     var body: some View {
-        GlassEffectContainer(spacing: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Recipe Chat")
-                        .font(.title3.bold())
-                    Spacer()
-                    if viewModel.recipeChatMessages.isEmpty == false {
-                        Button("New Chat") {
-                            viewModel.clearRecipeChat()
-                        }
-                        .buttonStyle(.glass)
-                        .font(.footnote)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        RecipeAssistantOrb()
+                        Text("Recipe assistant")
+                            .font(.subheadline.weight(.semibold))
                     }
+                    .padding(.bottom, 8)
+                    Text(viewModel.recipeChatMessages.isEmpty ? "Make it your own." : "Let’s talk cooking.")
+                        .font(.title.bold())
+                        .foregroundStyle(.primary)
+                    Text("Substitutions, a head start, or a tricky step. Let's make this recipe work for you.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text("Ask about substitutions, timings, prep strategy, or cooking adjustments for this recipe.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                if !viewModel.recipeChatMessages.isEmpty {
+                    Menu("Chat options", systemImage: "ellipsis") {
+                        Button("New conversation", systemImage: "square.and.pencil") {
+                            showsResetConfirmation = true
+                        }
+                        ShareLink("Share conversation", item: viewModel.recipeChatMessages.map {
+                            "\($0.role == .user ? "You" : "Sporkast"): \($0.content)"
+                        }.joined(separator: "\n\n"))
+                    }
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                }
             }
 
-            if viewModel.recipeChatSuggestedPrompts.isEmpty == false {
-                RecipeChatPromptSuggestions(
-                    prompts: viewModel.recipeChatSuggestedPrompts,
-                    isDisabled: viewModel.recipeChatResponding,
-                    onTap: sendPrompt
-                )
+            if !viewModel.recipeChatMessages.isEmpty {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    ForEach(viewModel.recipeChatMessages) { message in
+                        RecipeChatBubble(message: message)
+                            .id(message.id)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+
+            if viewModel.recipeChatResponding {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Working on your recipe…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
             }
 
             if let error = viewModel.recipeChatError {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 12)
-            }
-
-            recipeMessages
-            RecipeChatComposer(
-                message: $draftMessage,
-                isSending: viewModel.recipeChatResponding,
-                onSend: sendDraft
-            )
-        }
-        .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-        .intelligenceBackground(in: .rect(cornerRadius: 16), animated: false)
-        .fontDesign(.rounded)
-    }
-
-    @ContentBuilder
-    private var recipeMessages: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical) {
-                LazyVStack(spacing: 10) {
-                    if viewModel.recipeChatMessages.isEmpty {
-                        RecipeChatEmptyState()
-                    } else {
-                        ForEach(viewModel.recipeChatMessages) { message in
-                            RecipeChatBubble(message: message)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(error, systemImage: "exclamationmark.circle")
+                        .foregroundStyle(.secondary)
+                    if viewModel.recipeChatMessages.last?.role == .user {
+                        Button("Try again", systemImage: "arrow.clockwise") {
+                            responseTask = Task { await viewModel.retryRecipeChat() }
                         }
+                        .disabled(viewModel.recipeChatResponding)
                     }
-
-                    if viewModel.recipeChatResponding {
-                        RecipeChatThinkingBubble()
-                    }
-
-                    Color.clear
-                        .frame(height: 1)
-                        .id("recipe-chat-bottom")
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
+                .font(.subheadline)
             }
-            .frame(maxHeight: 320)
-            .onChange(of: viewModel.recipeChatMessages.count, initial: true) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("recipe-chat-bottom", anchor: .bottom)
-                }
+
+            VStack(alignment: .leading, spacing: 10) {
+                RecipeChatComposer(
+                    message: $draftMessage,
+                    isSending: viewModel.recipeChatResponding,
+                    isAvailable: viewModel.supportsRecipeChat,
+                    focus: $composerFocused,
+                    onSend: sendDraft,
+                    onStop: stopResponse
+                )
+                Label(
+                    viewModel.recipeChatRoute ?? viewModel.intelligence.availabilityDescription,
+                    systemImage: "lock.shield"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .onChange(of: viewModel.recipeChatResponding) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("recipe-chat-bottom", anchor: .bottom)
-                }
+            .id("recipe-chat-composer")
+
+            if viewModel.recipeChatMessages.isEmpty {
+                RecipeChatPromptSuggestions(
+                    prompts: viewModel.recipeChatSuggestedPrompts,
+                    isDisabled: !viewModel.supportsRecipeChat || viewModel.recipeChatResponding,
+                    onTap: sendPrompt
+                )
             }
         }
+        .padding(20)
+        .background(RecipeAssistantStyle.surface, in: .rect(cornerRadius: 24))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(RecipeAssistantStyle.border, lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .fontDesign(.default)
+        .tint(.primary)
+        .confirmationDialog("Start a new conversation?", isPresented: $showsResetConfirmation, titleVisibility: .visible) {
+            Button("New conversation", role: .destructive) {
+                stopResponse()
+                viewModel.clearRecipeChat()
+            }
+        } message: {
+            Text("This will clear the messages in this recipe's chat.")
+        }
+        .onDisappear { stopResponse() }
     }
 
     private func sendDraft() {
-        let trimmed = draftMessage
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.isEmpty == false else { return }
-
+        let prompt = draftMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty, prompt.count <= 2000,
+              !viewModel.recipeChatResponding, viewModel.supportsRecipeChat else { return }
         draftMessage = ""
-        Task {
-            await viewModel.sendRecipeChatMessage(trimmed)
-        }
+        sendPrompt(prompt)
     }
 
     private func sendPrompt(_ prompt: String) {
-        Task {
-            await viewModel.sendRecipeChatMessage(prompt)
-        }
-    }
-}
-
-private struct RecipeChatPromptSuggestions: View {
-    let prompts: [String]
-    let isDisabled: Bool
-    let onTap: (String) -> Void
-
-    var body: some View {
-        HorizontalScrollWithGradient {
-            ForEach(prompts, id: \.self) { prompt in
-                Button(action: { onTap(prompt) }) {
-                    Text(prompt)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(Material.thin)
-                        .clipShape(.capsule)
-                }
-                .font(.footnote)
-                .disabled(isDisabled)
-            }
-        }
-    }
-}
-
-private struct RecipeChatBubble: View {
-    let message: RecipeChatMessage
-
-    private var isUser: Bool {
-        message.role == .user
+        guard !viewModel.recipeChatResponding else { return }
+        composerFocused = false
+        responseTask = Task { await viewModel.sendRecipeChatMessage(prompt) }
     }
 
-    var body: some View {
-        HStack {
-            if isUser {
-                Spacer(minLength: 28)
-            }
-
-            Text(message.content)
-                .textSelection(.enabled)
-                .font(.body)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(isUser ? Material.thin : Material.regular)
-                .clipShape(.rect(cornerRadius: 12))
-
-            if isUser == false {
-                Spacer(minLength: 28)
-            }
-        }
-    }
-}
-
-private struct RecipeChatThinkingBubble: View {
-    var body: some View {
-        HStack(spacing: 8) {
-            ProgressView()
-            Text("Thinking...")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Material.regular)
-        .clipShape(.rect(cornerRadius: 12))
-    }
-}
-
-private struct RecipeChatEmptyState: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Ask this recipe anything", systemImage: "text.bubble")
-                .font(.subheadline.weight(.semibold))
-            Text("Try substitutions, timing tweaks, or scaling questions - or ask clarifying questions about ingredients or steps.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Material.regular)
-        .clipShape(.rect(cornerRadius: 12))
-    }
-}
-
-private struct RecipeChatComposer: View {
-    @Binding var message: String
-    let isSending: Bool
-    let onSend: () -> Void
-
-    private var canSend: Bool {
-        message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false && isSending == false
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            TextField("Ask about this recipe", text: $message, axis: .vertical)
-                .lineLimit(1...4)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Material.regular, in: .rect(cornerRadius: 10))
-
-            Button(action: onSend) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title2)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(canSend ? Color.primary : Color.secondary)
-            .disabled(canSend == false)
-        }
+    private func stopResponse() {
+        responseTask?.cancel()
+        responseTask = nil
+        if viewModel.recipeChatResponding { viewModel.cancelRecipeChat() }
     }
 }

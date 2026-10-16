@@ -24,36 +24,47 @@ struct RecipeCommentsView: View {
     }
  
     var body: some View {
-        VStack {
+        VStack(alignment: .leading, spacing: 20) {
             if vm.tipsAndSummaryGenerating {
-                HStack {
-                    Text("Generating summary")
-                    Image(systemName: "ellipsis")
-                        .symbolEffect(.variableColor.cumulative.hideInactiveLayers, options: .repeat(.continuous), isActive: true)
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("Finding useful tips in the reviews…")
+                        .font(.subheadline)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .glassEffect(.regular.interactive(), in: .containerRelative)
-                .intelligenceBackground(in: .containerRelative)
-                .transition(.blurReplace)
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RecipeAssistantStyle.surface, in: .rect(cornerRadius: 20))
             }
-            
-            if !vm.tipsAndSummaryGenerating, let tip = vm.recipe.summarisedTip {
-                VStack {
-                    Text(tip)
-                    
+
+            if !vm.tipsAndSummaryGenerating, let tip = vm.recipe.summarisedTip, !tip.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
+                        Label("From the cooks", systemImage: "quote.bubble")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
                         Spacer()
-                        Button(action: { self.showLLMInfo = true }) {
-                            Image(systemName: "info.circle")
+                        Button("About this summary", systemImage: "info.circle") {
+                            showLLMInfo = true
                         }
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 44)
                     }
+                    Text(tip)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(24)
-                .frame(maxWidth: .infinity)
-                .glassEffect(.regular, in: .rect(cornerRadius: 10))
-                .intelligenceBackground(in: .rect(cornerRadius: 10), animated: false)
-                .transition(.blurReplace)
+                .padding(20)
+                .background(RecipeAssistantStyle.surface, in: .rect(cornerRadius: 20))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(RecipeAssistantStyle.border, lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+            }
+
+            if !showRecipeChat, ratings.isEmpty, vm.recipe.summarisedTip == nil, !vm.tipsAndSummaryGenerating {
+                ContentUnavailableView("No cooking tips yet", systemImage: "bubble.left.and.bubble.right", description: Text("Reviews and useful tips from other cooks will appear here when this recipe has them."))
             }
 
             if showRecipeChat {
@@ -76,7 +87,7 @@ struct RecipeCommentsView: View {
             
             if !ratings.isEmpty {
                 Spacer().frame(height: 16)
-                Text("Reviews:")
+                Text("What other cooks say")
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -87,11 +98,11 @@ struct RecipeCommentsView: View {
             
             Spacer().frame(height: 8)
         }
-        .fontDesign(.rounded)
-        .alert("Info", isPresented: $showLLMInfo) {
+        .fontDesign(.default)
+        .alert("About review summaries", isPresented: $showLLMInfo) {
             Button(role: .confirm) {}
         } message: {
-            Text("Sporkast uses your device's (or someone in your Sporkast home's) built-in Apple Intelligence to generate a 'summary' of user reviews for this recipe. It is not trained on any external data - and only the generated summary is stored in your iCloud storage.")
+            Text("Apple Intelligence summarises the reviews attached to this recipe, using Private Cloud Compute when available or an on-device model. The summary can be shared with your Sporkast home. Generated tips can contain mistakes; check the original reviews for context.")
         }
 
     }
