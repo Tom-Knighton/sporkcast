@@ -46,7 +46,7 @@ struct RecipeLibraryNavigationView<Collection: View>: View {
         }
         .environment(\.recipeLibraryNavigation, library)
         .environment(\.recipeBrowsingSessions, browsing)
-        .environment(\.recipeCookingColumnsAllowed, library.isSplitViewAvailable && library.activePresentation == .listAndDetail && columnVisibility == .detailOnly)
+        .environment(\.recipeCookingColumnsAllowed, library.activePresentation != .listAndDetail || columnVisibility == .detailOnly)
         .onGeometryChange(for: Bool.self) { geometry in
             // Leave enough room for the collection and a readable recipe pane.
             geometry.size.width >= 760

@@ -279,7 +279,7 @@ private extension RecipeListPage {
 
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
-        if #available(iOS 27.0, *) {
+        if #available(iOS 27.0, *), RecipeListDevice.isDuo {
             ToolbarItemGroup {
                 Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
                 Button("Add Recipe", systemImage: "plus", action: presentAddRecipe)
@@ -297,17 +297,24 @@ private extension RecipeListPage {
             }
         } else {
             ToolbarItemGroup {
-                Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
-                Button("Add Recipe", systemImage: "plus", action: presentAddRecipe)
-                Menu("More", systemImage: "ellipsis") {
+                if hasRecipeOrganizationProAccess {
                     RecipeLibraryViewPicker()
                     RecipeLibrarySecondaryActions(
-                        canOrganize: hasRecipeOrganizationProAccess,
+                        canOrganize: true,
                         showsDiscovery: appSettings.settings.showDiscoveryPage && !isRecipeDiscoverySeparateTabEnabled,
                         repository: organizationRepository,
                         homeID: homes.home?.id
                     )
+                } else {
+                    Button("Sporkast Pro", systemImage: "sparkles") {
+                        isProPaywallPresented = true
+                    }
                 }
+            }
+            ToolbarSpacer(.fixed)
+            ToolbarItemGroup {
+                Button("Filter Recipes", systemImage: filters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease", action: presentFilters)
+                Button("Add Recipe", systemImage: "plus", action: presentAddRecipe)
             }
         }
     }
