@@ -17,7 +17,12 @@ public struct RecipeEntity: IndexedEntity, URLRepresentableEntity, Identifiable,
     
     public static let defaultQuery = RecipeEntryEntityQuery()
     public static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Recipe")
-    public static let urlRepresentation: EntityURLRepresentation<RecipeEntity> = "sporkcast://recipe/\(.id)"
+    public static let urlRepresentation: EntityURLRepresentation<RecipeEntity> = {
+        var interpolation = EntityURLRepresentation<RecipeEntity>.StringInterpolation(literalCapacity: 32, interpolationCount: 1)
+        interpolation.appendLiteral("\(AppConfiguration.urlScheme)://recipe/")
+        interpolation.appendInterpolation(.id)
+        return EntityURLRepresentation(stringInterpolation: interpolation)
+    }()
 
     public let id: UUID
     
@@ -74,7 +79,7 @@ public struct RecipeEntity: IndexedEntity, URLRepresentableEntity, Identifiable,
             ingredientNames: ingredientNames
         )
 
-        attributeSet.contentURL = URL(string: "sporkcast://recipe/\(id.uuidString)")
+        attributeSet.contentURL = URL(string: "\(AppConfiguration.urlScheme)://recipe/\(id.uuidString)")
         attributeSet.title = title
         attributeSet.displayName = title
         attributeSet.contentType = "online.tomk.sporkcast.recipe"

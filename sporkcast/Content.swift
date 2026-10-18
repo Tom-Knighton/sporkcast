@@ -22,7 +22,7 @@ import ShoppingLists
 import WidgetKit
 
 struct AppContent: View {
-    private let appGroupSuiteName = "group.sporkcast"
+    private let appGroupSuiteName = AppConfiguration.appGroupIdentifier
     private let sharedImportURLDefaultsKey = "share.recipeImportURL.v1"
     private static let recipeOrganizationFeatureAccessCacheKey = "features.recipeOrganizationPro.cached.v1"
     private static let socialRecipeImportFeatureAccessCacheKey = "features.recipeSocialImportPro.cached.v1"
@@ -44,7 +44,7 @@ struct AppContent: View {
     @State private var showAlert = false
     
     @State private var appSettings = SettingsStore()
-    @State private var apiClient = APIClient(host: "https://api.dev.sporkast.tomk.online/")
+    @State private var apiClient = APIClient(host: AppConfiguration.apiURL)
     @State private var pendingSharedImportURL: URL?
     @State private var lastRoutedSharedImport: (url: String, at: Date)?
     @State private var isOnboardingPresented = false
@@ -56,7 +56,7 @@ struct AppContent: View {
     @Environment(\.mealplanCalendarSync) private var mealplanCalendarSync
     
     public init() {
-        self.flagKit = .init(mobileKey: "mob-0e75d9dd-fb2e-4080-b627-83dfaf403079", subscriptionTier: "free")
+        self.flagKit = .init(mobileKey: AppConfiguration.launchDarklyMobileKey, subscriptionTier: "free")
         self._cachedRecipeOrganizationFeatureAccess = State(
             initialValue: Self.cachedRecipeOrganizationFeatureAccess
         )
@@ -248,7 +248,7 @@ struct AppContent: View {
                 .appEntityIdentifier(EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id))
                 .userActivity("online.tomk.sporkcast.view-mealplan") { activity in
                     activity.title = "Sporkcast Mealplan"
-                    activity.targetContentIdentifier = "sporkcast://mealplan"
+                    activity.targetContentIdentifier = "\(AppConfiguration.urlScheme)://mealplan"
                     activity.appEntityIdentifier = EntityIdentifier(for: MealplanCalendarEntity.self, identifier: MealplanCalendarEntity.mealplan.id)
                     activity.isEligibleForSearch = true
                     activity.isEligibleForPrediction = true
@@ -418,7 +418,7 @@ extension AppContent {
             return
         }
 
-        guard incomingURL.scheme?.lowercased() == "sporkcast",
+        guard incomingURL.scheme?.lowercased() == AppConfiguration.urlScheme,
               incomingURL.host == "import-recipe" || incomingURL.host == "mealplan" || incomingURL.host == "recipe" else {
             return
         }

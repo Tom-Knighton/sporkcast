@@ -535,7 +535,7 @@ private extension MealplanCalendarSyncService {
         event.isAllDay = true
         event.startDate = startOfDay
         event.endDate = endDate
-        event.url = URL(string: "sporkcast://mealplan")
+        event.url = URL(string: "\(AppConfiguration.urlScheme)://mealplan")
         event.notes = eventNotes(for: entry)
     }
 

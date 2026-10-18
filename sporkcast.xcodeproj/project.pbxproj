@@ -80,6 +80,8 @@
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
 		E2F3719F2FC78D4B00477F2B /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
+		B203FADEDDE04C0B97CDF704 /* Development.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Development.xcconfig; sourceTree = SOURCE_ROOT; };
+		D8C446658FDE4503B7BA6E11 /* Production.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Production.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -234,6 +236,8 @@
 		E2BBA8F02E59224700846D3E = {
 			isa = PBXGroup;
 			children = (
+				B203FADEDDE04C0B97CDF704 /* Development.xcconfig */,
+				D8C446658FDE4503B7BA6E11 /* Production.xcconfig */,
 				E23E23832F812E0E00B5F431 /* TestPlan.xctestplan */,
 				E2BBD5F82EF610AF00F7097E /* ci_scripts */,
 				E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */,
@@ -285,6 +289,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E23AC6B62E88A16F00A1CC8E /* Build configuration list for PBXNativeTarget "countdownextensionExtension" */;
 			buildPhases = (
+				2F5D171B3C6A4ED590BD2CD8 /* Validate environment */,
 				E23AC6A22E88A16E00A1CC8E /* Sources */,
 				E23AC6A32E88A16E00A1CC8E /* Frameworks */,
 				E23AC6A42E88A16E00A1CC8E /* Resources */,
@@ -308,6 +313,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E241B1222F9B000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareExtension" */;
 			buildPhases = (
+				073997FD0DE44452838EE154 /* Validate environment */,
 				E241B1132F9B000100A1CC8E /* Sources */,
 				E241B1112F9B000100A1CC8E /* Frameworks */,
 				E241B1122F9B000100A1CC8E /* Resources */,
@@ -330,6 +336,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E241B2222F9C000100A1CC8E /* Build configuration list for PBXNativeTarget "recipeShareServiceExtension" */;
 			buildPhases = (
+				E343622920C34BCFB07B6408 /* Validate environment */,
 				E241B2132F9C000100A1CC8E /* Sources */,
 				E241B2112F9C000100A1CC8E /* Frameworks */,
 				E241B2122F9C000100A1CC8E /* Resources */,
@@ -352,6 +359,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E2BBA9042E59224900846D3E /* Build configuration list for PBXNativeTarget "sporkcast" */;
 			buildPhases = (
+				9CFA5D649FA249019B38A808 /* Validate environment */,
 				E2BBA8F52E59224700846D3E /* Sources */,
 				E2BBA8F62E59224700846D3E /* Frameworks */,
 				E2BBA8F72E59224700846D3E /* Resources */,
@@ -462,6 +470,61 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		2F5D171B3C6A4ED590BD2CD8 /* Validate environment */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			name = "Validate environment";
+			showEnvVarsInLog = 0;
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+		};
+		073997FD0DE44452838EE154 /* Validate environment */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			name = "Validate environment";
+			showEnvVarsInLog = 0;
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+		};
+		E343622920C34BCFB07B6408 /* Validate environment */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			name = "Validate environment";
+			showEnvVarsInLog = 0;
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+		};
+		9CFA5D649FA249019B38A808 /* Validate environment */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			name = "Validate environment";
+			showEnvVarsInLog = 0;
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		E23AC6A22E88A16E00A1CC8E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -540,7 +603,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.countdownextension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).countdownextension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -584,7 +647,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.countdownextension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).countdownextension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -611,7 +674,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = recipeShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Add Recipe to Sporkcast";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_SHARE_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -625,7 +688,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).recipeShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -651,7 +714,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = recipeShareExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Add Recipe to Sporkcast";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_SHARE_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -665,7 +728,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).recipeShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -690,7 +753,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = recipeShareServiceExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Share to Sporkast";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_SHARE_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -704,7 +767,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareServiceExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).recipeShareServiceExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -729,7 +792,7 @@
 				DEVELOPMENT_TEAM = 8H3J46CN24;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = recipeShareServiceExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Share to Sporkast";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_SHARE_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -743,7 +806,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast.recipeShareServiceExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID).recipeShareServiceExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -760,6 +823,7 @@
 		};
 		E2BBA9022E59224900846D3E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B203FADEDDE04C0B97CDF704 /* Development.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -825,6 +889,7 @@
 		};
 		E2BBA9032E59224900846D3E /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D8C446658FDE4503B7BA6E11 /* Production.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -884,7 +949,7 @@
 		E2BBA9052E59224900846D3E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = DevAppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = sporkcast/sporkcast.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -893,7 +958,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
@@ -914,7 +979,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -942,7 +1007,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Sporkcast;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_DISPLAY_NAME)";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
@@ -963,7 +1028,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = online.tomk.sporkcast;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SPORKCAST_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

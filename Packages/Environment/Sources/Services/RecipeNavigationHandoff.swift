@@ -10,7 +10,7 @@ import Foundation
 @MainActor
 @Observable
 public final class RecipeNavigationHandoff {
-    private static let appGroupSuiteName = "group.sporkcast"
+    private static let appGroupSuiteName = AppConfiguration.appGroupIdentifier
     private static let pendingRecipeIDKey = "intent.openRecipe.id.v1"
 
     public struct Request: Equatable {

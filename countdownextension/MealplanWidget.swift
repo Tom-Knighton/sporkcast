@@ -17,7 +17,7 @@ struct MealplanWidget: Widget {
                 .containerBackground(for: .widget) {
                     MealplanWidgetBackground()
                 }
-                .widgetURL(URL(string: "sporkcast://mealplan"))
+                .widgetURL(URL(string: "\(AppConfiguration.urlScheme)://mealplan"))
         }
         .configurationDisplayName("Mealplan")
         .description("See upcoming meals from your Sporkast mealplan.")

@@ -1,0 +1,85 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.98291,0.95801,0.90381,1.00000",
+      "display-p3:0.96777,0.94629,0.89600,1.00000"
+    ],
+    "orientation": {
+      "start": {
+        "x": 0.5,
+        "y": 0
+      },
+      "stop": {
+        "x": 0.5,
+        "y": 0.7
+      }
+    }
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.90820,0.43994,0.29297,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": "automatic"
+            }
+          ],
+          "glass": false,
+          "image-name": "hammer.png",
+          "name": "Hammer",
+          "position": {
+            "scale": 0.8,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "glass": false,
+          "image-name": "02_plate_arc 2.svg",
+          "name": "02_plate_arc 2",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [
+              0,
+              -62
+            ]
+          }
+        },
+        {
+          "glass": false,
+          "image-name": "01_sun_disk.svg",
+          "name": "01_sun_disk",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [
+              0,
+              -43
+            ]
+          }
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

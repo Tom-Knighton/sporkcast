@@ -11,7 +11,7 @@ import SwiftUI
 @MainActor
 @Observable
 public final class RecipeSearchHandoff {
-    private static let appGroupSuiteName = "group.sporkcast"
+    private static let appGroupSuiteName = AppConfiguration.appGroupIdentifier
     private static let pendingSearchKey = "intent.recipeSearch.query.v1"
 
     public struct Request: Equatable {

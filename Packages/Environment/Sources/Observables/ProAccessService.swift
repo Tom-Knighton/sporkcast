@@ -63,14 +63,8 @@ public protocol ProAccessServiceProtocol: AnyObject, Sendable {
 @Observable
 public final class ProAccessService: ProAccessServiceProtocol, @unchecked Sendable {
 
-    #if DEBUG
-    private static let apiKey = "test_LLDFxuRGhaxgNbxfraFSrtPXLqP"
-    #else
-    private static let apiKey = "appl_KQWYKmRLREkFTHMvhmyjqISPxKg"
-    #endif
-    
     public static let entitlementIdentifier = "Sporkast Pro"
-    public static let shared = ProAccessService(apiKey: apiKey)
+    public static let shared = ProAccessService(apiKey: AppConfiguration.revenueCatAPIKey)
 
     public private(set) var hasProAccess = false
     public private(set) var subscriptionTier = "free"

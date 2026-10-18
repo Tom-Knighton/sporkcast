@@ -2,6 +2,26 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>SPORKCAST_ENVIRONMENT</key>
+	<string>$(SPORKCAST_ENVIRONMENT)</string>
+	<key>SPORKCAST_API_URL</key>
+	<string>$(SPORKCAST_API_URL)</string>
+	<key>SPORKCAST_SUPABASE_URL</key>
+	<string>$(SPORKCAST_SUPABASE_URL)</string>
+	<key>SPORKCAST_SUPABASE_PUBLIC_KEY</key>
+	<string>$(SPORKCAST_SUPABASE_PUBLIC_KEY)</string>
+	<key>SPORKCAST_REVENUECAT_API_KEY</key>
+	<string>$(SPORKCAST_REVENUECAT_API_KEY)</string>
+	<key>SPORKCAST_LAUNCHDARKLY_MOBILE_KEY</key>
+	<string>$(SPORKCAST_LAUNCHDARKLY_MOBILE_KEY)</string>
+	<key>SPORKCAST_APP_GROUP</key>
+	<string>$(SPORKCAST_APP_GROUP)</string>
+	<key>SPORKCAST_URL_SCHEME</key>
+	<string>$(SPORKCAST_URL_SCHEME)</string>
+	<key>SPORKCAST_KEYCHAIN_SERVICE</key>
+	<string>$(SPORKCAST_KEYCHAIN_SERVICE)</string>
+	<key>SPORKCAST_INVITE_HOST</key>
+	<string>$(SPORKCAST_INVITE_HOST)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

@@ -3,29 +3,29 @@
 <plist version="1.0">
 <dict>
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>$(SPORKCAST_APS_ENVIRONMENT)</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:sporkast.tom-knighton.com</string>
-		<string>applinks:sporkast.tom-knighton.com?mode=developer</string>
+		<string>applinks:$(SPORKCAST_INVITE_HOST)</string>
+		<string>applinks:$(SPORKCAST_INVITE_HOST)?mode=developer</string>
 	</array>
 	<key>com.apple.developer.icloud-container-environment</key>
-	<string>Production</string>
+	<string>$(SPORKCAST_ICLOUD_ENVIRONMENT)</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.online.tomk.sporkcast</string>
+		<string>$(SPORKCAST_ICLOUD_CONTAINER)</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>
 		<string>CloudKit</string>
 	</array>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
-	<string>$(TeamIdentifierPrefix)online.tomk.sporkcast</string>
+	<string>$(TeamIdentifierPrefix)$(SPORKCAST_ICLOUD_KVSTORE)</string>
 	<key>com.apple.developer.weatherkit</key>
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.sporkcast</string>
+		<string>$(SPORKCAST_APP_GROUP)</string>
 	</array>
 </dict>
 </plist>

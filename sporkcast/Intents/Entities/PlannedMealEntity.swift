@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Environment
 @preconcurrency import AppIntents
 import CoreSpotlight
 import GeoToolbox
@@ -290,7 +291,7 @@ public struct PlannedMealEntity: IndexedEntity, Identifiable, Sendable {
         let attributeSet = defaultAttributeSet
         let dateText = startDate.formatted(date: .abbreviated, time: .omitted)
 
-        attributeSet.contentURL = URL(string: "sporkcast://mealplan?id=\(id.uuidString)")
+        attributeSet.contentURL = URL(string: "\(AppConfiguration.urlScheme)://mealplan?id=\(id.uuidString)")
         attributeSet.startDate = startDate
         attributeSet.endDate = endDate
         attributeSet.allDay = true

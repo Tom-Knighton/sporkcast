@@ -10,7 +10,7 @@ import Security
 import Supabase
 
 public struct SporkastSupabaseKeychainLocalStorage: AuthLocalStorage {
-    public static let defaultService = "online.tomk.sporkcast.supabase"
+    public static let defaultService = AppConfiguration.keychainService
     private let service: String
 
     public init(service: String = Self.defaultService) {

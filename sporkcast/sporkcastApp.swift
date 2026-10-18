@@ -22,7 +22,7 @@ struct SporkcastApp: App {
         SupabaseInstallState.clearPersistedSessionAfterFreshInstallIfNeeded()
         var appDatabase: (any DatabaseWriter)!
         prepareDependencies {
-            appDatabase = try! AppDatabaseFactory.makeAppDatabase(tracer: { description in
+            appDatabase = try! AppDatabaseFactory.makeAppDatabase(path: AppConfiguration.databasePath, tracer: { description in
 #if DEBUG
 //                print(description)
 #endif

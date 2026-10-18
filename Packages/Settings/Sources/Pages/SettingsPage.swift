@@ -29,5 +29,5 @@ public struct SettingsPage: View {
         .environment(AppRouter(initialTab: .settings))
         .environment(\.homeServices, HouseholdService.shared)
         .environment(\.appSettings, SettingsStore())
-        .environment(\.networkClient, APIClient(host: "https://api.dev.sporkast.tomk.online/"))
+        .environment(\.networkClient, APIClient(host: AppConfiguration.apiURL))
 }

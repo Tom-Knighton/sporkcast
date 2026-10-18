@@ -93,7 +93,7 @@ private enum RecipeIntentImporter {
 
         let homeId = HouseholdService.shared.home?.id
         let repository = RecipesRepository(observesChanges: false)
-        let coordinator = RecipeImportCoordinator(client: APIClient(host: "https://api.dev.sporkast.tomk.online/"))
+        let coordinator = RecipeImportCoordinator(client: APIClient(host: AppConfiguration.apiURL))
         let result = try await coordinator.prepareImport(from: .webURL(url), homeId: homeId)
 
         guard let candidate = result.candidates.first else {

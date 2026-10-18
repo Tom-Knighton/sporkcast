@@ -8,7 +8,7 @@
 import Foundation
 
 public struct SupabaseHomeInviteLink: Identifiable, Sendable, Equatable {
-    public static let host = "sporkast.tom-knighton.com"
+    public static let host = AppConfiguration.inviteHost
 
     public let token: String
 

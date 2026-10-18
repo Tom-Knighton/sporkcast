@@ -9,3 +9,5 @@ node_modules/
 buildServer.json
 
 output/*
+
+Configuration/*.local.xcconfig

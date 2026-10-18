@@ -9,7 +9,8 @@ final class ShareViewController: UIViewController {
         case failed(String)
     }
 
-    private let appGroupSuiteName = "group.sporkcast"
+    private let appGroupSuiteName = configurationValue("SPORKCAST_APP_GROUP")
+    private let urlScheme = configurationValue("SPORKCAST_URL_SCHEME")
     private let sharedImportURLDefaultsKey = "share.recipeImportURL.v1"
     private let socialRecipeImportFeatureAccessCacheKey = "features.recipeSocialImportPro.cached.v1"
 
@@ -162,7 +163,7 @@ final class ShareViewController: UIViewController {
 
     private func makeImportDeepLink(for sourceURL: URL) -> URL? {
         var components = URLComponents()
-        components.scheme = "sporkcast"
+        components.scheme = urlScheme
         components.host = "import-recipe"
         components.queryItems = [URLQueryItem(name: "url", value: sourceURL.absoluteString)]
         return components.url
@@ -213,7 +214,7 @@ final class ShareViewController: UIViewController {
     }
 
     private func openContainingApp() async -> Bool {
-        guard let targetURL = importDeepLink ?? URL(string: "sporkcast://import-recipe") else {
+        guard let targetURL = importDeepLink ?? URL(string: "\(urlScheme)://import-recipe") else {
             return false
         }
 
@@ -436,4 +437,12 @@ final class ShareViewController: UIViewController {
     private func didTapDone() {
         completeShareRequest()
     }
+}
+
+private func configurationValue(_ key: String) -> String {
+    guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+          !value.isEmpty, !value.contains("$(") else {
+        fatalError("Missing \(key) in extension configuration")
+    }
+    return value
 }

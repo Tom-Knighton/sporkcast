@@ -1,3 +1,4 @@
+import Environment
 import AppIntents
 import Models
 import SwiftUI
@@ -11,7 +12,7 @@ struct RecipeActivityModifier: ViewModifier {
                 .appEntityIdentifier(EntityIdentifier(for: RecipeEntity.self, identifier: recipe.id))
                 .userActivity("online.tomk.sporkcast.view-recipe", element: recipe.id) { recipeID, activity in
                     activity.title = recipe.title
-                    activity.targetContentIdentifier = "sporkcast://recipe/\(recipeID.uuidString)"
+                    activity.targetContentIdentifier = "\(AppConfiguration.urlScheme)://recipe/\(recipeID.uuidString)"
                     activity.appEntityIdentifier = EntityIdentifier(for: RecipeEntity.self, identifier: recipeID)
                     activity.isEligibleForSearch = true
                     activity.isEligibleForPrediction = true

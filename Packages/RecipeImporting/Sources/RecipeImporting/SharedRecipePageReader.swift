@@ -1,9 +1,10 @@
 import Foundation
+import Environment
 
 enum SharedRecipePageReader {
     static let defaultsKey = "share.recipePage.v1"
 
-    static func takeRecipe(for url: URL, defaults: UserDefaults? = UserDefaults(suiteName: "group.sporkcast")) -> ImportedRecipeRecord? {
+    static func takeRecipe(for url: URL, defaults: UserDefaults? = UserDefaults(suiteName: AppConfiguration.appGroupIdentifier)) -> ImportedRecipeRecord? {
         guard let defaults, let data = defaults.data(forKey: defaultsKey) else { return nil }
         defer { defaults.removeObject(forKey: defaultsKey) }
         guard data.count <= 1_000_000,

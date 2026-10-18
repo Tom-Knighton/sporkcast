@@ -99,7 +99,7 @@ public final class RecipeTimerStore {
     public static let shared = RecipeTimerStore()
     
     private let manager = AlarmManager.shared
-    private let group = UserDefaults(suiteName: "group.sporkcast") ?? UserDefaults.standard
+    private let group = UserDefaults(suiteName: AppConfiguration.appGroupIdentifier) ?? UserDefaults.standard
     private let persistedKey = "running-alarms.v1"
     
     public var timers: [RecipeTimerRowModel] = []

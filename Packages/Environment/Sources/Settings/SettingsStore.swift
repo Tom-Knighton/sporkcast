@@ -10,7 +10,7 @@ import Observation
 
 public extension UserDefaults {
     nonisolated(unsafe) static let appGroup: UserDefaults = {
-        guard let ud = UserDefaults(suiteName: "group.sporkcast") else {
+        guard let ud = UserDefaults(suiteName: AppConfiguration.appGroupIdentifier) else {
             fatalError("Missing app group")
         }
         return ud

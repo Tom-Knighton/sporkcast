@@ -12,9 +12,9 @@ import Environment
 
 public extension EnvironmentValues {
     
-    @Entry var networkClient: any NetworkClient = APIClient(host: "")
+    @Entry var networkClient: any NetworkClient = APIClient(host: AppConfiguration.apiURL)
     @Entry var appSettings: SettingsStore = SettingsStore()
     @Entry var homeServices: any HouseholdServiceProtocol = HouseholdService.shared
-    @Entry var flagKit: any FlagServiceProtocol = FlagService(mobileKey: "")
+    @Entry var flagKit: any FlagServiceProtocol = FlagService(mobileKey: AppConfiguration.launchDarklyMobileKey)
     @Entry var proAccess: any ProAccessServiceProtocol = ProAccessService.shared
 }
