@@ -71,7 +71,7 @@ class EnvironmentConfigurationTests(unittest.TestCase):
 
     def test_distribution_cannot_use_development_services(self):
         for name, value in {
-            "SPORKCAST_API_URL": "https://api.dev.sporkast.tomk.online/",
+            "SPORKCAST_API_URL": "https://api.dev.recipe.tomk.online/",
             "SPORKCAST_SUPABASE_URL": "https://db.sporkast.dev.tomk.online",
             "SPORKCAST_INVITE_HOST": "join.dev.sporkast.test",
             "SPORKCAST_SUPABASE_PUBLIC_KEY": "sb_publishable_tyZO5jlR3XGvNuNHGOKDpe_Xms05kQF",
@@ -139,7 +139,7 @@ class XcodeEnvironmentExpansionTests(unittest.TestCase):
         for item in self.settings("Debug", "production"):
             settings = item["buildSettings"]
             self.assertEqual(settings["SPORKCAST_ENVIRONMENT"], "development")
-            self.assertEqual(settings["SPORKCAST_API_URL"], "https://api.dev.sporkast.tomk.online/")
+            self.assertEqual(settings["SPORKCAST_API_URL"], "https://api.dev.recipe.tomk.online/")
             self.assertTrue(settings["SPORKCAST_REVENUECAT_API_KEY"].startswith("test_"))
 
     def test_missing_ci_values_fail_validation(self):

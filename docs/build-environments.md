@@ -7,6 +7,8 @@ The project has two environments. TestFlight and the App Store use the same prod
 | Development | `sporkcast` | Debug | `online.tomk.sporkcast.development` | Dev API/database, RevenueCat Test Store, dev LaunchDarkly |
 | Production | `sporkcast Production` | Release | `online.tomk.sporkcast` | Production API/database, RevenueCat Apple app, production LaunchDarkly |
 
+The development API uses Azure at `https://api.dev.recipe.tomk.online/`. Production CI must set `SPORKCAST_CI_API_URL=https://api.sporkast.tomk.online/`. Railway is retired.
+
 Daily development still uses the existing `sporkcast` scheme and Run action. No CI variables, endpoint edits, branch changes, or scheme switching are required.
 
 The production bundle ID is retained. Development has a separate identity: the first Run installs **Sporkcast Dev** alongside the old app, with a fresh database, settings, and login. Existing on-device data remains in the old app; export recipes there and import them into Sporkcast Dev if needed. Do not delete the old app before exporting anything you want to retain.
@@ -61,7 +63,9 @@ Provision the production API, Supabase database/auth configuration, invite domai
 
 Use one distribution workflow with the `sporkcast Production` scheme. Add the six variables above to the workflow's Environment settings and mark their values **Secret / Keep value redacted**. Select Archive and configure distribution to the existing app's TestFlight. After testing, submit the same build for App Store review.
 
-No changes to `ci_pre_xcodebuild.sh` are required; Xcode reads the workflow variables directly. Apple documents [workflow environment variables](https://developer.apple.com/documentation/xcode/xcode-cloud-workflow-reference). Do not print the environment or run `xcodebuild -showBuildSettings` in CI logs with real values. The project's validation phases have environment logging disabled.
+Use the exact `SPORKCAST_CI_*` names in the table. For example, the Cloud variable must be `SPORKCAST_CI_LAUNCHDARKLY_MOBILE_KEY`; `SPORKCAST_LAUNCHDARKLY_MOBILE_KEY` is the final Xcode build setting used by local xcconfig overrides, not the Cloud input. Secret/redaction can remain enabled.
+
+`ci_pre_xcodebuild.sh` checks the required Cloud variable names before production builds and archives. `ci_post_xcodebuild.sh` verifies the completed archive's actual app and extension Info.plists, including agreement with the supplied CI values. This catches missing bundled values even if a shell variable is present. These checks print only setting names, never values. Xcode still reads workflow variables directly; neither hook generates configuration files. Apple documents [workflow environment variables](https://developer.apple.com/documentation/xcode/xcode-cloud-workflow-reference). Do not print the environment or run `xcodebuild -showBuildSettings` in CI logs with real values. The project's validation phases have environment logging disabled.
 
 ### GitHub Actions
 
@@ -85,6 +89,7 @@ Run guard regression tests:
 
 ```sh
 python3 scripts/test-environment-configuration.py
+python3 scripts/test-cloud-configuration.py
 ```
 
 Also verify real Xcode environment expansion for dev, production, all extensions, and missing configuration using fixture values without contacting services:

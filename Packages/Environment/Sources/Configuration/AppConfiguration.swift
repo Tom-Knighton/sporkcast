@@ -2,7 +2,7 @@ import Foundation
 
 public enum AppConfiguration {
     public static let environment = value("SPORKCAST_ENVIRONMENT", developmentDefault: "development")
-    public static let apiURL = value("SPORKCAST_API_URL", developmentDefault: "https://api.dev.sporkast.tomk.online/")
+    public static let apiURL = value("SPORKCAST_API_URL", developmentDefault: "https://api.dev.recipe.tomk.online/")
     public static let supabaseURL = requiredURL("SPORKCAST_SUPABASE_URL", developmentDefault: "https://db.sporkast.dev.tomk.online")
     public static let supabasePublishableKey = value("SPORKCAST_SUPABASE_PUBLIC_KEY", developmentDefault: "sb_publishable_tyZO5jlR3XGvNuNHGOKDpe_Xms05kQF")
     public static let revenueCatAPIKey = value("SPORKCAST_REVENUECAT_API_KEY", developmentDefault: "test_LLDFxuRGhaxgNbxfraFSrtPXLqP")

@@ -68,6 +68,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		B203FADEDDE04C0B97CDF704 /* Configuration/Development.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Development.xcconfig; sourceTree = SOURCE_ROOT; };
+		D8C446658FDE4503B7BA6E11 /* Configuration/Production.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Production.xcconfig; sourceTree = SOURCE_ROOT; };
 		E23AC68D2E874EFB00A1CC8E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		E23AC68F2E874EFB00A1CC8E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = sporkcast.countdownextensionExtension.entitlements; sourceTree = "<group>"; };
@@ -80,8 +82,6 @@
 		E2BBA8F92E59224700846D3E /* sporkcast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sporkcast.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2BBD5F92EF610C900F7097E /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
 		E2F3719F2FC78D4B00477F2B /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
-		B203FADEDDE04C0B97CDF704 /* Development.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Development.xcconfig; sourceTree = SOURCE_ROOT; };
-		D8C446658FDE4503B7BA6E11 /* Production.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Production.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -236,8 +236,8 @@
 		E2BBA8F02E59224700846D3E = {
 			isa = PBXGroup;
 			children = (
-				B203FADEDDE04C0B97CDF704 /* Development.xcconfig */,
-				D8C446658FDE4503B7BA6E11 /* Production.xcconfig */,
+				B203FADEDDE04C0B97CDF704 /* Configuration/Development.xcconfig */,
+				D8C446658FDE4503B7BA6E11 /* Configuration/Production.xcconfig */,
 				E23E23832F812E0E00B5F431 /* TestPlan.xctestplan */,
 				E2BBD5F82EF610AF00F7097E /* ci_scripts */,
 				E23AC6A12E874F2300A1CC8E /* sporkcast.countdownextensionExtension.entitlements */,
@@ -471,57 +471,73 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		2F5D171B3C6A4ED590BD2CD8 /* Validate environment */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
-			name = "Validate environment";
-			showEnvVarsInLog = 0;
-			outputPaths = ();
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
-		};
 		073997FD0DE44452838EE154 /* Validate environment */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/validate-environment.sh",
+			);
 			name = "Validate environment";
-			showEnvVarsInLog = 0;
-			outputPaths = ();
+			outputPaths = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+			showEnvVarsInLog = 0;
 		};
-		E343622920C34BCFB07B6408 /* Validate environment */ = {
+		2F5D171B3C6A4ED590BD2CD8 /* Validate environment */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/validate-environment.sh",
+			);
 			name = "Validate environment";
-			showEnvVarsInLog = 0;
-			outputPaths = ();
+			outputPaths = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+			showEnvVarsInLog = 0;
 		};
 		9CFA5D649FA249019B38A808 /* Validate environment */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ("$(SRCROOT)/scripts/validate-environment.sh",);
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/validate-environment.sh",
+			);
 			name = "Validate environment";
-			showEnvVarsInLog = 0;
-			outputPaths = ();
+			outputPaths = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+			showEnvVarsInLog = 0;
+		};
+		E343622920C34BCFB07B6408 /* Validate environment */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/validate-environment.sh",
+			);
+			name = "Validate environment";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/validate-environment.sh\"";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -823,7 +839,7 @@
 		};
 		E2BBA9022E59224900846D3E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B203FADEDDE04C0B97CDF704 /* Development.xcconfig */;
+			baseConfigurationReference = B203FADEDDE04C0B97CDF704 /* Configuration/Development.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -889,7 +905,7 @@
 		};
 		E2BBA9032E59224900846D3E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D8C446658FDE4503B7BA6E11 /* Production.xcconfig */;
+			baseConfigurationReference = D8C446658FDE4503B7BA6E11 /* Configuration/Production.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -958,7 +974,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_DISPLAY_NAME)";
+				INFOPLIST_KEY_CFBundleDisplayName = "Sporkcast Dev";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
@@ -970,7 +986,6 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -991,7 +1006,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -1007,7 +1022,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = sporkcast/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "$(SPORKCAST_DISPLAY_NAME)";
+				INFOPLIST_KEY_CFBundleDisplayName = "Sporkcast Dev";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Sync your mealplans with Apple Calendar.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Import recipe photos to scan text.";
@@ -1019,7 +1034,6 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1040,7 +1054,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
